@@ -1,16 +1,32 @@
 const vs = `
+
+struct VertexOutput {
+    @builtin(position) position : vec4f,
+    @location(0) fragUv : vec2f,
+    @location(1) fragColor : vec4f
+}   
+
 @vertex
 fn main(
     @builtin(vertex_index) VertexIndex : u32,
-    @location(0) position : vec2f
-) -> @builtin(position) vec4f {
-    return vec4f(position, 0.0, 1.0);
+    @location(0) position : vec2f,
+    @location(1) uv : vec2f
+) -> VertexOutput {
+    var out : VertexOutput;
+    out.position = vec4f(position, 0.0, 1.0);
+    out.fragUv = uv;
+    out.fragColor = vec4f(0.0, 1.0, 0.0, 1.0);
+    return out;
 }
+
 `;
 const fs = `
 @fragment
-fn main() -> @location(0) vec4f {
-  return vec4(1.0, 0.0, 0.0, 1.0);
+fn main(
+    @location(0) fragUv: vec2f,
+    @location(1) fragColor: vec4f
+) -> @location(0) vec4f {
+  return fragColor;
 }
 `;
 
@@ -30,7 +46,7 @@ class Spritter {
         this.vertexBufferEntries = 1024;
         this.vertexStagingCount = 0;
         this.vertexStaging = new Float32Array(this.vertexBufferEntries);
-        this.vertexBufferEntrySize = 2;
+        this.vertexBufferEntrySize = 4;
         this.vertexBufferEntryBytes = this.vertexBufferEntrySize * this.vertexStaging.BYTES_PER_ELEMENT;
         this.vertexBuffer = device.createBuffer({
             size: this.vertexStaging.byteLength,
@@ -53,6 +69,11 @@ class Spritter {
                             {
                                 shaderLocation: 0,
                                 offset: 0,
+                                format: 'float32x2'
+                            },
+                            {
+                                shaderLocation: 1,
+                                offset: 4 * 2,
                                 format: 'float32x2'
                             }
                         ]
@@ -84,19 +105,18 @@ class Spritter {
         let halfw = w/2;
         let halfh = h/2;
         this.vertexStaging.set([
-            x - halfw, y + halfh,
-            x + halfw, y + halfh,
-            x - halfw, y - halfh,
+            x - halfw, y + halfh, 0, 0,
+            x + halfw, y + halfh, 0, 0,
+            x - halfw, y - halfh, 0, 0,
 
-            x + halfw, y + halfh,
-            x + halfw, y - halfh,
-            x - halfw, y - halfh
+            x + halfw, y + halfh, 0, 0,
+            x + halfw, y - halfh, 0, 0,
+            x - halfw, y - halfh, 0, 0
         ], this.vertexStagingCount * this.vertexBufferEntrySize);
         this.vertexStagingCount += 6;
     }
     flushVertexStaging() {
         this.vertexStagingCount = 0;
-        // this.vertexStaging.fill(0);
     }
 
     doStuff() {
