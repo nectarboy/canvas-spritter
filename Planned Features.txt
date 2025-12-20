@@ -1,0 +1,14 @@
+Roadmap:
+[x] get Spritter to get something on screen
+[] be able to provide Spritter a list of objects to render each frame from JS land
+[] do the above every frame
+[] render quads of different colors given by JS
+[] get textures working
+
+Planned Features:
+* rendering textured quads (sprites) with rotation and scale
+* rendering textured polygons
+* object priority
+* object scales (perspective) using z
+* support for effects like texture displacement mapping, masking, texture moves and rotates unrelative to object, etc
+* shaders applied to individual objects
