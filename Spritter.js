@@ -27,9 +27,12 @@ class Spritter {
         this.device = device;
         this.encoder = device.createCommandEncoder();
 
-        this.bufferStride = 4 * 2;
-        this.someBuffer = device.createBuffer({
-            size: 4096,
+        this.vertexBufferEntrySize = 4 * 2;
+        this.vertexBufferEntries = 1024;
+        this.vertexStagingCount = 0;
+        this.vertexStaging = new Float32Array(this.vertexBufferEntries);
+        this.vertexBuffer = device.createBuffer({
+            size: this.vertexStaging.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
 
@@ -44,7 +47,7 @@ class Spritter {
                 buffers: [
                     // vertex buffer
                     {
-                        arrayStride: this.bufferStride,
+                        arrayStride: this.vertexBufferEntrySize,
                         attributes: [
                             {
                                 shaderLocation: 0,
@@ -76,7 +79,44 @@ class Spritter {
 
     }
 
+    bufferQuad(x,y, w,h) {
+        let halfw = w/2;
+        let halfh = h/2;
+        this.vertexStaging.set([
+            x - halfw, y + halfh,
+            x + halfw, y + halfh,
+            x - halfw, y - halfh,
+
+            x + halfw, y + halfh,
+            x + halfw, y - halfh,
+            x - halfw, y - halfh
+        ], this.vertexStagingCount * this.vertexBufferEntrySize);
+        this.vertexStagingCount += 6;
+    }
+    flushVertexStaging() {
+        this.vertexStagingCount = 0;
+        this.vertexStaging.fill(0);
+    }
+
+    doStuff() {
+        let now = new Date() / 500;
+
+        // this.vertexStaging.set([
+        //     0.0 + Math.random(), 0.5,
+        //     -0.5, -0.5,
+        //     0.5, -0.5,
+        // ], 0);
+        // this.vertexStagingCount = 3;
+
+        this.bufferQuad(-0.5, 0, 0.2, 0.2);
+
+
+        this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2);
+    }
+
     draw() {
+        this.doStuff();
+
         const canvasTextureView = this.ctx.getCurrentTexture().createView();
         const commandEncoder = this.device.createCommandEncoder();
         const renderPassDescriptor = {
@@ -90,29 +130,31 @@ class Spritter {
             ]
         };
 
-        const testVertexBuffer = new Float32Array([
-            0.0 + Math.random(), 0.5,
-            -0.5, -0.5,
-            0.5, -0.5,
+        // const testVertexBuffer = new Float32Array([
+        //     0.0 + Math.random(), 0.5,
+        //     -0.5, -0.5,
+        //     0.5, -0.5,
 
-            Math.random(), Math.random(),
-            Math.random(), Math.random(),
-            Math.random(), Math.random()
-        ]);
+        //     Math.random(), Math.random(),
+        //     Math.random(), Math.random(),
+        //     Math.random(), Math.random()
+        // ]);
         this.device.queue.writeBuffer(
-            this.someBuffer,
+            this.vertexBuffer,
             0,
-            testVertexBuffer.buffer,
-            testVertexBuffer.byteOffset,
-            testVertexBuffer.byteLength
+            this.vertexStaging.buffer,
+            this.vertexStaging.byteOffset,
+            this.vertexStaging.byteLength
         );
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
-        passEncoder.setVertexBuffer(0, this.someBuffer);
-        passEncoder.draw(testVertexBuffer.length);
+        passEncoder.setVertexBuffer(0, this.vertexBuffer);
+        passEncoder.draw(this.vertexStaging.byteLength / this.vertexBufferEntrySize);
         passEncoder.end();
 
         this.device.queue.submit([commandEncoder.finish()]);
+
+        this.flushVertexStaging();
     }
 }
