@@ -27,10 +27,11 @@ class Spritter {
         this.device = device;
         this.encoder = device.createCommandEncoder();
 
-        this.vertexBufferEntrySize = 4 * 2;
         this.vertexBufferEntries = 1024;
         this.vertexStagingCount = 0;
         this.vertexStaging = new Float32Array(this.vertexBufferEntries);
+        this.vertexBufferEntrySize = 2;
+        this.vertexBufferEntryBytes = this.vertexBufferEntrySize * this.vertexStaging.BYTES_PER_ELEMENT;
         this.vertexBuffer = device.createBuffer({
             size: this.vertexStaging.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -47,7 +48,7 @@ class Spritter {
                 buffers: [
                     // vertex buffer
                     {
-                        arrayStride: this.vertexBufferEntrySize,
+                        arrayStride: this.vertexBufferEntryBytes,
                         attributes: [
                             {
                                 shaderLocation: 0,
@@ -95,7 +96,7 @@ class Spritter {
     }
     flushVertexStaging() {
         this.vertexStagingCount = 0;
-        this.vertexStaging.fill(0);
+        // this.vertexStaging.fill(0);
     }
 
     doStuff() {
@@ -111,7 +112,8 @@ class Spritter {
         this.bufferQuad(-0.5, 0, 0.2, 0.2);
 
 
-        this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2);
+        if (Math.random() > 0.5)
+            this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2);
     }
 
     draw() {
@@ -144,13 +146,13 @@ class Spritter {
             0,
             this.vertexStaging.buffer,
             this.vertexStaging.byteOffset,
-            this.vertexStaging.byteLength
+            this.vertexStagingCount * this.vertexBufferEntryBytes
         );
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setVertexBuffer(0, this.vertexBuffer);
-        passEncoder.draw(this.vertexStaging.byteLength / this.vertexBufferEntrySize);
+        passEncoder.draw(this.vertexStagingCount);
         passEncoder.end();
 
         this.device.queue.submit([commandEncoder.finish()]);
