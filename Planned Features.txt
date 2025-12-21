@@ -1,9 +1,9 @@
 Roadmap:
 [x] get Spritter to get something on screen
-[] be able to provide Spritter a list of objects to render each frame from JS land
-[] do the above every frame
-[] render quads of different colors given by JS
-[] get textures working
+[x] be able to provide Spritter a list of objects to render each frame from JS land
+[x] do the above every frame
+[x] get a texture working
+[] different textures with different draw calls
 
 Planned Features:
 * rendering textured quads (sprites) with rotation and scale
@@ -12,3 +12,5 @@ Planned Features:
 * object scales (perspective) using z
 * support for effects like texture displacement mapping, masking, texture moves and rotates unrelative to object, etc
 * shaders applied to individual objects
+* ability for sprite to use whats behind it? aka glass warping effects?
+* load textures into big 2048x2048 texture atlases for less draw calls

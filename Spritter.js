@@ -1,5 +1,4 @@
 const vs = `
-
 struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(0) fragUv : vec2f,
@@ -15,18 +14,27 @@ fn main(
     var out : VertexOutput;
     out.position = vec4f(position, 0.0, 1.0);
     out.fragUv = uv;
-    out.fragColor = vec4f(0.0, 1.0, 0.0, 1.0);
+    if ((VertexIndex & 1) == 1) {
+        out.fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    }
+    else {
+        out.fragColor = vec4(1.0, 0.0, 1.0, 1.0);
+    }
     return out;
 }
-
 `;
+
 const fs = `
+@group(0) @binding(0) var sam : sampler;
+@group(0) @binding(1) var tex : texture_2d<f32>;
+
 @fragment
 fn main(
     @location(0) fragUv: vec2f,
     @location(1) fragColor: vec4f
 ) -> @location(0) vec4f {
-  return fragColor;
+    return textureSample(tex, sam, fragUv);
+    return fragColor;
 }
 `;
 
@@ -95,23 +103,61 @@ class Spritter {
                 topology: 'triangle-list'
             }
         });
+
+        this.uniformBindGroup = null;
+
+        this.testTexture = null;
     };
 
-    init() {
+    async init() {
+        let img = await (await fetch('src/test.png')).blob();
+        let bitmap = await createImageBitmap(img);
 
+        this.testTexture = this.device.createTexture({
+            size: [bitmap.width, bitmap.height, 1],
+            format: 'rgba8unorm',
+            usage:
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_DST |
+                GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.device.queue.copyExternalImageToTexture(
+            {source: bitmap},
+            {texture: this.testTexture},
+            [bitmap.width, bitmap.height]
+        );
+
+        this.sampler = this.device.createSampler({
+            magFilter: 'nearest',
+            minFilter: 'linear',
+        });
+
+        this.uniformBindGroup = this.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: this.sampler
+                },
+                {
+                    binding: 1,
+                    resource: this.testTexture.createView()
+                }
+            ]
+        });
     }
 
-    bufferQuad(x,y, w,h) {
+    bufferQuad(x, y, w, h) {
         let halfw = w/2;
         let halfh = h/2;
         this.vertexStaging.set([
+            x + halfw, y + halfh, 1, 0,
+            x - halfw, y - halfh, 0, 1,
             x - halfw, y + halfh, 0, 0,
-            x + halfw, y + halfh, 0, 0,
-            x - halfw, y - halfh, 0, 0,
 
-            x + halfw, y + halfh, 0, 0,
-            x + halfw, y - halfh, 0, 0,
-            x - halfw, y - halfh, 0, 0
+            x - halfw, y - halfh, 0, 1,
+            x + halfw, y + halfh, 1, 0,
+            x + halfw, y - halfh, 1, 1
         ], this.vertexStagingCount * this.vertexBufferEntrySize);
         this.vertexStagingCount += 6;
     }
@@ -132,8 +178,7 @@ class Spritter {
         this.bufferQuad(-0.5, 0, 0.2, 0.2);
 
 
-        if (Math.random() > 0.5)
-            this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2);
+        this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2);
     }
 
     draw() {
@@ -152,15 +197,6 @@ class Spritter {
             ]
         };
 
-        // const testVertexBuffer = new Float32Array([
-        //     0.0 + Math.random(), 0.5,
-        //     -0.5, -0.5,
-        //     0.5, -0.5,
-
-        //     Math.random(), Math.random(),
-        //     Math.random(), Math.random(),
-        //     Math.random(), Math.random()
-        // ]);
         this.device.queue.writeBuffer(
             this.vertexBuffer,
             0,
@@ -171,6 +207,7 @@ class Spritter {
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
+        passEncoder.setBindGroup(0, this.uniformBindGroup);
         passEncoder.setVertexBuffer(0, this.vertexBuffer);
         passEncoder.draw(this.vertexStagingCount);
         passEncoder.end();

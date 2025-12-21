@@ -26,6 +26,7 @@
     }
 
     let canvas = document.getElementById('canvas');
+    let spritter = null;
 
     async function main()
     {
@@ -40,8 +41,8 @@
 
         console.log('device success');
 
-        const spritter = new Spritter(canvas, device);
-        spritter.init();
+        spritter = new Spritter(canvas, device);
+        await spritter.init();
 
         setInterval(() => {
             spritter.draw();   
