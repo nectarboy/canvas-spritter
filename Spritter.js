@@ -51,6 +51,8 @@ class Spritter {
         this.device = device;
         this.encoder = device.createCommandEncoder();
 
+        this.aspectRatio = this.canvas.width / this.canvas.height;
+
         this.vertexBufferEntries = 1024;
         this.vertexStagingCount = 0;
         this.vertexStaging = new Float32Array(this.vertexBufferEntries);
@@ -147,17 +149,21 @@ class Spritter {
         });
     }
 
-    bufferQuad(x, y, w, h) {
-        let halfw = w/2;
-        let halfh = h/2;
-        this.vertexStaging.set([
-            x + halfw, y + halfh, 1, 0,
-            x - halfw, y - halfh, 0, 1,
-            x - halfw, y + halfh, 0, 0,
+    bufferQuad(x, y, w, h, rot) {
+        let rotVec = Vec2.FromAng(rot);
+        let topLeft = new Vec2(-w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
+        let topRight = new Vec2(w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
+        let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
+        let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
 
-            x - halfw, y - halfh, 0, 1,
-            x + halfw, y + halfh, 1, 0,
-            x + halfw, y - halfh, 1, 1
+        this.vertexStaging.set([
+            topRight.x, topRight.y, 1, 0,
+            botLeft.x, botLeft.y, 0, 1,
+            topLeft.x, topLeft.y, 0, 0,
+
+            botLeft.x, botLeft.y, 0, 1,
+            topRight.x, topRight.y, 1, 0,
+            botRight.x, botRight.y, 1, 1
         ], this.vertexStagingCount * this.vertexBufferEntrySize);
         this.vertexStagingCount += 6;
     }
@@ -175,10 +181,10 @@ class Spritter {
         // ], 0);
         // this.vertexStagingCount = 3;
 
-        this.bufferQuad(-0.5, 0, 0.2, 0.2);
+        this.bufferQuad(-0.5, 0, 0.2, 0.2, now * 100);
 
 
-        this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2);
+        this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2, 0);
     }
 
     draw() {
