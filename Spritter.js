@@ -34,9 +34,9 @@ fn main(
     @location(1) fragColor: vec4f
 ) -> @location(0) vec4f {
     var pix = textureSample(tex, sam, fragUv);
-    if (pix.a == 0.0) {
+    // if (pix.a == 0.0) {
         // discard;
-    }
+    // }
     return pix;
 }
 `;
@@ -105,12 +105,12 @@ class Spritter {
                         blend: {
                             color: {
                                 operation: 'add',
-                                srcFactor: 'one',
+                                srcFactor: 'src-alpha',
                                 dstFactor: 'one-minus-src-alpha'
                             },
                             alpha: {
                                 operation: 'add',
-                                srcFactor: 'one',
+                                srcFactor: 'src-alpha',
                                 dstFactor: 'one-minus-src-alpha'
                             }
                         }
@@ -128,7 +128,7 @@ class Spritter {
     };
 
     async init() {
-        let img = await (await fetch('src/bunny.png')).blob();
+        let img = await (await fetch('src/glow.png')).blob();
         let bitmap = await createImageBitmap(img);
 
         this.testTexture = this.device.createTexture({
