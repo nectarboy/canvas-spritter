@@ -33,8 +33,11 @@ fn main(
     @location(0) fragUv: vec2f,
     @location(1) fragColor: vec4f
 ) -> @location(0) vec4f {
-    return textureSample(tex, sam, fragUv);
-    return fragColor;
+    var pix = textureSample(tex, sam, fragUv);
+    if (pix.a == 0.0) {
+        // discard;
+    }
+    return pix;
 }
 `;
 
@@ -45,7 +48,8 @@ class Spritter {
         this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
         this.ctx.configure({
             device: device,
-            format: this.canvasFormat
+            format: this.canvasFormat,
+            // alphaMode: 'premultiplied'
         });
 
         this.device = device;
@@ -97,7 +101,19 @@ class Spritter {
                 }),
                 targets: [
                     {
-                        format: this.canvasFormat
+                        format: this.canvasFormat,
+                        blend: {
+                            color: {
+                                operation: 'add',
+                                srcFactor: 'one',
+                                dstFactor: 'one-minus-src-alpha'
+                            },
+                            alpha: {
+                                operation: 'add',
+                                srcFactor: 'one',
+                                dstFactor: 'one-minus-src-alpha'
+                            }
+                        }
                     }
                 ]
             },
@@ -112,7 +128,7 @@ class Spritter {
     };
 
     async init() {
-        let img = await (await fetch('src/test.png')).blob();
+        let img = await (await fetch('src/bunny.png')).blob();
         let bitmap = await createImageBitmap(img);
 
         this.testTexture = this.device.createTexture({
@@ -183,10 +199,10 @@ class Spritter {
         // ], 0);
         // this.vertexStagingCount = 3;
 
-        this.bufferQuad(-canvas.width / 2, 0, 64, 64, Math.sin(now) * 90);
+        this.bufferQuad(-canvas.width / 4, 0, 256, 256, 0);
+        this.bufferQuad(-canvas.width / 2, 0, 256, 256, now * 100);
 
-
-        this.bufferQuad(canvas.width * Math.sin(now), canvas.height * Math.cos(now), 64, 64, 0);
+        this.bufferQuad(canvas.width * Math.sin(now), canvas.height * Math.cos(now), 128, 128, 0);
     }
 
     draw() {
