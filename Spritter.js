@@ -151,10 +151,12 @@ class Spritter {
 
     bufferQuad(x, y, w, h, rot) {
         let rotVec = Vec2.FromAng(rot);
-        let topLeft = new Vec2(-w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
-        let topRight = new Vec2(w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
-        let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
-        let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y);
+        let iWidth = 1 / this.canvas.width;
+        let iHeight = 1 / this.canvas.height;
+        let topLeft = new Vec2(-w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
+        let topRight = new Vec2(w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
+        let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
+        let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
 
         this.vertexStaging.set([
             topRight.x, topRight.y, 1, 0,
@@ -181,10 +183,10 @@ class Spritter {
         // ], 0);
         // this.vertexStagingCount = 3;
 
-        this.bufferQuad(-0.5, 0, 0.2, 0.2, now * 100);
+        this.bufferQuad(-canvas.width / 2, 0, 64, 64, Math.sin(now) * 90);
 
 
-        this.bufferQuad(Math.sin(now), Math.cos(now), 0.2, 0.2, 0);
+        this.bufferQuad(canvas.width * Math.sin(now), canvas.height * Math.cos(now), 64, 64, 0);
     }
 
     draw() {
