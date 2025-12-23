@@ -1,4 +1,5 @@
 import EngineConsts from './engine_consts.js';
+import TextureManager from './texture_manager.js';
 import Vec2 from './vec2.js';
 
 const vs = `
@@ -57,6 +58,8 @@ class Spritter {
 
         this.device = device;
         this.encoder = device.createCommandEncoder();
+
+        this.textureManager = new TextureManager(this);
 
         this.aspectRatio = this.canvas.width / this.canvas.height;
 
