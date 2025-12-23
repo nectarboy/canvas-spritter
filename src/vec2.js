@@ -1,3 +1,5 @@
+const DEG_TO_RAD = Math.PI / 180;
+const RAD_TO_DEG = 180 / Math.PI;
 const UP_Y = 1;
 
 class Vec2 {
@@ -154,3 +156,5 @@ class Vec2 {
         return signedAng(-Math.atan2(this.Det(vec), this.Dot(vec)) * RAD_TO_DEG);
     }
 }
+
+export default Vec2;

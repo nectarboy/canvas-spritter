@@ -16,11 +16,9 @@
     <canvas id='canvas' width='480' height='360'></canvas>
     <p id='status'>Hi!</p>
 
-    <script src='src/engine_consts.js'></script>
-    <script src='src/vec2.js'></script>
-    <script src='spritter.js'></script>
+    <script type='module'>
 
-    <script>
+    import Spritter from './src/spritter.js';
 
     function writeStatus(text)
     {

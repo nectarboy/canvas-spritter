@@ -1,3 +1,6 @@
+import EngineConsts from './engine_consts.js';
+import Vec2 from './vec2.js';
+
 const vs = `
 struct VertexOutput {
     @builtin(position) position : vec4f,
@@ -127,9 +130,7 @@ class Spritter {
     };
 
     async init() {
-        let img = await (await fetch('src/bunny.png')).blob();
-        let bitmap = await createImageBitmap(img);
-
+        let bitmap = await this.loadImageBitmap('src/test.png');  
         this.testTexture = this.device.createTexture({
             size: [bitmap.width, bitmap.height, 1],
             format: 'rgba8unorm',
@@ -164,6 +165,12 @@ class Spritter {
         });
     }
 
+    async loadImageBitmap(url) {
+        let blob = await (await fetch(url)).blob();
+        let bitmap = await createImageBitmap(blob);
+        return bitmap;
+    }
+
     bufferQuad(x, y, w, h, rot) {
         let rotVec = Vec2.FromAng(rot);
         let iWidth = 1 / this.canvas.width;
@@ -184,6 +191,7 @@ class Spritter {
         ], this.vertexStagingCount * this.vertexBufferEntrySize);
         this.vertexStagingCount += 6;
     }
+
     flushVertexStaging() {
         this.vertexStagingCount = 0;
     }
@@ -240,3 +248,5 @@ class Spritter {
         this.flushVertexStaging();
     }
 }
+
+export default Spritter;
