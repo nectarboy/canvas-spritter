@@ -76,7 +76,6 @@ class Spritter {
                     code: vs
                 }),
                 buffers: [
-                    // vertex buffer
                     {
                         arrayStride: this.vertexBufferEntryBytes,
                         attributes: [
@@ -128,7 +127,7 @@ class Spritter {
     };
 
     async init() {
-        let img = await (await fetch('src/glow.png')).blob();
+        let img = await (await fetch('src/bunny.png')).blob();
         let bitmap = await createImageBitmap(img);
 
         this.testTexture = this.device.createTexture({

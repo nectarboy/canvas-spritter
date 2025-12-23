@@ -4,6 +4,9 @@ Roadmap:
 [x] do the above every frame
 [x] get a texture working
 [] different textures with different draw calls
+[] polygons
+[] basic shaders like outlines?
+[] a good interface
 
 Planned Features:
 * rendering textured quads (sprites) with rotation and scale
