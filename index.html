@@ -19,6 +19,7 @@
     <script type='module'>
 
     import Spritter from './src/spritter.js';
+    import Helpers from './src/helpers.js';
 
     function writeStatus(text)
     {
@@ -49,6 +50,7 @@
         }, 1000 / 60);
 
         globalThis.spritter = spritter;
+        globalThis.Helpers = Helpers;
     }
 
     main();

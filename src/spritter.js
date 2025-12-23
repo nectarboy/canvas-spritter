@@ -148,6 +148,9 @@ class Spritter {
             [bitmap.width, bitmap.height]
         );
 
+        let bindInfo = this.textureManager.LoadTextureBitmap(bitmap);
+        console.log(bindInfo);
+
         this.sampler = this.device.createSampler({
             magFilter: 'nearest',
             minFilter: 'linear',
@@ -242,6 +245,7 @@ class Spritter {
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.uniformBindGroup);
+        passEncoder.setBindGroup(1, this.textureManager.bindGroup);
         passEncoder.setVertexBuffer(0, this.vertexBuffer);
         passEncoder.draw(this.vertexStagingCount);
         passEncoder.end();
