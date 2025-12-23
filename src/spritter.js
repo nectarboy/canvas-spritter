@@ -6,18 +6,24 @@ const vs = `
 struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(0) fragUv : vec2f,
-    @location(1) fragColor : vec4f
+    @location(1) fragColor : vec4f,
+    @location(2) @interpolate(flat) texBinding : u32,
+    @location(3) @interpolate(flat) texLayer : u32
 }   
 
 @vertex
 fn main(
     @builtin(vertex_index) VertexIndex : u32,
     @location(0) position : vec2f,
-    @location(1) uv : vec2f
+    @location(1) uv : vec2f,
+    @location(2) texBinding : u32,
+    @location(3) texLayer : u32
 ) -> VertexOutput {
     var out : VertexOutput;
     out.position = vec4f(position, 0.0, 1.0);
     out.fragUv = uv;
+    out.texBinding = texBinding;
+    out.texLayer = texLayer;
     if ((VertexIndex & 1) == 1) {
         out.fragColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
@@ -39,14 +45,35 @@ const fs = `
 @group(0) @binding(6) var tex256 : texture_2d_array<f32>;
 @group(0) @binding(7) var tex512 : texture_2d_array<f32>;
 @group(0) @binding(8) var tex1024 : texture_2d_array<f32>;
-@group(0) @binding(9) var sam : sampler;
+@group(0) @binding(9) var testSampler : sampler;
+
+// this kind of sucks... maybe a giant atlas approach is better... could even be an array of atlases... just better to have one texture binding
+fn sampleFromTexture(texBinding : u32, sam : sampler, uv : vec2<f32>, texLayer : u32) -> vec4<f32> {
+    var dx = dpdx(uv);
+    var dy = dpdy(uv);
+    switch texBinding {
+        case 0: { return textureSampleGrad(texDummy, sam, uv, texLayer, dx, dy); }
+        case 1: { return textureSampleGrad(tex8, sam, uv, texLayer, dx, dy); }
+        case 2: { return textureSampleGrad(tex16, sam, uv, texLayer, dx, dy); }
+        case 3: { return textureSampleGrad(tex32, sam, uv, texLayer, dx, dy); }
+        case 4: { return textureSampleGrad(tex64, sam, uv, texLayer, dx, dy); }
+        case 5: { return textureSampleGrad(tex128, sam, uv, texLayer, dx, dy); }
+        case 6: { return textureSampleGrad(tex256, sam, uv, texLayer, dx, dy); }
+        case 7: { return textureSampleGrad(tex512, sam, uv, texLayer, dx, dy); }
+        case 8: { return textureSampleGrad(tex1024, sam, uv, texLayer, dx, dy); }
+        default: { return textureSampleGrad(texDummy, sam, uv, texLayer, dx, dy); }
+    }
+}
 
 @fragment
 fn main(
     @location(0) fragUv: vec2f,
-    @location(1) fragColor: vec4f
+    @location(1) fragColor: vec4f,
+    @location(2) @interpolate(flat) texBinding : u32,
+    @location(3) @interpolate(flat) texLayer : u32
 ) -> @location(0) vec4f {
-    var pix = textureSample(tex256, sam, fragUv, 0);
+
+    var pix = sampleFromTexture(texBinding, testSampler, fragUv, texLayer);
     // if (pix.a == 0.0) {
         // discard;
     // }
@@ -75,7 +102,8 @@ class Spritter {
         this.vertexBufferEntries = 1024;
         this.vertexStagingCount = 0;
         this.vertexStaging = new Float32Array(this.vertexBufferEntries);
-        this.vertexBufferEntrySize = 4;
+        this.vertexStagingUint32 = new Uint32Array(this.vertexStaging.buffer);
+        this.vertexBufferEntrySize = 6;
         this.vertexBufferEntryBytes = this.vertexBufferEntrySize * this.vertexStaging.BYTES_PER_ELEMENT;
         this.vertexBuffer = device.createBuffer({
             size: this.vertexStaging.byteLength,
@@ -108,7 +136,17 @@ class Spritter {
                                 shaderLocation: 1,
                                 offset: 4 * 2,
                                 format: 'float32x2'
-                            }
+                            },
+                            {
+                                shaderLocation: 2,
+                                offset: 4 * 4,
+                                format: 'uint32'
+                            },
+                            {
+                                shaderLocation: 3,
+                                offset: 4 * 5,
+                                format: 'uint32'
+                            },
                         ]
                     }
                 ]
@@ -168,15 +206,23 @@ class Spritter {
         let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
         let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
 
-        this.vertexStaging.set([
-            topRight.x, topRight.y, 1, 0,
-            botLeft.x, botLeft.y, 0, 1,
-            topLeft.x, topLeft.y, 0, 0,
+        const texBinding = 2;
+        const texLayer = 0;
 
-            botLeft.x, botLeft.y, 0, 1,
-            topRight.x, topRight.y, 1, 0,
-            botRight.x, botRight.y, 1, 1
-        ], this.vertexStagingCount * this.vertexBufferEntrySize);
+        const off = this.vertexStagingCount * this.vertexBufferEntrySize;
+        this.vertexStaging.set([ topRight.x, topRight.y, 1, 0 ], off);
+        this.vertexStaging.set([ botLeft.x, botLeft.y, 0, 1 ], off + 6);
+        this.vertexStaging.set([ topLeft.x, topLeft.y, 0, 0 ], off + 12);
+        this.vertexStaging.set([ botLeft.x, botLeft.y, 0, 1 ], off + 18);
+        this.vertexStaging.set([ topRight.x, topRight.y, 1, 0 ], off + 24);
+        this.vertexStaging.set([ botRight.x, botRight.y, 1, 1 ], off + 30);
+        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 4);
+        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 10);
+        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 16);
+        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 22);
+        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 28);
+        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 34);
+        
         this.vertexStagingCount += 6;
     }
 

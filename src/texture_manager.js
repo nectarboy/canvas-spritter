@@ -200,6 +200,7 @@ class TextureManager {
         let info = {
             width: bitmap.width,
             height: bitmap.height,
+            binding: textureLayer.binding,
             textureLayer: textureLayer,
             slot: textureLayer.LoadBitmap(bitmap)
         };
