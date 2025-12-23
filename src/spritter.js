@@ -29,15 +29,24 @@ fn main(
 `;
 
 const fs = `
-@group(0) @binding(0) var sam : sampler;
-@group(0) @binding(1) var tex : texture_2d<f32>;
+// ... is there a cleaner way of doing this or
+@group(0) @binding(0) var texDummy : texture_2d_array<f32>;
+@group(0) @binding(1) var tex8 : texture_2d_array<f32>;
+@group(0) @binding(2) var tex16 : texture_2d_array<f32>;
+@group(0) @binding(3) var tex32 : texture_2d_array<f32>;
+@group(0) @binding(4) var tex64 : texture_2d_array<f32>;
+@group(0) @binding(5) var tex128 : texture_2d_array<f32>;
+@group(0) @binding(6) var tex256 : texture_2d_array<f32>;
+@group(0) @binding(7) var tex512 : texture_2d_array<f32>;
+@group(0) @binding(8) var tex1024 : texture_2d_array<f32>;
+@group(0) @binding(9) var sam : sampler;
 
 @fragment
 fn main(
     @location(0) fragUv: vec2f,
     @location(1) fragColor: vec4f
 ) -> @location(0) vec4f {
-    var pix = textureSample(tex, sam, fragUv);
+    var pix = textureSample(tex256, sam, fragUv, 0);
     // if (pix.a == 0.0) {
         // discard;
     // }
@@ -73,9 +82,14 @@ class Spritter {
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
 
+        this.pipelineLayout = device.createPipelineLayout({
+            label: 'pipeline layout',
+            bindGroupLayouts: [this.textureManager.bindGroupLayout]
+        });
+
         this.pipeline = device.createRenderPipeline({
             label: 'spritter pipeline',
-            layout: 'auto',
+            layout: this.pipelineLayout,
             vertex: {
                 module: device.createShaderModule({
                     label: 'vs',
@@ -127,48 +141,16 @@ class Spritter {
             }
         });
 
-        this.uniformBindGroup = null;
-
         this.testTexture = null;
     };
 
     async init() {
         let bitmap = await this.loadImageBitmap('src/test.png');  
-        this.testTexture = this.device.createTexture({
-            size: [bitmap.width, bitmap.height, 1],
-            format: 'rgba8unorm',
-            usage:
-                GPUTextureUsage.TEXTURE_BINDING |
-                GPUTextureUsage.COPY_DST |
-                GPUTextureUsage.RENDER_ATTACHMENT
-        });
-        this.device.queue.copyExternalImageToTexture(
-            {source: bitmap},
-            {texture: this.testTexture},
-            [bitmap.width, bitmap.height]
-        );
+        let textureInfo = this.textureManager.LoadTextureBitmap(bitmap, 'test');
+        console.log(textureInfo);
 
-        let bindInfo = this.textureManager.LoadTextureBitmap(bitmap);
-        console.log(bindInfo);
-
-        this.sampler = this.device.createSampler({
-            magFilter: 'nearest',
-            minFilter: 'linear',
-        });
-
-        this.uniformBindGroup = this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: this.sampler
-                },
-                {
-                    binding: 1,
-                    resource: this.testTexture.createView()
-                }
-            ]
-        });
+        let bitmap2 = await this.loadImageBitmap('src/terrain.png');
+        this.textureManager.LoadTextureBitmap(bitmap2, 'test2');
     }
 
     async loadImageBitmap(url) {
@@ -244,8 +226,7 @@ class Spritter {
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
-        passEncoder.setBindGroup(0, this.uniformBindGroup);
-        passEncoder.setBindGroup(1, this.textureManager.bindGroup);
+        passEncoder.setBindGroup(0, this.textureManager.bindGroup);
         passEncoder.setVertexBuffer(0, this.vertexBuffer);
         passEncoder.draw(this.vertexStagingCount);
         passEncoder.end();

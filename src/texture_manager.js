@@ -70,6 +70,11 @@ class TextureLayer {
     MarkSlotAsUsed(slot) {
         this.freeSlotsBitmap[slot >> 3] |= 1 << (slot & 7);
     }
+
+    InitDummyLayer() {
+        this.GetTextureSlot(); // mark as full
+        // this.textureAr
+    }
 }
 
 // A list of texture layer configurations
@@ -121,7 +126,9 @@ class TextureManager {
         const device = spritter.device;
 
         this.textureLayerBindOff = 0;
+        this.samplerBindOff = 9;
         const bindGroupLayoutDescriptor = {
+            label: 'texture_manager bind group layout',
             entries: []
         };
 
@@ -142,10 +149,24 @@ class TextureManager {
             });
         }
 
+        bindGroupLayoutDescriptor.entries.push({
+            binding: this.samplerBindOff,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {}
+        });
+        this.testSampler = device.createSampler({
+            magFilter: 'nearest',
+            minFilter: 'linear',
+        });
+
+        // Fill dummy texture with 1x1 invisible thing
+        this.textureLayers[0].InitDummyLayer();
+
         this.bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
         console.log('totalTextureMemoryFootprint MB', this.totalTextureMemoryFootprint / 0x100000);
 
         const bindGroupDescriptor = {
+            label: 'texture_manager bind group',
             layout: this.bindGroupLayout,
             entries: []
         };
@@ -155,6 +176,10 @@ class TextureManager {
                 resource: this.textureLayers[i].textureArrayView
             });
         }
+        bindGroupDescriptor.entries.push({
+            binding: this.samplerBindOff,
+            resource: this.testSampler
+        })
 
         this.bindGroup = device.createBindGroup(bindGroupDescriptor);
 
@@ -173,8 +198,9 @@ class TextureManager {
         let textureLayer = this.dimensionToTextureLayer.get(bestDimension);
 
         let info = {
+            width: bitmap.width,
+            height: bitmap.height,
             textureLayer: textureLayer,
-            binding: textureLayer.binding,
             slot: textureLayer.LoadBitmap(bitmap)
         };
         this.textureNameToInfo.set(name, info);
@@ -189,6 +215,10 @@ class TextureManager {
         let info = this.textureNameToInfo.get(name);
         info.textureLayer.FreeSlot(info.slot);
         this.textureNameToInfo.delete(name);
+    }
+
+    GetTextureInfo(name) {
+        return this.textureNameToInfo.get(name);
     }
 }
 
