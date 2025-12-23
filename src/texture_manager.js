@@ -4,6 +4,19 @@ class TextureLayer {
         this.dimension = dimension;
         this.size = size;
 
+        const device = textureManager.spritter.device;
+
+        this.textureArray = device.createTexture({
+            size: [this.dimension, this.dimension, this.size],
+            format: 'rgba8unorm',
+            usage:
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_DST |
+                GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.textureArrayView = this.textureArray.createView({
+            dimension: '2d-array'
+        });
         this.free
     };
 }
@@ -14,12 +27,16 @@ const textureLayers = [
         size: 1   
     },
     {
+        dimension: 8,
+        size: 256
+    },
+    {
         dimension: 16,
-        size: 128
+        size: 256
     },
     {
         dimension: 32,
-        size: 128
+        size: 256
     },
     {
         dimension: 64,
@@ -41,10 +58,6 @@ const textureLayers = [
     {
         dimension: 1024,
         size: 8
-    },
-    {
-        dimension: 2048,
-        size: 4
     }
 ];
 
@@ -52,6 +65,8 @@ const textureLayers = [
 class TextureManager {
     constructor(spritter) {
         this.spritter = spritter;
+
+        const device = spritter.device;
 
         this.textureLayerBindOff = 0;
         const bindGroupLayoutDescriptor = {
@@ -64,6 +79,7 @@ class TextureManager {
             let textureLayer = new TextureLayer(this, textureLayers[i].dimension, textureLayers[i].size);
             this.textureLayers.push(textureLayer);
             this.totalTextureMemoryFootprint += 4 * (textureLayers[i].dimension ** 2) * textureLayers[i].size;
+
             bindGroupLayoutDescriptor.entries.push({
                 binding: this.textureLayerBindOff + i,
                 visibility: GPUShaderStage.FRAGMENT,
@@ -73,21 +89,20 @@ class TextureManager {
 
         console.log('totalTextureMemoryFootprint', this.totalTextureMemoryFootprint / 0x100000)
 
-        this.bindGroupLayout = this.spritter.device.createBindGroupLayout(bindGroupLayoutDescriptor);
+        this.bindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDescriptor);
 
-        // this.bindGroup = this.device.createBindGroup({
-        //     layout: this.bindGroupLayout,
-        //     entries: [
-        //         {
-        //             binding: 0,
-        //             resource: this.sampler
-        //         },
-        //         {
-        //             binding: 1,
-        //             resource: this.testTexture.createView()
-        //         }
-        //     ]
-        // });
+        const bindGroupDescriptor = {
+            layout: this.bindGroupLayout,
+            entries: []
+        };
+        for (let i = 0; i < this.textureLayers.length; i++) {
+            bindGroupDescriptor.entries.push({
+                binding: this.textureLayerBindOff + i,
+                resource: this.textureLayers[i].textureArrayView
+            });
+        }
+
+        this.bindGroup = device.createBindGroup(bindGroupDescriptor);
     };
 }
 

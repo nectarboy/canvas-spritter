@@ -46,7 +46,9 @@
 
         setInterval(() => {
             spritter.draw();   
-        }, 1000 / 60)
+        }, 1000 / 60);
+
+        globalThis.spritter = spritter;
     }
 
     main();
