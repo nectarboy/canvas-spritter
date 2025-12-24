@@ -2,6 +2,8 @@ class BinPacker {
     static PackBoxes(boxes, dimension) {
         boxes.sort((b, a) => { return a.h - b.h });
 
+        console.time('binpack');        
+
         let x = 0;
         let rowPartitions = [];
         let rowEndPartitions = [];
@@ -31,26 +33,28 @@ class BinPacker {
             box.y = y;
 
             if (box.x + box.w > dimension) {
-                y = nextRowPartitions[0].y;
-                if (y + box.h > dimension) {
+                if (nextRowPartitions.length === 0 || nextRowPartitions[0].y + box.h > dimension) {
                     console.log("BIN PACK FAILED");
+                    console.timeEnd('binpack');
                     return boxes;
                 }
                 x = 0;
                 box.x = 0;
-                box.y = y;
+                box.y = nextRowPartitions[0].y;
 
                 rowPartitions = nextRowPartitions;
                 rowEndPartitions.push(nextRowPartitions[nextRowPartitions.length-1]);
                 nextRowPartitions = [];
             }
-            x += box.w;
 
+            x += box.w;
             nextRowPartitions.push({
                 x: x,
                 y: box.y + box.h
             });
         }
+
+        console.timeEnd('binpack');
 
         return boxes;
     }
@@ -61,14 +65,14 @@ class BinPacker {
         let sy = canvas.height / dimension;
         let ctx = canvas.getContext('2d');
         ctx.strokeStyle = 'black';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 2;
         ctx.textAlign = 'center';
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (let i = 0; i < boxes.length; i++) {
             let box = boxes[i];
             ctx.strokeRect(box.x * sx, box.y * sy, box.w * sx, box.h * sy);
             // if (box.w * sx > 16 && box.h * sy > 16)
-                ctx.fillText(i, (box.x + box.w/2) * sx, (box.y + box.h/2) * sy);
+                ctx.fillText(i + ' ' + Math.max(box.w, box.h), (box.x + box.w/2) * sx, (box.y + box.h/2) * sy);
         }
     }
 
@@ -89,7 +93,7 @@ class BinPacker {
             });
         }
 
-        boxes = JSON.parse(testcase1);
+        // boxes = JSON.parse(testcase1);
 
         console.log(boxes);
 
