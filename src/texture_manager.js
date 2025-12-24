@@ -1,5 +1,26 @@
 import Helpers from './helpers.js';
 
+class TextureAtlas {
+    constructor(textureManager, binding, dimension) {
+        this.textureManager = textureManager;
+        this.device = textureManager.spritter.device;
+        this.binding = binding;
+        this.dimension = dimension;
+
+        this.texture = this.device.createTexture({
+            size: [this.dimension, this.dimension, 1],
+            format: 'rgba8unorm',
+            usage:
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_DST |
+                GPUTextureUsage.RENDER_ATTACHMENT
+        });
+        this.textureView = this.textureArray.createView({
+            dimension: '2d-array'
+        });
+    };
+}
+
 // Holds a texture array of a specified dimension and size, handles loading bitmaps to free textures
 class TextureLayer {
     constructor(textureManager, binding, dimension, size) {

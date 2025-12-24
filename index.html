@@ -16,10 +16,13 @@
     <canvas id='canvas' width='480' height='360'></canvas>
     <p id='status'>Hi!</p>
 
+    <canvas id='binpackcanvas' width='512' height='512'></canvas>
+
     <script type='module'>
 
     import Spritter from './src/spritter.js';
     import Helpers from './src/helpers.js';
+    import BinPacker from './src/bin_packer.js';
 
     function writeStatus(text)
     {
@@ -54,6 +57,8 @@
     }
 
     main();
+
+    BinPacker.Test();
 
     </script>
 

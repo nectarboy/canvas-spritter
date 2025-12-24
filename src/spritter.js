@@ -206,7 +206,7 @@ class Spritter {
         let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
         let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
 
-        const texBinding = 2;
+        const texBinding = x > 0 ? 2 : 6;
         const texLayer = 0;
 
         const off = this.vertexStagingCount * this.vertexBufferEntrySize;
@@ -222,7 +222,7 @@ class Spritter {
         this.vertexStagingUint32.set([ texBinding, texLayer ], off + 22);
         this.vertexStagingUint32.set([ texBinding, texLayer ], off + 28);
         this.vertexStagingUint32.set([ texBinding, texLayer ], off + 34);
-        
+
         this.vertexStagingCount += 6;
     }
 
