@@ -7,8 +7,8 @@ struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(0) fragUv : vec2f,
     @location(1) fragColor : vec4f,
-    @location(2) @interpolate(flat) texBinding : u32,
-    @location(3) @interpolate(flat) texLayer : u32
+    @location(2) @interpolate(flat) atlasUv0 : vec2f,
+    @location(3) @interpolate(flat) atlasUv1 : vec2f
 }   
 
 @vertex
@@ -16,14 +16,15 @@ fn main(
     @builtin(vertex_index) VertexIndex : u32,
     @location(0) position : vec2f,
     @location(1) uv : vec2f,
-    @location(2) texBinding : u32,
-    @location(3) texLayer : u32
+    @location(2) atlasUv0 : vec2f,
+    @location(3) atlasUv1 : vec2f
 ) -> VertexOutput {
     var out : VertexOutput;
     out.position = vec4f(position, 0.0, 1.0);
-    out.fragUv = uv;
-    out.texBinding = texBinding;
-    out.texLayer = texLayer;
+    out.atlasUv0 = atlasUv0;
+    out.atlasUv1 = atlasUv1;
+    out.fragUv.x = atlasUv0.x + uv.x * (atlasUv1.x - atlasUv0.x);
+    out.fragUv.y = atlasUv0.y + uv.y * (atlasUv1.y - atlasUv0.y);
     if ((VertexIndex & 1) == 1) {
         out.fragColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
@@ -36,44 +37,18 @@ fn main(
 
 const fs = `
 // ... is there a cleaner way of doing this or
-@group(0) @binding(0) var texDummy : texture_2d_array<f32>;
-@group(0) @binding(1) var tex8 : texture_2d_array<f32>;
-@group(0) @binding(2) var tex16 : texture_2d_array<f32>;
-@group(0) @binding(3) var tex32 : texture_2d_array<f32>;
-@group(0) @binding(4) var tex64 : texture_2d_array<f32>;
-@group(0) @binding(5) var tex128 : texture_2d_array<f32>;
-@group(0) @binding(6) var tex256 : texture_2d_array<f32>;
-@group(0) @binding(7) var tex512 : texture_2d_array<f32>;
-@group(0) @binding(8) var tex1024 : texture_2d_array<f32>;
-@group(0) @binding(9) var testSampler : sampler;
-
-// this kind of sucks... maybe a giant atlas approach is better... could even be an array of atlases... just better to have one texture binding
-fn sampleFromTexture(texBinding : u32, sam : sampler, uv : vec2<f32>, texLayer : u32) -> vec4<f32> {
-    var dx = dpdx(uv);
-    var dy = dpdy(uv);
-    switch texBinding {
-        case 0: { return textureSampleGrad(texDummy, sam, uv, texLayer, dx, dy); }
-        case 1: { return textureSampleGrad(tex8, sam, uv, texLayer, dx, dy); }
-        case 2: { return textureSampleGrad(tex16, sam, uv, texLayer, dx, dy); }
-        case 3: { return textureSampleGrad(tex32, sam, uv, texLayer, dx, dy); }
-        case 4: { return textureSampleGrad(tex64, sam, uv, texLayer, dx, dy); }
-        case 5: { return textureSampleGrad(tex128, sam, uv, texLayer, dx, dy); }
-        case 6: { return textureSampleGrad(tex256, sam, uv, texLayer, dx, dy); }
-        case 7: { return textureSampleGrad(tex512, sam, uv, texLayer, dx, dy); }
-        case 8: { return textureSampleGrad(tex1024, sam, uv, texLayer, dx, dy); }
-        default: { return textureSampleGrad(texDummy, sam, uv, texLayer, dx, dy); }
-    }
-}
+@group(0) @binding(0) var texAtlas : texture_2d<f32>;
+@group(0) @binding(1) var sam : sampler;
 
 @fragment
 fn main(
     @location(0) fragUv: vec2f,
     @location(1) fragColor: vec4f,
-    @location(2) @interpolate(flat) texBinding : u32,
-    @location(3) @interpolate(flat) texLayer : u32
+    @location(2) @interpolate(flat) atlasUv0 : vec2f,
+    @location(3) @interpolate(flat) atlasUv1 : vec2f
 ) -> @location(0) vec4f {
 
-    var pix = sampleFromTexture(texBinding, testSampler, fragUv, texLayer);
+    var pix = textureSample(texAtlas, sam, fragUv);
     // if (pix.a == 0.0) {
         // discard;
     // }
@@ -83,6 +58,8 @@ fn main(
 
 class Spritter {
     constructor(canvas, device) {
+        globalThis.spritter = this;
+
         this.canvas = canvas;
         this.ctx = canvas.getContext('webgpu');
         this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -103,7 +80,7 @@ class Spritter {
         this.vertexStagingCount = 0;
         this.vertexStaging = new Float32Array(this.vertexBufferEntries);
         this.vertexStagingUint32 = new Uint32Array(this.vertexStaging.buffer);
-        this.vertexBufferEntrySize = 6;
+        this.vertexBufferEntrySize = 8;
         this.vertexBufferEntryBytes = this.vertexBufferEntrySize * this.vertexStaging.BYTES_PER_ELEMENT;
         this.vertexBuffer = device.createBuffer({
             size: this.vertexStaging.byteLength,
@@ -140,13 +117,13 @@ class Spritter {
                             {
                                 shaderLocation: 2,
                                 offset: 4 * 4,
-                                format: 'uint32'
+                                format: 'float32x2'
                             },
                             {
                                 shaderLocation: 3,
-                                offset: 4 * 5,
-                                format: 'uint32'
-                            },
+                                offset: 4 * 6,
+                                format: 'float32x2'
+                            }
                         ]
                     }
                 ]
@@ -183,18 +160,24 @@ class Spritter {
     };
 
     async init() {
-        let bitmap = await this.loadImageBitmap('src/test.png');  
-        let textureInfo = this.textureManager.LoadTextureBitmap(bitmap, 'test');
-        console.log(textureInfo);
+        let bitmaps = [
+            await this.loadImageBitmap('src/test.png', 'test'),
+            await this.loadImageBitmap('src/terrain.png', 'terrain')
+        ];
 
-        let bitmap2 = await this.loadImageBitmap('src/terrain.png');
-        this.textureManager.LoadTextureBitmap(bitmap2, 'test2');
+        console.log(bitmaps);
+
+        this.textureManager.textureAtlas.LoadTextureBitmaps(bitmaps);
     }
 
-    async loadImageBitmap(url) {
+    async loadImageBitmap(url, name) {
         let blob = await (await fetch(url)).blob();
         let bitmap = await createImageBitmap(blob);
-        return bitmap;
+        let bitmapDescriptor = {
+            name: name,
+            bitmap: bitmap
+        };
+        return bitmapDescriptor;
     }
 
     bufferQuad(x, y, w, h, rot) {
@@ -206,22 +189,21 @@ class Spritter {
         let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
         let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
 
-        const texBinding = x > 0 ? 2 : 6;
-        const texLayer = 0;
+        const texName = 'terrain'; 
+        let texBounds = this.textureManager.textureAtlas.GetTextureBounds(texName);
+        let iSize = 1 / this.textureManager.textureAtlas.dimension;
+        const uv0 = new Vec2(texBounds.x * iSize, texBounds.y * iSize);
+        const uv1 = uv0.Copy().AddXY(texBounds.w * iSize, texBounds.h * iSize);
 
-        const off = this.vertexStagingCount * this.vertexBufferEntrySize;
-        this.vertexStaging.set([ topRight.x, topRight.y, 1, 0 ], off);
-        this.vertexStaging.set([ botLeft.x, botLeft.y, 0, 1 ], off + 6);
-        this.vertexStaging.set([ topLeft.x, topLeft.y, 0, 0 ], off + 12);
-        this.vertexStaging.set([ botLeft.x, botLeft.y, 0, 1 ], off + 18);
-        this.vertexStaging.set([ topRight.x, topRight.y, 1, 0 ], off + 24);
-        this.vertexStaging.set([ botRight.x, botRight.y, 1, 1 ], off + 30);
-        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 4);
-        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 10);
-        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 16);
-        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 22);
-        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 28);
-        this.vertexStagingUint32.set([ texBinding, texLayer ], off + 34);
+        this.vertexStaging.set([
+            topRight.x, topRight.y, 1, 0,   uv0.x, uv0.y, uv1.x, uv1.y,
+            botLeft.x, botLeft.y, 0, 1,     uv0.x, uv0.y, uv1.x, uv1.y,
+            topLeft.x, topLeft.y, 0, 0,     uv0.x, uv0.y, uv1.x, uv1.y,
+
+            botLeft.x, botLeft.y, 0, 1,     uv0.x, uv0.y, uv1.x, uv1.y,
+            topRight.x, topRight.y, 1, 0,   uv0.x, uv0.y, uv1.x, uv1.y,
+            botRight.x, botRight.y, 1, 1,   uv0.x, uv0.y, uv1.x, uv1.y
+        ], this.vertexStagingCount * this.vertexBufferEntrySize);
 
         this.vertexStagingCount += 6;
     }

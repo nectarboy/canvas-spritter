@@ -1,17 +1,17 @@
 class BinPacker {
     static PackBoxes(boxes, dimension) {
-        boxes.sort((b, a) => { return a.h - b.h });
+        let sBoxes = boxes.toSorted((b, a) => { return a.h - b.h });
 
         console.time('binpack');        
 
         let x = 0;
         let rowPartitions = [];
-        let rowEndPartitions = [];
+        let rowEndPartitions = []; // keep track of all partitions at the end of each row, they are always relevant
         let nextRowPartitions = [];
 
-        for (let i = 0; i < boxes.length; i++) {
+        for (let i = 0; i < sBoxes.length; i++) {
 
-            let box = boxes[i];
+            let box = sBoxes[i];
 
             let y = 0;
             for (let i = 0; i < rowPartitions.length; i++) {
@@ -20,6 +20,7 @@ class BinPacker {
                     break;
                 }
             }
+            // if ahead of all row partitions, check all the end row partitions
             if (y === 0) {
                 for (let i = rowEndPartitions.length - 1; i >= 0; i--) {
                     if (x < rowEndPartitions[i].x) {
@@ -60,6 +61,9 @@ class BinPacker {
     }
 
     static DrawBinPack(boxes, dimension) {
+        if (boxes === null)
+            return;
+
         let canvas = document.getElementById('binpackcanvas');
         let sx = canvas.width / dimension;
         let sy = canvas.height / dimension;
@@ -80,14 +84,14 @@ class BinPacker {
         const dimension = 4096;
 
         function foo(i) {
-            return Math.max(5*(Math.random() * 25 + 25) / (0.1 + i*0.04));
+            return Math.max(5*(Math.random() * 25 + 25) / (0.1 + i*0.04), 32);
         }
 
         let boxes = [];
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 256; i++) {
             boxes.push({
-                x: 0,
-                y: 0,
+                x: -1,
+                y: -1,
                 w: 0|foo(i),
                 h: 0|foo(i)
             });

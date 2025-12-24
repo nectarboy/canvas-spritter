@@ -29,6 +29,8 @@
     import Helpers from './src/helpers.js';
     import BinPacker from './src/bin_packer.js';
 
+    globalThis.Helpers = Helpers;
+
     function writeStatus(text)
     {
         document.getElementById('status').textContent = text;
@@ -57,8 +59,6 @@
             spritter.draw();   
         }, 1000 / 60);
 
-        globalThis.spritter = spritter;
-        globalThis.Helpers = Helpers;
     }
 
     main();
