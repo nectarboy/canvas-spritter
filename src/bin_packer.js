@@ -69,7 +69,7 @@ class BinPacker {
         let sy = canvas.height / dimension;
         let ctx = canvas.getContext('2d');
         ctx.strokeStyle = 'black';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.textAlign = 'center';
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (let i = 0; i < boxes.length; i++) {

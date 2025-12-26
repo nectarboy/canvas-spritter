@@ -48,10 +48,10 @@ fn main(
     @location(3) @interpolate(flat) atlasUv1 : vec2f
 ) -> @location(0) vec4f {
 
-    var pix = textureSample(texAtlas, sam, fragUv);
-    // if (pix.a == 0.0) {
-        // discard;
-    // }
+    var uv = fragUv;
+
+    var pix = textureSample(texAtlas, sam, uv);
+
     return pix;
 }
 `;
@@ -76,7 +76,7 @@ class Spritter {
 
         this.aspectRatio = this.canvas.width / this.canvas.height;
 
-        this.vertexBufferEntries = 1024;
+        this.vertexBufferEntries = 4096 * 1024;
         this.vertexStagingCount = 0;
         this.vertexStaging = new Float32Array(this.vertexBufferEntries);
         this.vertexStagingUint32 = new Uint32Array(this.vertexStaging.buffer);
@@ -162,7 +162,9 @@ class Spritter {
     async init() {
         let bitmaps = [
             await this.loadImageBitmap('src/test.png', 'test'),
-            await this.loadImageBitmap('src/terrain.png', 'terrain')
+            await this.loadImageBitmap('src/terrain.png', 'terrain'),
+            await this.loadImageBitmap('src/bunny.png', 'bunny'),
+            await this.loadImageBitmap('src/atlas_test.png', 'atlas_test')
         ];
 
         console.log(bitmaps);
@@ -170,7 +172,9 @@ class Spritter {
         this.textureManager.textureAtlas.LoadTextureBitmaps(bitmaps);
     }
 
-    async loadImageBitmap(url, name) {
+    async loadImageBitmap(url, name = '') {
+        if (name === '')
+            throw 'please provide a valid texture name';
         let blob = await (await fetch(url)).blob();
         let bitmap = await createImageBitmap(blob);
         let bitmapDescriptor = {
@@ -189,7 +193,7 @@ class Spritter {
         let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
         let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
 
-        const texName = 'terrain'; 
+        const texName = rotVec.x > 0 ? 'test' : 'bunny'; 
         let texBounds = this.textureManager.textureAtlas.GetTextureBounds(texName);
         let iSize = 1 / this.textureManager.textureAtlas.dimension;
         const uv0 = new Vec2(texBounds.x * iSize, texBounds.y * iSize);
@@ -223,9 +227,10 @@ class Spritter {
         // this.vertexStagingCount = 3;
 
         this.bufferQuad(-canvas.width / 4, 0, 256, 256, 0);
-        this.bufferQuad(-canvas.width / 2, 0, 256, 256, now * 100);
+        this.bufferQuad(-canvas.width / 2, 0, 206, 256, now * 100);
 
-        this.bufferQuad(canvas.width * Math.sin(now), canvas.height * Math.cos(now), 128, 128, 0);
+        for (let i = 0; i < 1; i++)
+            this.bufferQuad(canvas.width * Math.sin(now + i*.1), canvas.height * Math.cos(now + i*.1), 128, 128, 0);
     }
 
     draw() {

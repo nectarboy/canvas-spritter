@@ -1,7 +1,10 @@
+import Mat3 from './mat3.js';
+
 const DEG_TO_RAD = Math.PI / 180;
 const RAD_TO_DEG = 180 / Math.PI;
 const UP_Y = 1;
 
+// A 2D vector with a bunch of utility methods.
 class Vec2 {
     constructor(x, y) {
         this.x = x;
@@ -21,7 +24,7 @@ class Vec2 {
         return new Vec2(this.x, this.y);
     }
 
-    SetTo(vec) {
+    Set(vec) {
         this.x = vec.x;
         this.y = vec.y;
         return this;
@@ -39,7 +42,7 @@ class Vec2 {
         return this;
     }
 
-    Set(x, y) {
+    SetXY(x, y) {
         this.x = x;
         this.y = y;
         return this;
@@ -154,6 +157,15 @@ class Vec2 {
 
     GetAngDiff(vec) {
         return signedAng(-Math.atan2(this.Det(vec), this.Dot(vec)) * RAD_TO_DEG);
+    }
+
+    // Apply this, then mat3 (mat3 * this)
+    TransformFromMat3(mat3) {
+        let x = mat3.m[0] * this.x + mat3.m[3] * this.y + mat3.m[6];
+        let y = mat3.m[1] * this.x + mat3.m[4] * this.y + mat3.m[7];
+        this.x = x;
+        this.y = y;
+        return this;
     }
 }
 

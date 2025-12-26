@@ -67,6 +67,8 @@ class TextureAtlas {
     }
 
     GetTextureBounds(name) {
+        if (!this.boxMap.has(name))
+            return null;
         return this.boxMap.get(name);
     }
 }
