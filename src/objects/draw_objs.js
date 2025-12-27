@@ -6,6 +6,8 @@ class DrawObj {
         this.mat3 = new Mat3().ToIdentity();
         this.texName = '';
         this.textured = false;
+        this.texW = 0;
+        this.texH = 0;
         this.atlasUv0 = new Vec2(0, 0);
         this.atlasUv1 = new Vec2(0, 0);
     };
@@ -15,6 +17,8 @@ class DrawObj {
         let texBounds = atlas.GetTextureBounds(texName);
         if (texBounds === null)
             return;
+        this.texW = texBounds.w;
+        this.texH = texBounds.h;
         this.atlasUv0.SetXY(texBounds.x * iSize, texBounds.y * iSize);
         this.atlasUv1.Set(this.atlasUv0).AddXY(texBounds.w * iSize, texBounds.h * iSize);
     }
@@ -37,15 +41,15 @@ class DrawObjs {
             let halfW = this.w;
             let halfH = this.h;
 
+            // These can be pooled / preallocated
             const uvMat3 = new Mat3();
-            uvMat3.Rotate(30);
-            uvMat3.ScaleXY(1, 1);
+            uvMat3.TranslateXY(queue.spritter.tick / this.texW / 10, queue.spritter.tick / this.texH / 10);
+            uvMat3.Rotate(-queue.spritter.tick);
             let topLeftUv = new Vec2(-0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
             let topRightUv = new Vec2(0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
             let botLeftUv = new Vec2(-0.5, 0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
             let botRightUv = new Vec2(0.5, 0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
 
-            // These can be pooled / preallocated
             let topLeft = new Vec2(-halfW, halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
             let topRight = new Vec2(halfW, halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
             let botLeft = new Vec2(-halfW, -halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
@@ -53,12 +57,12 @@ class DrawObjs {
 
             queue.BufferVertices([
                 topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
 
-                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                topRight.x, topRight.y,     topRightUv.x, topRightUv.y,   this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                botRight.x, botRight.y,     botRightUv.x, botRightUv.y,   this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y
+                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                botRight.x, botRight.y,     botRightUv.x, botRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y
             ], 6);
         }
     }

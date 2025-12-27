@@ -4,64 +4,8 @@ import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
 import DrawObjs from './objects/draw_objs.js';
 
-console.log(DrawObjs.Sprite);
-
-const vs = `
-struct VertexOutput {
-    @builtin(position) position : vec4f,
-    @location(0) fragUv : vec2f,
-    @location(1) fragColor : vec4f,
-    @location(2) @interpolate(flat) atlasUv0 : vec2f,
-    @location(3) @interpolate(flat) atlasUv1 : vec2f
-}   
-
-@vertex
-fn main(
-    @builtin(vertex_index) VertexIndex : u32,
-    @location(0) position : vec2f,
-    @location(1) uv : vec2f,
-    @location(2) atlasUv0 : vec2f,
-    @location(3) atlasUv1 : vec2f
-) -> VertexOutput {
-    var out : VertexOutput;
-    out.position = vec4f(position, 0.0, 1.0);
-    // if (VertexIndex == 6 || VertexIndex == 8 || VertexIndex == 10) {
-    //     out.position.w = 2;
-    // }
-    out.atlasUv0 = atlasUv0;
-    out.atlasUv1 = atlasUv1;
-    out.fragUv.x = atlasUv0.x + uv.x * (atlasUv1.x - atlasUv0.x);
-    out.fragUv.y = atlasUv0.y + uv.y * (atlasUv1.y - atlasUv0.y);
-    if ((VertexIndex & 1) == 1) {
-        out.fragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-    else {
-        out.fragColor = vec4(1.0, 0.0, 1.0, 1.0);
-    }
-    return out;
-}
-`;
-
-const fs = `
-// ... is there a cleaner way of doing this or
-@group(0) @binding(0) var texAtlas : texture_2d<f32>;
-@group(0) @binding(1) var sam : sampler;
-
-@fragment
-fn main(
-    @location(0) fragUv: vec2f,
-    @location(1) fragColor: vec4f,
-    @location(2) @interpolate(flat) atlasUv0 : vec2f,
-    @location(3) @interpolate(flat) atlasUv1 : vec2f
-) -> @location(0) vec4f {
-
-    var uv = fragUv;
-
-    var pix = textureSample(texAtlas, sam, uv);
-
-    return pix;
-}
-`;
+const vs = await (await fetch('./src/shaders/vs.wgsl')).text();
+const fs = await (await fetch('./src/shaders/fs.wgsl')).text();
 
 class Spritter {
     constructor(canvas, device) {
