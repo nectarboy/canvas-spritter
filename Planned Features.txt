@@ -17,3 +17,6 @@ Planned Features:
 * shaders applied to individual objects
 * ability for sprite to use whats behind it? aka glass warping effects?
 * load textures into big 2048x2048 texture atlases for less draw calls
+
+What would be pretty cool and useful:
+* checking if a sprite is visible on screen / obstructed

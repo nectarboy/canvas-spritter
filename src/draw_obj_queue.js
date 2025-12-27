@@ -8,6 +8,7 @@ class DrawObjHolder {
     }
 }
 
+// Responsible for buffering 
 class DrawObjQueue {
     constructor(spritter) {
         this.spritter = spritter;
@@ -15,16 +16,45 @@ class DrawObjQueue {
         this.count = 0;
         this.buffer = [];
 
+        // TODO: DrawObj Uniform buffer
+
+        // Vertex buffer
+        this.vertexBufferEntrySize = 8;
         this.vertexBufferSize = 4096 * 1024;
         this.verticesCount = 0;
-        this.vertexStaging = new Float32Array(this.vertexBufferSize);
-        this.vertexStagingUint32 = new Uint32Array(this.vertexStaging.buffer);
-        this.vertexBufferEntrySize = 8;
-        this.vertexBufferEntryBytes = this.vertexBufferEntrySize * this.vertexStaging.BYTES_PER_ELEMENT;
+        this.verticesStage = new Float32Array(this.vertexBufferSize);
+        this.verticesStage_Uint32 = new Uint32Array(this.verticesStage.buffer);
         this.vertexBuffer = spritter.device.createBuffer({
-            size: this.vertexStaging.byteLength,
+            size: this.verticesStage.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
+        this.vertexBufferEntryByteSize = this.vertexBufferEntrySize * this.verticesStage.BYTES_PER_ELEMENT;
+
+        this.vertexBufferDescriptor = {
+            arrayStride: this.vertexBufferEntryByteSize,
+            attributes: [
+                {
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: 'float32x2'
+                },
+                {
+                    shaderLocation: 1,
+                    offset: 4 * 2,
+                    format: 'float32x2'
+                },
+                {
+                    shaderLocation: 2,
+                    offset: 4 * 4,
+                    format: 'float32x2'
+                },
+                {
+                    shaderLocation: 3,
+                    offset: 4 * 6,
+                    format: 'float32x2'
+                }
+            ]
+        }
     }
 
     GetDrawobjUpperBound(holder) {
@@ -42,41 +72,45 @@ class DrawObjQueue {
         return low;
     }
 
-    Flush() {
-        this.verticesCount = 0;
-        this.buffer.length = 0;
-    }
-
-    BufferDrawobj(drawobj, priority) {
+    BufferDrawobj(drawobj, priority = 0) {
         if (this.count === MAX_DRAWOBJS) {
             console.warn("Drawobj queue full.");
             return;
         }
 
-        let holder = new Holder(drawobj, drawobj.mat3.Copy(), priority); // TODO: We can make this a pool
+        let holder = new DrawObjHolder(drawobj, drawobj.mat3.Copy(), priority); // TODO: We can make this a pool
         this.buffer.splice(this.GetDrawobjUpperBound(holder), 0, holder); // Do this or sort once at the end?
         this.count++;
     }
 
-    WriteVerticesToStage(vertices, increment) {
-        this.vertexStaging.set(vertices, this.verticesCount * this.vertexBufferEntrySize);
+    BufferVertices(vertices, increment) {
+        this.verticesStage.set(vertices, this.verticesCount * this.vertexBufferEntrySize);
         this.verticesCount += increment;
     }
 
-    WriteAllDrawObjVerticesToStage() {
-        this.verticesCount = 0;
-        for (holder of this.buffer) {
-            holder.drawObj.WriteVerticesAt(this, holder.mat3);
+    PushDrawObjBufferToVertices() {
+        // this.verticesCount = 0;
+        for (let holder of this.buffer) {
+            holder.drawObj.BufferVerticesAt(this, holder.mat3);
         }
+        // this.buffer.length = 0;
     }
 
-    UploadStageToVertexBuffer() {
+    UploadVerticesToVertexBuffer() {
         this.spritter.device.queue.writeBuffer(
             this.vertexBuffer,
             0,
-            this.vertexStaging.buffer,
-            this.vertexStaging.byteOffset,
-            this.verticesCount * this.vertexBufferEntryBytes
+            this.verticesStage.buffer,
+            this.verticesStage.byteOffset,
+            this.verticesCount * this.vertexBufferEntryByteSize
         );
     }
+
+    Flush() {
+        this.count = 0;
+        this.verticesCount = 0;
+        this.buffer.length = 0;
+    }
 }
+
+export default DrawObjQueue;

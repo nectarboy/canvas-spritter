@@ -11,48 +11,69 @@ class DrawObj {
     };
 
     SetTexture(atlas, texName) {
+        let iSize = 1 / atlas.dimension;
         let texBounds = atlas.GetTextureBounds(texName);
         if (texBounds === null)
             return;
-        this.atlasUv0.setXY(texBounds.x * iSize, texBounds.y * iSize);
-        this.atlasUv1.set(this.atlasUv0).AddXY(texBounds.w * iSize, texBounds.h * iSize);
+        this.atlasUv0.SetXY(texBounds.x * iSize, texBounds.y * iSize);
+        this.atlasUv1.Set(this.atlasUv0).AddXY(texBounds.w * iSize, texBounds.h * iSize);
     }
+
+    BufferVerticesAt(queue, mat3) {}
 }
 
-class Sprite extends DrawObj {
-    constructor() {
-        super();
-    };
+class DrawObjs {
 
-    WriteVerticesAt(queue, mat3) {
-        let iWidth = 1 / this.canvas.width;
-        let iHeight = 1 / this.canvas.height;
-        
-        // These can be pooled / preallocated
-        let topLeft = new Vec2(-w/2, h/2).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
-        let topRight = new Vec2(w/2, h/2).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
-        let botLeft = new Vec2(-w/2, -h/2).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
-        let botRight = new Vec2(w/2, -h/2).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
+    static Sprite = class Sprite extends DrawObj {
+        constructor(w, h) {
+            super();
+            this.w = w;
+            this.h = h;
+        };
 
-        queue.WriteVerticesToStage([
-            topRight.x, topRight.y, 1, 0,   this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-            botLeft.x, botLeft.y, 0, 1,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-            topLeft.x, topLeft.y, 0, 0,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+        BufferVerticesAt(queue, mat3) {
+            let iWidth = 1 / queue.spritter.canvas.width;
+            let iHeight = 1 / queue.spritter.canvas.height;
+            let halfW = this.w;
+            let halfH = this.h;
 
-            botLeft.x, botLeft.y, 0, 1,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-            topRight.x, topRight.y, 1, 0,   this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-            botRight.x, botRight.y, 1, 1,   this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y
-        ], 6);
+            const uvMat3 = new Mat3();
+            uvMat3.Rotate(30);
+            uvMat3.ScaleXY(1, 1);
+            let topLeftUv = new Vec2(-0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
+            let topRightUv = new Vec2(0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
+            let botLeftUv = new Vec2(-0.5, 0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
+            let botRightUv = new Vec2(0.5, 0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
+
+            // These can be pooled / preallocated
+            let topLeft = new Vec2(-halfW, halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
+            let topRight = new Vec2(halfW, halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
+            let botLeft = new Vec2(-halfW, -halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
+            let botRight = new Vec2(halfW, -halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
+
+            queue.BufferVertices([
+                topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+
+                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                topRight.x, topRight.y,     topRightUv.x, topRightUv.y,   this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+                botRight.x, botRight.y,     botRightUv.x, botRightUv.y,   this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y
+            ], 6);
+        }
     }
+
+    static Poly = class Poly extends DrawObj {
+        constructor(points) {
+            super();
+            this.tessels = [];
+        }
+
+        TessellatePoints(points) {
+            this.tessels.length = 0;
+        }
+    }
+
 }
 
-class Poly extends DrawObj {
-    constructor(points) {
-        super();
-        this.tessels = [];
-    }
-
-    TessellatePoints(points) {
-        this.tessels.length = 0;
-    }
-}
+export default DrawObjs;

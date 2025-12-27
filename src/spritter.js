@@ -1,6 +1,10 @@
 import EngineConsts from './engine_consts.js';
 import TextureManager from './texture_manager.js';
+import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
+import DrawObjs from './objects/draw_objs.js';
+
+console.log(DrawObjs.Sprite);
 
 const vs = `
 struct VertexOutput {
@@ -21,6 +25,9 @@ fn main(
 ) -> VertexOutput {
     var out : VertexOutput;
     out.position = vec4f(position, 0.0, 1.0);
+    // if (VertexIndex == 6 || VertexIndex == 8 || VertexIndex == 10) {
+    //     out.position.w = 2;
+    // }
     out.atlasUv0 = atlasUv0;
     out.atlasUv1 = atlasUv1;
     out.fragUv.x = atlasUv0.x + uv.x * (atlasUv1.x - atlasUv0.x);
@@ -73,19 +80,10 @@ class Spritter {
         this.encoder = device.createCommandEncoder();
 
         this.textureManager = new TextureManager(this);
+        this.drawObjQueue = new DrawObjQueue(this);
 
+        this.tick = 0;
         this.aspectRatio = this.canvas.width / this.canvas.height;
-
-        this.vertexBufferEntries = 4096 * 1024;
-        this.vertexStagingCount = 0;
-        this.vertexStaging = new Float32Array(this.vertexBufferEntries);
-        this.vertexStagingUint32 = new Uint32Array(this.vertexStaging.buffer);
-        this.vertexBufferEntrySize = 8;
-        this.vertexBufferEntryBytes = this.vertexBufferEntrySize * this.vertexStaging.BYTES_PER_ELEMENT;
-        this.vertexBuffer = device.createBuffer({
-            size: this.vertexStaging.byteLength,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-        });
 
         this.pipelineLayout = device.createPipelineLayout({
             label: 'pipeline layout',
@@ -101,31 +99,7 @@ class Spritter {
                     code: vs
                 }),
                 buffers: [
-                    {
-                        arrayStride: this.vertexBufferEntryBytes,
-                        attributes: [
-                            {
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x2'
-                            },
-                            {
-                                shaderLocation: 1,
-                                offset: 4 * 2,
-                                format: 'float32x2'
-                            },
-                            {
-                                shaderLocation: 2,
-                                offset: 4 * 4,
-                                format: 'float32x2'
-                            },
-                            {
-                                shaderLocation: 3,
-                                offset: 4 * 6,
-                                format: 'float32x2'
-                            }
-                        ]
-                    }
+                    this.drawObjQueue.vertexBufferDescriptor
                 ]
             },
             fragment: {
@@ -155,8 +129,6 @@ class Spritter {
                 topology: 'triangle-list'
             }
         });
-
-        this.testTexture = null;
     };
 
     async init() {
@@ -167,7 +139,7 @@ class Spritter {
             await this.loadImageBitmap('src/atlas_test.png', 'atlas_test')
         ];
 
-        console.log(bitmaps);
+        console.log('bitmaps:', bitmaps);
 
         this.textureManager.textureAtlas.LoadTextureBitmaps(bitmaps);
     }
@@ -193,7 +165,7 @@ class Spritter {
         let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
         let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
 
-        const texName = rotVec.x > 0 ? 'test' : 'bunny'; 
+        const texName = rotVec.x > 0 ? 'test' : 'test'; 
         let texBounds = this.textureManager.textureAtlas.GetTextureBounds(texName);
         let iSize = 1 / this.textureManager.textureAtlas.dimension;
         const uv0 = new Vec2(texBounds.x * iSize, texBounds.y * iSize);
@@ -216,7 +188,7 @@ class Spritter {
         this.vertexStagingCount = 0;
     }
 
-    doStuff() {
+    doStuff() {        
         let now = new Date() / 500;
 
         // this.vertexStaging.set([
@@ -226,11 +198,26 @@ class Spritter {
         // ], 0);
         // this.vertexStagingCount = 3;
 
-        this.bufferQuad(-canvas.width / 4, 0, 256, 256, 0);
-        this.bufferQuad(-canvas.width / 2, 0, 206, 256, now * 100);
+        // this.bufferQuad(-canvas.width / 4, 0, 256, 256, 0);
+        // this.bufferQuad(-canvas.width / 2, 0, 206, 256, now * 100);
 
-        for (let i = 0; i < 1; i++)
-            this.bufferQuad(canvas.width * Math.sin(now + i*.1), canvas.height * Math.cos(now + i*.1), 128, 128, 0);
+        // for (let i = 0; i < 1; i++)
+        //     this.bufferQuad(canvas.width * Math.sin(now + i*.1), canvas.height * Math.cos(now + i*.1), 128, 128, 0);
+
+
+        let testSprite = new DrawObjs.Sprite(128, 128);
+        testSprite.SetTexture(this.textureManager.textureAtlas, 'test');
+        // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        testSprite.mat3.ScaleXY(1, 1);
+        testSprite.mat3.Rotate(this.tick);
+        this.drawObjQueue.BufferDrawobj(testSprite, 0);
+
+        // Stress tester
+        // for (let i = 0; i < 1; i++) {
+        //     testSprite.mat3.Rotate(1);
+        //     testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
+        //     this.drawObjQueue.BufferDrawobj(testSprite, 0);
+        // }
     }
 
     draw() {
@@ -249,24 +236,21 @@ class Spritter {
             ]
         };
 
-        this.device.queue.writeBuffer(
-            this.vertexBuffer,
-            0,
-            this.vertexStaging.buffer,
-            this.vertexStaging.byteOffset,
-            this.vertexStagingCount * this.vertexBufferEntryBytes
-        );
+
+        this.drawObjQueue.PushDrawObjBufferToVertices();
+        this.drawObjQueue.UploadVerticesToVertexBuffer();
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
-        passEncoder.setVertexBuffer(0, this.vertexBuffer);
-        passEncoder.draw(this.vertexStagingCount);
+        passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
+        passEncoder.draw(this.drawObjQueue.verticesCount);
         passEncoder.end();
 
         this.device.queue.submit([commandEncoder.finish()]);
 
-        this.flushVertexStaging();
+        this.drawObjQueue.Flush();
+        this.tick++;
     }
 }
 

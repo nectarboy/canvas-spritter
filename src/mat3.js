@@ -1,3 +1,6 @@
+const DEG_TO_RAD = Math.PI / 180;
+const RAD_TO_DEG = 180 / Math.PI;
+
 // A 3x3 matrix (column-major) representing 2D transformations, used primarily for drawobjs.
 class Mat3 {
     constructor() {
@@ -21,6 +24,41 @@ class Mat3 {
             0, 0, 1
         ]);
         return this;
+    }
+
+    SetFromTransform(transform) {
+        transform.UpdateTriangle();
+        let scaledSin = transform.scale * transform.tri.x;
+        let scaledCos = transform.scale * transform.tri.y;
+        this.m.set([
+            scaledCos,
+            scaledSin,
+            0,
+            -scaledSin,
+            scaledCos,
+            0,
+            transform.x,
+            transform.y,
+            1
+        ]);
+        return this;
+    }
+
+    Rotate(ang) {
+        let sin = -Math.sin(ang * DEG_TO_RAD); // Clockwise
+        let cos = Math.cos(ang * DEG_TO_RAD);
+        let m0 = this.m[0] * cos + this.m[3] * sin;
+        let m3 = this.m[0] * -sin + this.m[3] * cos;
+        let m1 = this.m[1] * cos + this.m[4] * sin;
+        let m4 = this.m[1] * -sin + this.m[4] * cos;
+        let m2 = this.m[2] * cos + this.m[5] * sin;
+        let m5 = this.m[3] * -sin + this.m[5] * cos;
+        this.m[0] = m0;
+        this.m[1] = m1;
+        this.m[2] = m2;
+        this.m[3] = m3;
+        this.m[4] = m4;
+        this.m[5] = m5;
     }
 
     ScaleXY(x, y) {
@@ -58,26 +96,10 @@ class Mat3 {
         return this.m[7];
     }
 
-    SetFromTransform(transform) {
-        transform.UpdateTriangle();
-        let scaledSin = transform.scale * transform.tri.x;
-        let scaledCos = transform.scale * transform.tri.y;
-        this.m.set([
-            scaledCos,
-            scaledSin,
-            0,
-            -scaledSin,
-            scaledCos,
-            0,
-            transform.x,
-            transform.y,
-            1
-        ]);
-        return this;
-    }
-
     // Apply this, then mat3 (mat3 * this)
     TransformFromMat3(mat3) {
 
     }
 }
+
+export default Mat3;

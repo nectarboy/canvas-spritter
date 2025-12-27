@@ -9,6 +9,7 @@ class Transform {
         this.rot = 0;
         this.scale = 1;
 
+        // Computed triangle (sin and cosine)
         this.triRot = 0;
         this.tri = new Vec2();
     };
