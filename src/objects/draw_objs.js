@@ -4,26 +4,47 @@ import Vec2 from '../vec2.js';
 class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
-        this.texName = '';
-        this.textured = false;
-        this.texW = 0;
-        this.texH = 0;
+        // this.texName = '';
+        // this.textured = false;
+        this.atlasDimension = -1;
+        this.iAtlasDimension = -1;
+        this.atlasPos = new Vec2(0, 0);
+        this.atlasSize = new Vec2(0, 0);
         this.atlasUv0 = new Vec2(0, 0);
         this.atlasUv1 = new Vec2(0, 0);
     };
 
     SetTexture(atlas, texName) {
-        let iSize = 1 / atlas.dimension;
         let texBounds = atlas.GetTextureBounds(texName);
         if (texBounds === null)
             return;
-        this.texW = texBounds.w;
-        this.texH = texBounds.h;
-        this.atlasUv0.SetXY(texBounds.x * iSize, texBounds.y * iSize);
-        this.atlasUv1.Set(this.atlasUv0).AddXY(texBounds.w * iSize, texBounds.h * iSize);
+
+        this.atlasDimension = atlas.dimension;
+        this.iAtlasDimension = 1 / atlas.dimension;
+        this.atlasPos.SetXY(texBounds.x, texBounds.y);
+        this.atlasSize.SetXY(texBounds.w, texBounds.h);
+        this.atlasUv0.SetXY(texBounds.x * this.iAtlasDimension, texBounds.y * this.iAtlasDimension);
+        this.atlasUv1.Set(this.atlasUv0).AddXY(texBounds.w * this.iAtlasDimension, texBounds.h * this.iAtlasDimension);
     }
 
-    BufferVerticesAt(queue, mat3) {}
+    BufferDataAt(queue, mat3, i) {
+        const uvMat3 = new Mat3();
+
+        queue.BufferDrawObjData([
+            mat3.m[0], mat3.m[1], mat3.m[2],
+            mat3.m[3], mat3.m[4], mat3.m[5],
+            mat3.m[6], mat3.m[7], mat3.m[8],
+
+            uvMat3.m[0], uvMat3.m[1], uvMat3.m[2],
+            uvMat3.m[3], uvMat3.m[4], uvMat3.m[5],
+            uvMat3.m[6], uvMat3.m[7], uvMat3.m[8],
+
+            this.atlasPos.x, this.atlasPos.y,
+            this.atlasSize.x, this.atlasSize.y
+        ]);
+    }
+
+    BufferVerticesAt(queue, mat3, i) {}
 }
 
 class DrawObjs {
@@ -35,7 +56,7 @@ class DrawObjs {
             this.h = h;
         };
 
-        BufferVerticesAt(queue, mat3) {
+        BufferVerticesAt(queue, mat3, i) {
             let iWidth = 1 / queue.spritter.canvas.width;
             let iHeight = 1 / queue.spritter.canvas.height;
             let halfW = this.w;
@@ -43,8 +64,6 @@ class DrawObjs {
 
             // These can be pooled / preallocated
             const uvMat3 = new Mat3();
-            uvMat3.TranslateXY(queue.spritter.tick / this.texW / 10, queue.spritter.tick / this.texH / 10);
-            uvMat3.Rotate(-queue.spritter.tick);
             let topLeftUv = new Vec2(-0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
             let topRightUv = new Vec2(0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
             let botLeftUv = new Vec2(-0.5, 0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
@@ -55,7 +74,7 @@ class DrawObjs {
             let botLeft = new Vec2(-halfW, -halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
             let botRight = new Vec2(halfW, -halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
 
-            queue.BufferVertices([
+            queue.BufferDrawObjVertices([
                 topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
                 botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
                 topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,

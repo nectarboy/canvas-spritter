@@ -31,7 +31,7 @@ class Spritter {
 
         this.pipelineLayout = device.createPipelineLayout({
             label: 'pipeline layout',
-            bindGroupLayouts: [this.textureManager.bindGroupLayout]
+            bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.bindGroupLayout]
         });
 
         this.pipeline = device.createRenderPipeline({
@@ -182,11 +182,12 @@ class Spritter {
 
 
         this.drawObjQueue.PushDrawObjBufferToVertices();
-        this.drawObjQueue.UploadVerticesToVertexBuffer();
+        this.drawObjQueue.UploadStageBuffersToBuffers();
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
+        passEncoder.setBindGroup(1, this.drawObjQueue.bindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
         passEncoder.draw(this.drawObjQueue.verticesCount);
         passEncoder.end();
