@@ -39,6 +39,9 @@ class DrawObj {
             uvMat3.m[3], uvMat3.m[4], uvMat3.m[5],
             uvMat3.m[6], uvMat3.m[7], uvMat3.m[8],
 
+            this.atlasDimension,
+            this.iAtlasDimension,
+
             this.atlasPos.x, this.atlasPos.y,
             this.atlasSize.x, this.atlasSize.y
         ]);

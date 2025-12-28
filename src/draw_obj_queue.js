@@ -24,10 +24,10 @@ class DrawObjQueue {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
         this.drawObjDataCount = 0;
-        this.drawObjDataEntrySize = 9 + 9 + 2 + 2;
+        this.drawObjDataEntrySize = 24;
         this.drawObjDataEntryByteSize = this.drawObjDataEntrySize * this.storageStage.BYTES_PER_ELEMENT;
 
-        this.bindGroupLayout = spritter.device.createBindGroupLayout({
+        this.storageBindGroupLayout = spritter.device.createBindGroupLayout({
             label: 'draw_obj_queue bind group layout',
             entries: [
                 {
@@ -40,9 +40,9 @@ class DrawObjQueue {
                 }
             ]
         });
-        this.bindGroup = spritter.device.createBindGroup({
+        this.storageBindGroup = spritter.device.createBindGroup({
             label: 'draw_obj_queue bind group',
-            layout: this.bindGroupLayout,
+            layout: this.storageBindGroupLayout,
             entries: [
                 {
                     binding: 0,

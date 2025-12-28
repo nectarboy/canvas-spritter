@@ -1,3 +1,14 @@
+@group(1) @binding(0) var<storage, read> drawObjs : array<DrawObj>;
+
+struct DrawObj {
+    mat3 : mat3x3<f32>,
+    uvMat3 : mat3x3<f32>,
+    atlasDimension : f32,
+    iAtlasDimension : f32,
+    atlasPos : vec2f,
+    atlasSize : vec2f
+}
+
 @group(0) @binding(0) var texAtlas : texture_2d<f32>;
 @group(0) @binding(1) var sam : sampler;
 

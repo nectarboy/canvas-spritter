@@ -187,7 +187,7 @@ class Spritter {
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
-        passEncoder.setBindGroup(1, this.drawObjQueue.bindGroup);
+        passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
         passEncoder.draw(this.drawObjQueue.verticesCount);
         passEncoder.end();
