@@ -112,7 +112,7 @@ class DrawObjQueue {
     }
 
     BufferDrawObjData(data) {
-        this.storageStage.set(data, this.drawObjDataCount * this.drawObjDataEntryByteSize);
+        this.storageStage.set(data, this.drawObjDataCount * this.drawObjDataEntrySize);
         this.drawObjDataCount++;
     }
 
@@ -121,7 +121,7 @@ class DrawObjQueue {
         this.verticesCount += increment;
     }
 
-    PushDrawObjBufferToVertices() {
+    PushDrawObjsToStageBuffers() {
         // this.verticesCount = 0;
         for (let i = 0; i < this.holders.length; i++) {
             let holder = this.holders[i];
@@ -150,6 +150,7 @@ class DrawObjQueue {
     }
 
     Flush() {
+        // console.log(this.drawObjDataCount, this.verticesCount);
         this.holders.length = 0;
         this.verticesCount = 0;
         this.drawObjDataCount = 0;

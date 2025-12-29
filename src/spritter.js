@@ -157,11 +157,11 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(testSprite, 0);
 
         // Stress tester
-        // for (let i = 0; i < 1; i++) {
-        //     testSprite.mat3.Rotate(1);
-        //     testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
-        //     this.drawObjQueue.BufferDrawobj(testSprite, 0);
-        // }
+        for (let i = 0; i < 1000; i++) {
+            testSprite.mat3.Rotate(1);
+            testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
+            this.drawObjQueue.BufferDrawobj(testSprite, 0);
+        }
     }
 
     draw() {
@@ -181,7 +181,7 @@ class Spritter {
         };
 
 
-        this.drawObjQueue.PushDrawObjBufferToVertices();
+        this.drawObjQueue.PushDrawObjsToStageBuffers();
         this.drawObjQueue.UploadStageBuffersToBuffers();
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);

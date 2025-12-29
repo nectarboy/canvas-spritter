@@ -84,12 +84,12 @@ class DrawObjs {
             queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y], off + 15);
             queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y], off + 20);
             queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y], off + 25);
-            queue.verticesStage.set([i], off + 4);
-            queue.verticesStage.set([i], off + 9);
-            queue.verticesStage.set([i], off + 14);
-            queue.verticesStage.set([i], off + 19);
-            queue.verticesStage.set([i], off + 24);
-            queue.verticesStage.set([i], off + 29);
+            queue.verticesStage_Uint32.set([i], off + 4);
+            queue.verticesStage_Uint32.set([i], off + 9);
+            queue.verticesStage_Uint32.set([i], off + 14);
+            queue.verticesStage_Uint32.set([i], off + 19);
+            queue.verticesStage_Uint32.set([i], off + 24);
+            queue.verticesStage_Uint32.set([i], off + 29);
             queue.verticesCount += 6;
 
             // queue.BufferDrawObjVertices([
