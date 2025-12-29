@@ -1,4 +1,5 @@
 import Mat3 from './mat3.js';
+import { signedAng } from './math.js';
 
 const DEG_TO_RAD = Math.PI / 180;
 const RAD_TO_DEG = 180 / Math.PI;

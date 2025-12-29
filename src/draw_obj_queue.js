@@ -53,15 +53,15 @@ class DrawObjQueue {
 
 
         // Vertex buffer
-        this.vertexBufferEntrySize = 5;
         this.vertexBufferSize = 4096 * 1024;
-        this.verticesCount = 0;
         this.verticesStage = new Float32Array(this.vertexBufferSize);
         this.verticesStage_Uint32 = new Uint32Array(this.verticesStage.buffer);
         this.vertexBuffer = spritter.device.createBuffer({
             size: this.verticesStage.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
+        this.verticesCount = 0;
+        this.vertexBufferEntrySize = 5;
         this.vertexBufferEntryByteSize = this.vertexBufferEntrySize * this.verticesStage.BYTES_PER_ELEMENT;
 
         this.vertexBufferDescriptor = {

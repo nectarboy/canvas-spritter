@@ -20,10 +20,14 @@ fn main(
     @location(3) @interpolate(flat) atlasUv1 : vec2f
 ) -> @location(0) vec4f {
 
-    var uv = fract(fragUv);
-    uv.x = atlasUv0.x + fract(uv.x) * (atlasUv1.x - atlasUv0.x);
-    uv.y = atlasUv0.y + fract(uv.y) * (atlasUv1.y - atlasUv0.y);
-    var pix = textureSample(texAtlas, sam, uv);
+    var uv = fragUv;
+    // uv.x += sin(fragUv.y * 20) / 10;
+
+    var uv0 = atlasUv0;
+    var uv1 = atlasUv1;
+    uv = mix(uv0, uv1, fract(uv));
+    var pix = textureSampleLevel(texAtlas, sam, uv, 0);
+    return fragColor;
     return pix;
 
 }

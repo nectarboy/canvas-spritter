@@ -4,11 +4,8 @@ const RAD_TO_DEG = 180 / Math.PI;
 // A 3x3 matrix (column-major) representing 2D transformations, used primarily for drawobjs.
 class Mat3 {
     constructor() {
-        this.m = new Float32Array([
-            1, 0, 0,
-            0, 1, 0,
-            0, 0, 1
-        ]);
+        this.m = new Float32Array(9);
+        this.ToIdentity();
     }
 
     Copy() {

@@ -12,6 +12,8 @@ class DrawObj {
         this.atlasSize = new Vec2(0, 0);
         this.atlasUv0 = new Vec2(0, 0);
         this.atlasUv1 = new Vec2(0, 0);
+
+        this.posOffset = new Vec2(0, 0);
     };
 
     SetTexture(atlas, texName) {
@@ -29,7 +31,8 @@ class DrawObj {
 
     BufferDataAt(queue, mat3, i) {
         const uvMat3 = new Mat3();
-        uvMat3.Rotate(30);
+        uvMat3.ScaleXY(2, 2);
+        uvMat3.Rotate(45);
 
         queue.BufferDrawObjData([
             mat3.m[0], mat3.m[1], mat3.m[2], 0,
@@ -48,7 +51,7 @@ class DrawObj {
         ]);
     }
 
-    BufferVerticesAt(queue, mat3, i) {}
+    BufferVerticesAt(queue, mat3, drawObjIndex) {}
 }
 
 class DrawObjs {
@@ -60,13 +63,10 @@ class DrawObjs {
             this.h = h;
         };
 
-        BufferVerticesAt(queue, mat3, i) {
-            let iWidth = 1 / queue.spritter.canvas.width;
-            let iHeight = 1 / queue.spritter.canvas.height;
+        BufferVerticesAt(queue, mat3, drawObjIndex) {
             let halfW = this.w;
             let halfH = this.h;
 
-            // These can be pooled / preallocated
             let topLeftUv = new Vec2(-0.5, -0.5);
             let topRightUv = new Vec2(0.5, -0.5);
             let botLeftUv = new Vec2(-0.5, 0.5);
@@ -84,34 +84,89 @@ class DrawObjs {
             queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y], off + 15);
             queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y], off + 20);
             queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y], off + 25);
-            queue.verticesStage_Uint32.set([i], off + 4);
-            queue.verticesStage_Uint32.set([i], off + 9);
-            queue.verticesStage_Uint32.set([i], off + 14);
-            queue.verticesStage_Uint32.set([i], off + 19);
-            queue.verticesStage_Uint32.set([i], off + 24);
-            queue.verticesStage_Uint32.set([i], off + 29);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 4);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 9);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 14);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 19);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 24);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 29);
             queue.verticesCount += 6;
-
-            // queue.BufferDrawObjVertices([
-            //     topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     i,
-            //     botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       i,
-            //     topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y,       i,
-
-            //     botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       i,
-            //     topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     i,
-            //     botRight.x, botRight.y,     botRightUv.x, botRightUv.y,     i
-            // ], 6);
         }
     }
 
     static Poly = class Poly extends DrawObj {
         constructor(points) {
             super();
-            this.tessels = [];
+            this.polyVerts = [];
+            this.TessellatePoints(points);
         }
 
+        BufferVerticesAt(queue, mat3, drawObjIndex) {
+            let off = queue.verticesCount * queue.vertexBufferEntrySize;
+            for (let i = 0; i < this.polyVerts.length; i++, off += 5) {
+                let vert = this.polyVerts[i];
+                queue.verticesStage.set([vert.x * 100, vert.y * 100,     vert.x, -vert.y], off);
+                queue.verticesStage_Uint32.set([drawObjIndex], off + 4);
+            }
+            queue.verticesCount += this.polyVerts.length;
+
+            if (queue.spritter.tick === 0) console.log(this.polyVerts);
+        }
+
+        // points must be a Vec2 array
         TessellatePoints(points) {
-            this.tessels.length = 0;
+            this.polyVerts.length = 0;
+
+            for (let i = 0; i < points.length; i++) {
+                let p = points[i];
+                let pBefore = (i === 0) ? points[points.length - 1] : points[i - 1];
+                let pAfter = (i === points.length - 1) ? points[0] : points[i + 1];
+                let lineBefore = p.Copy().Sub(pBefore);
+                let lineAfter = pAfter.Copy().Sub(p);
+
+                // console.log(lineAfter.GetAngDiff(lineBefore));
+
+                // If point is concave or flat, skip
+                if (lineAfter.GetAngDiff(lineBefore) > 0)
+                    continue;
+
+                // Push triangle and remove this point
+                this.polyVerts.push(pBefore);
+                this.polyVerts.push(p);
+                this.polyVerts.push(pAfter);
+                points.splice(i, 1);
+                i--;
+
+                if (points.length < 3)
+                    break;
+            }
+        }
+
+        TestDraw() {
+            let canvas = document.getElementById('binpackcanvas');
+            let ctx = canvas.getContext('2d');
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            let cx = canvas.width/2;
+            let cy = canvas.height/2;
+            let s = 50;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < this.polyVerts.length; i++) {
+                if ((i % 3) === 0) {
+                    ctx.stroke();
+                    ctx.closePath();
+                    ctx.beginPath();
+                    ctx.moveTo(cx + s*this.polyVerts[i].x, cy - s*this.polyVerts[i].y);
+                }
+                let nextP = this.polyVerts[Math.floor(i / 3)*3 + ((i + 1) % 3)];
+                ctx.lineTo(cx + s*nextP.x, cy - s*nextP.y);
+            }
+            ctx.stroke();
+            ctx.closePath();
+
         }
     }
 

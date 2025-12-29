@@ -36,8 +36,8 @@ fn main(
     transformedPosition.x /= screenW;
     transformedPosition.y /= screenH;
     out.position = vec4f(transformedPosition.x, transformedPosition.y, 0.0, 1.0);
-    // if (VertexIndex == 6 || VertexIndex == 8 || VertexIndex == 10) {
-    //     out.position.w = 2;
+    // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) {
+    //     out.position.w = 3;
     // }
 
     var transformedUv : vec3f = drawObj.uvMat3 * vec3f(uv, 1);

@@ -4,8 +4,8 @@ import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
 import DrawObjs from './objects/draw_objs.js';
 
-const vs = await (await fetch('./src/shaders/vs.wgsl')).text();
-const fs = await (await fetch('./src/shaders/fs.wgsl')).text();
+const vs = await (await fetch('./src/shaders/vs.wgsl', { cache: 'no-store' })).text();
+const fs = await (await fetch('./src/shaders/fs.wgsl', { cache: 'no-store' })).text();
 
 class Spritter {
     constructor(canvas, device) {
@@ -100,34 +100,6 @@ class Spritter {
         return bitmapDescriptor;
     }
 
-    bufferQuad(x, y, w, h, rot) {
-        let rotVec = Vec2.FromAng(rot);
-        let iWidth = 1 / this.canvas.width;
-        let iHeight = 1 / this.canvas.height;
-        let topLeft = new Vec2(-w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
-        let topRight = new Vec2(w/2, h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
-        let botLeft = new Vec2(-w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
-        let botRight = new Vec2(w/2, -h/2).RotateFromUnitCW(rotVec).AddXY(x, y).ScaleXY(iWidth, iHeight);
-
-        const texName = rotVec.x > 0 ? 'test' : 'test'; 
-        let texBounds = this.textureManager.textureAtlas.GetTextureBounds(texName);
-        let iSize = 1 / this.textureManager.textureAtlas.dimension;
-        const uv0 = new Vec2(texBounds.x * iSize, texBounds.y * iSize);
-        const uv1 = uv0.Copy().AddXY(texBounds.w * iSize, texBounds.h * iSize);
-
-        this.vertexStaging.set([
-            topRight.x, topRight.y, 1, 0,   uv0.x, uv0.y, uv1.x, uv1.y,
-            botLeft.x, botLeft.y, 0, 1,     uv0.x, uv0.y, uv1.x, uv1.y,
-            topLeft.x, topLeft.y, 0, 0,     uv0.x, uv0.y, uv1.x, uv1.y,
-
-            botLeft.x, botLeft.y, 0, 1,     uv0.x, uv0.y, uv1.x, uv1.y,
-            topRight.x, topRight.y, 1, 0,   uv0.x, uv0.y, uv1.x, uv1.y,
-            botRight.x, botRight.y, 1, 1,   uv0.x, uv0.y, uv1.x, uv1.y
-        ], this.vertexStagingCount * this.vertexBufferEntrySize);
-
-        this.vertexStagingCount += 6;
-    }
-
     flushVertexStaging() {
         this.vertexStagingCount = 0;
     }
@@ -151,15 +123,32 @@ class Spritter {
 
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTexture(this.textureManager.textureAtlas, 'test');
-        // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
         testSprite.mat3.ScaleXY(1, 1);
-        testSprite.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testSprite, 0);
+        // testSprite.mat3.Rotate(this.tick);
+        // this.drawObjQueue.BufferDrawobj(testSprite, 0);
+
+        let testPoly = new DrawObjs.Poly([
+            new Vec2(-2, 0),
+            new Vec2(-1, 1),
+            new Vec2(1, 1),
+            new Vec2(2, 0),
+            new Vec2(3, 0),
+            new Vec2(2, -0.25),
+            new Vec2(1, -1),
+            new Vec2(-1, -1)
+        ]);
+        testPoly.TestDraw();
+        testPoly.SetTexture(this.textureManager.textureAtlas, 'test');
+        testPoly.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        testPoly.mat3.ScaleXY(1, 1);
+        testPoly.mat3.Rotate(this.tick);
+        this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 0; i++) {
             testSprite.mat3.Rotate(1);
-            testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
+            // testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
             this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
