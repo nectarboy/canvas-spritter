@@ -122,11 +122,11 @@ class Spritter {
 
 
         let testSprite = new DrawObjs.Sprite(128, 128);
-        testSprite.SetTexture(this.textureManager.textureAtlas, 'test');
+        testSprite.SetTexture(this.textureManager.textureAtlas, 'bunny');
         testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
         testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
-        // this.drawObjQueue.BufferDrawobj(testSprite, 0);
+        this.drawObjQueue.BufferDrawobj(testSprite, 0);
 
         let testPoly = new DrawObjs.Poly([
             new Vec2(-2, 0),
@@ -137,19 +137,19 @@ class Spritter {
             new Vec2(2, -0.25),
             new Vec2(1, -1),
             new Vec2(-1, -1)
-        ]);
+        ], 100);
         testPoly.TestDraw();
-        testPoly.SetTexture(this.textureManager.textureAtlas, 'test');
-        testPoly.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        testPoly.SetTexture(this.textureManager.textureAtlas, 'bunny');
+        testPoly.mat3.TranslateXY(-Math.sin(this.tick / 100) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
-        testPoly.mat3.Rotate(this.tick);
+        // testPoly.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {
-            testSprite.mat3.Rotate(1);
-            // testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
-            this.drawObjQueue.BufferDrawobj(testSprite, 0);
+            testPoly.mat3.Rotate(1);
+            testPoly.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
+            this.drawObjQueue.BufferDrawobj(testPoly, 0);
         }
     }
 

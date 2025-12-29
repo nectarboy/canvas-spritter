@@ -27,7 +27,7 @@ fn main(
     var uv1 = atlasUv1;
     uv = mix(uv0, uv1, fract(uv));
     var pix = textureSampleLevel(texAtlas, sam, uv, 0);
-    return fragColor;
+    //return fragColor;
     return pix;
 
 }

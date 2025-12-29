@@ -6,6 +6,7 @@ class DrawObj {
         this.mat3 = new Mat3().ToIdentity();
         // this.texName = '';
         // this.textured = false;
+
         this.atlasDimension = -1;
         this.iAtlasDimension = -1;
         this.atlasPos = new Vec2(0, 0);
@@ -14,6 +15,8 @@ class DrawObj {
         this.atlasUv1 = new Vec2(0, 0);
 
         this.posOffset = new Vec2(0, 0);
+
+        this.patternMode = false;
     };
 
     SetTexture(atlas, texName) {
@@ -31,8 +34,13 @@ class DrawObj {
 
     BufferDataAt(queue, mat3, i) {
         const uvMat3 = new Mat3();
-        uvMat3.ScaleXY(2, 2);
-        uvMat3.Rotate(45);
+
+        if (this.patternMode)
+            uvMat3.ScaleXY(0.5 / this.atlasSize.x, 0.5 / this.atlasSize.y);
+
+        // uvMat3.TranslateXY(queue.spritter.tick * 1 / this.atlasSize.x, 0);
+        uvMat3.ScaleXY(4, 4);
+        uvMat3.Rotate(queue.spritter.tick / 2);
 
         queue.BufferDrawObjData([
             mat3.m[0], mat3.m[1], mat3.m[2], 0,
@@ -95,17 +103,18 @@ class DrawObjs {
     }
 
     static Poly = class Poly extends DrawObj {
-        constructor(points) {
+        constructor(points, pointScale) {
             super();
+            this.patternMode = true;
             this.polyVerts = [];
-            this.TessellatePoints(points);
+            this.TessellatePoints(points, pointScale);
         }
 
         BufferVerticesAt(queue, mat3, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             for (let i = 0; i < this.polyVerts.length; i++, off += 5) {
                 let vert = this.polyVerts[i];
-                queue.verticesStage.set([vert.x * 100, vert.y * 100,     vert.x, -vert.y], off);
+                queue.verticesStage.set([vert.x, vert.y,     vert.x, -vert.y], off);
                 queue.verticesStage_Uint32.set([drawObjIndex], off + 4);
             }
             queue.verticesCount += this.polyVerts.length;
@@ -114,7 +123,7 @@ class DrawObjs {
         }
 
         // points must be a Vec2 array
-        TessellatePoints(points) {
+        TessellatePoints(points, pointScale) {
             this.polyVerts.length = 0;
 
             for (let i = 0; i < points.length; i++) {
@@ -124,16 +133,14 @@ class DrawObjs {
                 let lineBefore = p.Copy().Sub(pBefore);
                 let lineAfter = pAfter.Copy().Sub(p);
 
-                // console.log(lineAfter.GetAngDiff(lineBefore));
-
                 // If point is concave or flat, skip
                 if (lineAfter.GetAngDiff(lineBefore) > 0)
                     continue;
 
                 // Push triangle and remove this point
-                this.polyVerts.push(pBefore);
-                this.polyVerts.push(p);
-                this.polyVerts.push(pAfter);
+                this.polyVerts.push(pBefore.Copy().Scale(pointScale));
+                this.polyVerts.push(p.Copy().Scale(pointScale));
+                this.polyVerts.push(pAfter.Copy().Scale(pointScale));
                 points.splice(i, 1);
                 i--;
 
@@ -151,7 +158,7 @@ class DrawObjs {
 
             let cx = canvas.width/2;
             let cy = canvas.height/2;
-            let s = 50;
+            let s = 1;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let i = 0; i < this.polyVerts.length; i++) {
