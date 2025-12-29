@@ -31,7 +31,7 @@ class Spritter {
 
         this.pipelineLayout = device.createPipelineLayout({
             label: 'pipeline layout',
-            bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.bindGroupLayout]
+            bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.storageBindGroupLayout]
         });
 
         this.pipeline = device.createRenderPipeline({

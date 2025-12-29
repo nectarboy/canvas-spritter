@@ -29,21 +29,22 @@ class DrawObj {
 
     BufferDataAt(queue, mat3, i) {
         const uvMat3 = new Mat3();
+        uvMat3.Rotate(30);
 
         queue.BufferDrawObjData([
-            mat3.m[0], mat3.m[1], mat3.m[2],
-            mat3.m[3], mat3.m[4], mat3.m[5],
-            mat3.m[6], mat3.m[7], mat3.m[8],
+            mat3.m[0], mat3.m[1], mat3.m[2], 0,
+            mat3.m[3], mat3.m[4], mat3.m[5], 0,
+            mat3.m[6], mat3.m[7], mat3.m[8], 0,
 
-            uvMat3.m[0], uvMat3.m[1], uvMat3.m[2],
-            uvMat3.m[3], uvMat3.m[4], uvMat3.m[5],
-            uvMat3.m[6], uvMat3.m[7], uvMat3.m[8],
+            uvMat3.m[0], uvMat3.m[1], uvMat3.m[2], 0,
+            uvMat3.m[3], uvMat3.m[4], uvMat3.m[5], 0,
+            uvMat3.m[6], uvMat3.m[7], uvMat3.m[8], 0,
+
+            this.atlasPos.x, this.atlasPos.y,
+            this.atlasSize.x, this.atlasSize.y,
 
             this.atlasDimension,
             this.iAtlasDimension,
-
-            this.atlasPos.x, this.atlasPos.y,
-            this.atlasSize.x, this.atlasSize.y
         ]);
     }
 
@@ -66,26 +67,40 @@ class DrawObjs {
             let halfH = this.h;
 
             // These can be pooled / preallocated
-            const uvMat3 = new Mat3();
-            let topLeftUv = new Vec2(-0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
-            let topRightUv = new Vec2(0.5, -0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
-            let botLeftUv = new Vec2(-0.5, 0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
-            let botRightUv = new Vec2(0.5, 0.5).TransformFromMat3(uvMat3).AddXY(0.5, 0.5);
+            let topLeftUv = new Vec2(-0.5, -0.5);
+            let topRightUv = new Vec2(0.5, -0.5);
+            let botLeftUv = new Vec2(-0.5, 0.5);
+            let botRightUv = new Vec2(0.5, 0.5);
 
-            let topLeft = new Vec2(-halfW, halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
-            let topRight = new Vec2(halfW, halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
-            let botLeft = new Vec2(-halfW, -halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
-            let botRight = new Vec2(halfW, -halfH).TransformFromMat3(mat3).ScaleXY(iWidth, iHeight);
+            let topLeft = new Vec2(-halfW, halfH);
+            let topRight = new Vec2(halfW, halfH);
+            let botLeft = new Vec2(-halfW, -halfH);
+            let botRight = new Vec2(halfW, -halfH);
 
-            queue.BufferDrawObjVertices([
-                topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
+            let off = queue.verticesCount * queue.vertexBufferEntrySize;
+            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y], off);
+            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y], off + 5);
+            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y], off + 10);
+            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y], off + 15);
+            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y], off + 20);
+            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y], off + 25);
+            queue.verticesStage.set([i], off + 4);
+            queue.verticesStage.set([i], off + 9);
+            queue.verticesStage.set([i], off + 14);
+            queue.verticesStage.set([i], off + 19);
+            queue.verticesStage.set([i], off + 24);
+            queue.verticesStage.set([i], off + 29);
+            queue.verticesCount += 6;
 
-                botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y,
-                botRight.x, botRight.y,     botRightUv.x, botRightUv.y,     this.atlasUv0.x, this.atlasUv0.y, this.atlasUv1.x, this.atlasUv1.y
-            ], 6);
+            // queue.BufferDrawObjVertices([
+            //     topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     i,
+            //     botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       i,
+            //     topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y,       i,
+
+            //     botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y,       i,
+            //     topRight.x, topRight.y,     topRightUv.x, topRightUv.y,     i,
+            //     botRight.x, botRight.y,     botRightUv.x, botRightUv.y,     i
+            // ], 6);
         }
     }
 

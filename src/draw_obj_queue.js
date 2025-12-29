@@ -24,7 +24,7 @@ class DrawObjQueue {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
         this.drawObjDataCount = 0;
-        this.drawObjDataEntrySize = 24;
+        this.drawObjDataEntrySize = 32;
         this.drawObjDataEntryByteSize = this.drawObjDataEntrySize * this.storageStage.BYTES_PER_ELEMENT;
 
         this.storageBindGroupLayout = spritter.device.createBindGroupLayout({
@@ -53,7 +53,7 @@ class DrawObjQueue {
 
 
         // Vertex buffer
-        this.vertexBufferEntrySize = 8;
+        this.vertexBufferEntrySize = 5;
         this.vertexBufferSize = 4096 * 1024;
         this.verticesCount = 0;
         this.verticesStage = new Float32Array(this.vertexBufferSize);
@@ -80,13 +80,8 @@ class DrawObjQueue {
                 {
                     shaderLocation: 2,
                     offset: 4 * 4,
-                    format: 'float32x2'
+                    format: 'uint32'
                 },
-                {
-                    shaderLocation: 3,
-                    offset: 4 * 6,
-                    format: 'float32x2'
-                }
             ]
         };
     }

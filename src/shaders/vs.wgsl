@@ -3,10 +3,10 @@
 struct DrawObj {
     mat3 : mat3x3<f32>,
     uvMat3 : mat3x3<f32>,
+    atlasPos : vec2f,
+    atlasSize : vec2f,
     atlasDimension : f32,
     iAtlasDimension : f32,
-    atlasPos : vec2f,
-    atlasSize : vec2f
 }
 
 struct VertexOutput {
@@ -22,26 +22,37 @@ fn main(
     @builtin(vertex_index) VertexIndex : u32,
     @location(0) position : vec2f,
     @location(1) uv : vec2f,
-    @location(2) atlasUv0 : vec2f,
-    @location(3) atlasUv1 : vec2f
+    @location(2) drawObjIndex : u32
 ) -> VertexOutput {
 
+    const screenW = 480f;
+    const screenH = 360f;
+
+    var drawObj : DrawObj = drawObjs[drawObjIndex];
+
     var out : VertexOutput;
-    out.position = vec4f(position, 0.0, 1.0);
+
+    var transformedPosition : vec3f = drawObj.mat3 * vec3f(position, 1);
+    transformedPosition.x /= screenW;
+    transformedPosition.y /= screenH;
+    out.position = vec4f(transformedPosition.x, transformedPosition.y, 0.0, 1.0);
     // if (VertexIndex == 6 || VertexIndex == 8 || VertexIndex == 10) {
     //     out.position.w = 2;
     // }
-    out.atlasUv0 = atlasUv0;
-    out.atlasUv1 = atlasUv1;
-    out.fragUv = uv;
-    // out.fragUv.x = atlasUv0.x + uv.x * (atlasUv1.x - atlasUv0.x);
-    // out.fragUv.y = atlasUv0.y + uv.y * (atlasUv1.y - atlasUv0.y);
+
+    var transformedUv : vec3f = drawObj.uvMat3 * vec3f(uv, 1);
+    out.fragUv = vec2f(transformedUv.x + 0.5, transformedUv.y + 0.5);
+
     if ((VertexIndex & 1) == 1) {
         out.fragColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
     else {
         out.fragColor = vec4(1.0, 0.0, 1.0, 1.0);
     }
+
+    out.atlasUv0 = drawObj.atlasPos / drawObj.atlasDimension;
+    out.atlasUv1 = (drawObj.atlasPos + drawObj.atlasSize) / drawObj.atlasDimension;
+
     return out;
 
 }
