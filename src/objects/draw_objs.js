@@ -179,8 +179,8 @@ class DrawObjs {
 
     static PerspectiveSprite = class PerspectiveSprite extends DrawObj {
         BufferVerticesAt(queue, mat3, drawObjIndex) {
-            const w = 192;
-            const h = 192;
+            const w = 292;
+            const h = 292;
 
             let sin = Math.sin(queue.spritter.tick / 20)/2 + .5;
             let cos = Math.cos(queue.spritter.tick / 20)/2 + .5;
@@ -190,10 +190,10 @@ class DrawObjs {
             let botRight = new Vec2(w, -h * cos);
             let botLeft = new Vec2(-w * 0.2, -h * cos);
 
-            topLeft = new Vec2(-w * .5, h);
-            topRight = new Vec2(w * .5, h);
-            botRight = new Vec2(w, -h * .5);
-            botLeft = new Vec2(-w, -h);
+            topLeft = new Vec2(-w * 0, h);
+            topRight = new Vec2(w, h);
+            botRight = new Vec2(w, -h);
+            botLeft = new Vec2(-w * 1, -h * 2);
 
             // topLeft = new Vec2(-w, h);
             // topRight = new Vec2(w, h);
@@ -211,6 +211,12 @@ class DrawObjs {
             // 2.75, -0.25 -> ~0.8
             // 3.5, 0.5 -> ~1.333 or 1.35
             // 0.875, -0.25 -> 0.875
+            // 0.8333, -0.333 -> 0.8333
+            // 0.7, -0.6 -> 0.6
+            // 0.5909, -0.8181 -> ~0.375
+            // -0.75, 1.5 -> 0.333
+            // 1, 1 -> sqrt(2)...
+            // 2, 1 -> 1.5
 
             let p0 = topLeft;
             let p1 = topRight;
@@ -227,8 +233,8 @@ class DrawObjs {
 
             let q1 = det_cb / det_ab;
             let q2 = det_ac / det_ab;
-            let someFactor = 1;
-            someFactor = 0.875;
+            let someFactor = Math.sqrt(1 + ((q1 - 1)/4 + 1) * q2);
+            // someFactor = 1;
 
             console.log(q1, q2);
 
@@ -245,11 +251,6 @@ class DrawObjs {
             topRightUv.Scale(topRightUvQ);
             botLeftUv.Scale(botLeftUvQ);
             botRightUv.Scale(botRightUvQ);
-
-            // topLeft = new Vec2(-w, h);
-            // topRight = new Vec2(w, h);
-            // botRight = new Vec2(w, -h);
-            // botLeft = new Vec2(-w, -h);
 
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off);
