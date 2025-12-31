@@ -140,8 +140,18 @@ class Vec2 {
         return this.x*vec.y - this.y*vec.x;
     }
 
+    Det3(a, b) {
+        return (a.y - this.y) * (b.x - this.x) - (a.x - this.x) * (b.y - this.y);
+    }
+
     Dot(vec) {
         return this.x*vec.x + this.y*vec.y;
+    }
+
+    Dist(vec) {
+        let dx = this.x - vec.x;
+        let dy = this.y - vec.y;
+        return Math.sqrt(dx*dx + dy*dy);
     }
 
     Scale(scale) {

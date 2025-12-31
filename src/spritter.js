@@ -78,6 +78,7 @@ class Spritter {
     async init() {
         let bitmaps = [
             await this.loadImageBitmap('src/test.png', 'test'),
+            await this.loadImageBitmap('src/test2.png', 'test2'),
             await this.loadImageBitmap('src/terrain.png', 'terrain'),
             await this.loadImageBitmap('src/bunny.png', 'bunny'),
             await this.loadImageBitmap('src/atlas_test.png', 'atlas_test')
@@ -107,24 +108,10 @@ class Spritter {
     doStuff() {        
         let now = new Date() / 500;
 
-        // this.vertexStaging.set([
-        //     0.0 + Math.random(), 0.5,
-        //     -0.5, -0.5,
-        //     0.5, -0.5,
-        // ], 0);
-        // this.vertexStagingCount = 3;
-
-        // this.bufferQuad(-canvas.width / 4, 0, 256, 256, 0);
-        // this.bufferQuad(-canvas.width / 2, 0, 206, 256, now * 100);
-
-        // for (let i = 0; i < 1; i++)
-        //     this.bufferQuad(canvas.width * Math.sin(now + i*.1), canvas.height * Math.cos(now + i*.1), 128, 128, 0);
-
-
-        let testSprite = new DrawObjs.Sprite(128, 128);
-        testSprite.SetTexture(this.textureManager.textureAtlas, 'bunny');
-        testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
-        testSprite.mat3.ScaleXY(1, 1);
+        let testSprite = new DrawObjs.PerspectiveSprite(128, 128);
+        testSprite.SetTexture(this.textureManager.textureAtlas, 'test2');
+        // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        // testSprite.mat3.ScaleXY(Math.sin(this.tick / 50), Math.sin(this.tick / 50));
         // testSprite.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testSprite, 0);
 
@@ -139,11 +126,11 @@ class Spritter {
             new Vec2(-1, -1)
         ], 100);
         testPoly.TestDraw();
-        testPoly.SetTexture(this.textureManager.textureAtlas, 'bunny');
+        testPoly.SetTexture(this.textureManager.textureAtlas, 'terrain');
         testPoly.mat3.TranslateXY(-Math.sin(this.tick / 100) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testPoly, 0);
+        // this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {

@@ -61,7 +61,7 @@ class DrawObjQueue {
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
         this.verticesCount = 0;
-        this.vertexBufferEntrySize = 5;
+        this.vertexBufferEntrySize = 7;
         this.vertexBufferEntryByteSize = this.vertexBufferEntrySize * this.verticesStage.BYTES_PER_ELEMENT;
 
         this.vertexBufferDescriptor = {
@@ -75,11 +75,11 @@ class DrawObjQueue {
                 {
                     shaderLocation: 1,
                     offset: 4 * 2,
-                    format: 'float32x2'
+                    format: 'float32x4'
                 },
                 {
                     shaderLocation: 2,
-                    offset: 4 * 4,
+                    offset: 4 * 6,
                     format: 'uint32'
                 },
             ]

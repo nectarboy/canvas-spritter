@@ -14,13 +14,13 @@ struct DrawObj {
 
 @fragment
 fn main(
-    @location(0) fragUv: vec2f,
+    @location(0) @interpolate(linear, center) fragUv: vec3f,
     @location(1) fragColor: vec4f,
     @location(2) @interpolate(flat) atlasUv0 : vec2f,
     @location(3) @interpolate(flat) atlasUv1 : vec2f
 ) -> @location(0) vec4f {
 
-    var uv = fragUv;
+    var uv = fragUv.xy / fragUv.z + vec2f(0.5, 0.5);
     // uv.x += sin(fragUv.y * 20) / 10;
 
     var uv0 = atlasUv0;
@@ -28,6 +28,7 @@ fn main(
     uv = mix(uv0, uv1, fract(uv));
     var pix = textureSampleLevel(texAtlas, sam, uv, 0);
     //return fragColor;
+    // return vec4f(fragUv.z / 5, 0.1, 0.0, 1.0);
     return pix;
 
 }

@@ -3,8 +3,9 @@ Roadmap:
 [x] be able to provide Spritter a list of objects to render each frame from JS land
 [x] do the above every frame
 [x] get a texture working
-[] different textures with different draw calls
-[] polygons
+[x] polygons
+[] different textures
+[] different draw calls for huge amounts of data (multiple tatlases) or smth
 [] basic shaders like outlines?
 [] a good interface
 

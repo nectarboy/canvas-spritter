@@ -39,8 +39,8 @@ class DrawObj {
             uvMat3.ScaleXY(0.5 / this.atlasSize.x, 0.5 / this.atlasSize.y);
 
         // uvMat3.TranslateXY(queue.spritter.tick * 1 / this.atlasSize.x, 0);
-        uvMat3.ScaleXY(4, 4);
-        uvMat3.Rotate(queue.spritter.tick / 2);
+        // uvMat3.ScaleXY(4, 4);
+        // uvMat3.Rotate(queue.spritter.tick / 2);
 
         queue.BufferDrawObjData([
             mat3.m[0], mat3.m[1], mat3.m[2], 0,
@@ -86,18 +86,18 @@ class DrawObjs {
             let botRight = new Vec2(halfW, -halfH);
 
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y], off);
-            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y], off + 5);
-            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y], off + 10);
-            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y], off + 15);
-            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y], off + 20);
-            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y], off + 25);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 4);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 9);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 14);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 19);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 24);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 29);
+            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, 1, 0], off);
+            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, 1, 0], off + 7);
+            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, 1, 0], off + 14);
+            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, 1, 0], off + 21);
+            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, 1, 0], off + 28);
+            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, 1, 0], off + 35);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 13);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 20);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 27);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 34);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 41);
             queue.verticesCount += 6;
         }
     }
@@ -112,10 +112,10 @@ class DrawObjs {
 
         BufferVerticesAt(queue, mat3, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            for (let i = 0; i < this.polyVerts.length; i++, off += 5) {
+            for (let i = 0; i < this.polyVerts.length; i++, off += 7) {
                 let vert = this.polyVerts[i];
-                queue.verticesStage.set([vert.x, vert.y,     vert.x, -vert.y], off);
-                queue.verticesStage_Uint32.set([drawObjIndex], off + 4);
+                queue.verticesStage.set([vert.x, vert.y,     vert.x, -vert.y, 1, 0], off);
+                queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
             }
             queue.verticesCount += this.polyVerts.length;
 
@@ -177,6 +177,105 @@ class DrawObjs {
         }
     }
 
+    static PerspectiveSprite = class PerspectiveSprite extends DrawObj {
+        BufferVerticesAt(queue, mat3, drawObjIndex) {
+            const w = 292;
+            const h = 292;
+
+            let sin = Math.sin(queue.spritter.tick / 20)/2 + .5;
+            let cos = Math.cos(queue.spritter.tick / 20)/2 + .5;
+
+            let topLeft = new Vec2(-w * 0.5 * sin, h);
+            let topRight = new Vec2(w * 0.5, h * 0.5);
+            let botLeft = new Vec2(-w * 0.2, -h * cos);
+            let botRight = new Vec2(w, -h * cos);
+
+            topLeft = new Vec2(-w * 0.5, h);
+            topRight = new Vec2(w * 0, h);
+            botLeft = new Vec2(-w, -h * .5);
+            botRight = new Vec2(w, -h * 1);
+
+            // q1, q2, UvQ divisor
+            // 0, -0.75 -> 1
+            // -0.666, 0 -> 1
+            // anything with q1 or q2 = 0 -> 1
+            // 0.25, -0.25 -> 1
+            // 0.5, -0.5 -> 0.75
+            // 0.75, -0.75 -> 0.5
+            // 2.25, -0.75 -> 0.333 or 0.325
+            // 2.75, -0.25 -> ~0.8
+            // 3.5, 0.5 -> ~1.333 or 1.35
+
+            // 2.25, -0.75
+            // let topLeft = new Vec2(-w * 0.5, h);
+            // let topRight = new Vec2(w * 0, h);
+            // let botLeft = new Vec2(-w, -h);
+            // let botRight = new Vec2(w, -h * -0.5);
+
+            let p0 = topLeft;
+            let p1 = topRight;
+            let p2 = botRight;
+            let p3 = botLeft;
+
+            let a = p1.Copy().Sub(p0);
+            let b = p3.Copy().Sub(p0);
+            let c = p0.Copy().Add(p2).Sub(p1).Sub(p3);
+
+            let det_ab = a.Det(b);
+            let det_cb = c.Det(b);
+            let det_ac = a.Det(c);
+
+            let q1 = det_cb / det_ab;
+            let q2 = det_ac / det_ab;
+            let someFactor = 1 / (1 + Math.pow(q1 * q2 / (0.707), 2));
+            // someFactor = 0.61;
+
+            let topLeftUvQ = 1; // 1
+            let topRightUvQ = (1 + q2) / someFactor; // 1 + q2
+            let botLeftUvQ = (1 + q1) / someFactor; // 1 + q1
+            let botRightUvQ = (1 + q2 + q1) / someFactor; // 1 + q1 + q2
+
+            console.log(q1, q2, someFactor, topLeftUvQ, topRightUvQ, botLeftUvQ, botRightUvQ);
+
+            let topLeftUv = new Vec2(-0.5, -0.5);
+            let topRightUv = new Vec2(0.5, -0.5);
+            let botLeftUv = new Vec2(-0.5, 0.5);
+            let botRightUv = new Vec2(0.5, 0.5);
+            topLeftUv.Scale(topLeftUvQ);
+            topRightUv.Scale(topRightUvQ);
+            botLeftUv.Scale(botLeftUvQ);
+            botRightUv.Scale(botRightUvQ);
+
+            let off = queue.verticesCount * queue.vertexBufferEntrySize;
+            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off);
+            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, topRightUvQ, 0], off + 7);
+            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, botRightUvQ, 0], off + 14);
+            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off + 21);
+            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, botRightUvQ, 0], off + 28);
+            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, botLeftUvQ, 0], off + 35);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 13);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 20);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 27);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 34);
+            queue.verticesStage_Uint32.set([drawObjIndex], off + 41);
+            queue.verticesCount += 6;
+        }
+    }
+
+}
+
+function intersectLines(p0, p2, p1, p3) {
+    const x1 = p0.x, y1 = p0.y, x2 = p2.x, y2 = p2.y;
+    const x3 = p1.x, y3 = p1.y, x4 = p3.x, y4 = p3.y;
+
+    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    if (Math.abs(denom) < 1e-6) return null; // Parallel diagonals (parallelogram)
+
+    const px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
+    const py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
+    
+    return new Vec2(px, py);
 }
 
 export default DrawObjs;
