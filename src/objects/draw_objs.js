@@ -182,29 +182,29 @@ class DrawObjs {
             const w = 292;
             const h = 292;
 
-            let sin = Math.sin(queue.spritter.tick / 20)/2 + .5;
-            let cos = Math.cos(queue.spritter.tick / 20)/2 + .5;
+            let sin = Math.sin(queue.spritter.tick / 50)/2 + .5;
+            let cos = Math.cos(queue.spritter.tick / 50)/2 + .5;
 
-            let topLeft = new Vec2(-w * 0.5 * sin, h);
-            let topRight = new Vec2(w * 0.5, h * 0.5);
+            let topLeft = new Vec2(-w * 0.5 * sin, h * (cos + .5));
+            let topRight = new Vec2(w * 0.5 * (sin + 1), h * 1);
             let botRight = new Vec2(w, -h * cos);
             let botLeft = new Vec2(-w * 0.2, -h * cos);
 
-            topLeft = new Vec2(-w * 0, h);
+            topLeft = new Vec2(-w * .25, h);
             topRight = new Vec2(w, h);
-            botRight = new Vec2(w, -h);
-            botLeft = new Vec2(-w * 1, -h * 2);
+            botRight = new Vec2(w * .5, -h * .25);
+            botLeft = new Vec2(-w * .25, -h);
 
             // topLeft = new Vec2(-w, h);
             // topRight = new Vec2(w, h);
             // botRight = new Vec2(w, -h);
             // botLeft = new Vec2(-w, -h);
 
-            // q1, q2, UvQ divisor
+            // q1, q2, someFactor
             // 0, -0.75 -> 1
             // -0.666, 0 -> 1
             // anything with q1 or q2 = 0 -> 1
-            // 0.25, -0.25 -> 1
+            // 0.25, -0.25 -> 1 ?
             // 0.5, -0.5 -> 0.75
             // 0.75, -0.75 -> 0.5
             // 2.25, -0.75 -> 0.333 or 0.325
@@ -217,6 +217,9 @@ class DrawObjs {
             // -0.75, 1.5 -> 0.333
             // 1, 1 -> sqrt(2)...
             // 2, 1 -> 1.5
+            // 0.666, -0.333 -> 0.8333
+            // -0.8, 0.0666 -> ~0.8
+            // -0.4, -0.375 -> 1.666 for sure
 
             let p0 = topLeft;
             let p1 = topRight;
@@ -234,9 +237,9 @@ class DrawObjs {
             let q1 = det_cb / det_ab;
             let q2 = det_ac / det_ab;
             let someFactor = Math.sqrt(1 + ((q1 - 1)/4 + 1) * q2);
-            // someFactor = 1;
+            // someFactor = 1.666;
 
-            console.log(q1, q2);
+            console.log(q1, q2, someFactor);
 
             let topLeftUvQ = 1; // 1
             let topRightUvQ = (1 + q2) / someFactor; // 1 + q2
