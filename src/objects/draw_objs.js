@@ -179,21 +179,26 @@ class DrawObjs {
 
     static PerspectiveSprite = class PerspectiveSprite extends DrawObj {
         BufferVerticesAt(queue, mat3, drawObjIndex) {
-            const w = 292;
-            const h = 292;
+            const w = 192;
+            const h = 192;
 
             let sin = Math.sin(queue.spritter.tick / 20)/2 + .5;
             let cos = Math.cos(queue.spritter.tick / 20)/2 + .5;
 
             let topLeft = new Vec2(-w * 0.5 * sin, h);
             let topRight = new Vec2(w * 0.5, h * 0.5);
-            let botLeft = new Vec2(-w * 0.2, -h * cos);
             let botRight = new Vec2(w, -h * cos);
+            let botLeft = new Vec2(-w * 0.2, -h * cos);
 
-            topLeft = new Vec2(-w * 0.5, h);
-            topRight = new Vec2(w * 0, h);
-            botLeft = new Vec2(-w, -h * .5);
-            botRight = new Vec2(w, -h * 1);
+            topLeft = new Vec2(-w * .5, h);
+            topRight = new Vec2(w * .5, h);
+            botRight = new Vec2(w, -h * .5);
+            botLeft = new Vec2(-w, -h);
+
+            // topLeft = new Vec2(-w, h);
+            // topRight = new Vec2(w, h);
+            // botRight = new Vec2(w, -h);
+            // botLeft = new Vec2(-w, -h);
 
             // q1, q2, UvQ divisor
             // 0, -0.75 -> 1
@@ -205,12 +210,7 @@ class DrawObjs {
             // 2.25, -0.75 -> 0.333 or 0.325
             // 2.75, -0.25 -> ~0.8
             // 3.5, 0.5 -> ~1.333 or 1.35
-
-            // 2.25, -0.75
-            // let topLeft = new Vec2(-w * 0.5, h);
-            // let topRight = new Vec2(w * 0, h);
-            // let botLeft = new Vec2(-w, -h);
-            // let botRight = new Vec2(w, -h * -0.5);
+            // 0.875, -0.25 -> 0.875
 
             let p0 = topLeft;
             let p1 = topRight;
@@ -227,15 +227,15 @@ class DrawObjs {
 
             let q1 = det_cb / det_ab;
             let q2 = det_ac / det_ab;
-            let someFactor = 1 / (1 + Math.pow(q1 * q2 / (0.707), 2));
-            // someFactor = 0.61;
+            let someFactor = 1;
+            someFactor = 0.875;
+
+            console.log(q1, q2);
 
             let topLeftUvQ = 1; // 1
             let topRightUvQ = (1 + q2) / someFactor; // 1 + q2
             let botLeftUvQ = (1 + q1) / someFactor; // 1 + q1
-            let botRightUvQ = (1 + q2 + q1) / someFactor; // 1 + q1 + q2
-
-            console.log(q1, q2, someFactor, topLeftUvQ, topRightUvQ, botLeftUvQ, botRightUvQ);
+            let botRightUvQ = (1 + q2 + q1); // 1 + q1 + q2
 
             let topLeftUv = new Vec2(-0.5, -0.5);
             let topRightUv = new Vec2(0.5, -0.5);
@@ -245,6 +245,11 @@ class DrawObjs {
             topRightUv.Scale(topRightUvQ);
             botLeftUv.Scale(botLeftUvQ);
             botRightUv.Scale(botRightUvQ);
+
+            // topLeft = new Vec2(-w, h);
+            // topRight = new Vec2(w, h);
+            // botRight = new Vec2(w, -h);
+            // botLeft = new Vec2(-w, -h);
 
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off);
@@ -265,17 +270,8 @@ class DrawObjs {
 
 }
 
-function intersectLines(p0, p2, p1, p3) {
-    const x1 = p0.x, y1 = p0.y, x2 = p2.x, y2 = p2.y;
-    const x3 = p1.x, y3 = p1.y, x4 = p3.x, y4 = p3.y;
+function GetHomography() {
 
-    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (Math.abs(denom) < 1e-6) return null; // Parallel diagonals (parallelogram)
-
-    const px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom;
-    const py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom;
-    
-    return new Vec2(px, py);
 }
 
 export default DrawObjs;
