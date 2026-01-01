@@ -21,6 +21,14 @@ class Vec2 {
         return new Vec2(b.x - a.x, b.y - a.y).RotateFromUnit(vecNeg90).Normalized();
     }
 
+    Equals(vec) {
+        return this.x === vec.x && this.y === vec.y;
+    }
+
+    EqualsXY(x, y) {
+        return this.x === x && this.y === y;
+    }
+
     Copy() {
         return new Vec2(this.x, this.y);
     }
@@ -177,6 +185,10 @@ class Vec2 {
         this.x = x;
         this.y = y;
         return this;
+    }
+
+    ToString() {
+        return '{' + this.x + ', ' + this.y + '}';
     }
 }
 

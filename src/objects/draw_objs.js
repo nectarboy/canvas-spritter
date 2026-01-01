@@ -177,74 +177,40 @@ class DrawObjs {
         }
     }
 
+    // Choose arbitrary points for your quad and it will appear perspective correct with this nifty DrawObj.
     static PerspectiveSprite = class PerspectiveSprite extends DrawObj {
+        constructor() {
+            super();
+        }
+
         BufferVerticesAt(queue, mat3, drawObjIndex) {
             const w = 292;
             const h = 292;
 
-            let sin = Math.sin(queue.spritter.tick / 50)/2 + .5;
-            let cos = Math.cos(queue.spritter.tick / 50)/2 + .5;
+            let sin = Math.sin(queue.spritter.tick / 50)/2 + .3;
+            let cos = Math.cos(queue.spritter.tick / 50)/2 + .3;
 
-            let topLeft = new Vec2(-w * 0.5 * sin, h * (cos + .5));
-            let topRight = new Vec2(w * 0.5 * (sin + 1), h * 1);
-            let botRight = new Vec2(w, -h * cos);
-            let botLeft = new Vec2(-w * 0.2, -h * cos);
+            // let topLeft = new Vec2(-w * 0.5 * sin, h * (cos + .5));
+            // let topRight = new Vec2(w * 0.5 * (sin + 1), h * 1);
+            // let botRight = new Vec2(w, -h * cos);
+            // let botLeft = new Vec2(-w * 0.2, -h * cos);
 
-            topLeft = new Vec2(-w * .25, h);
-            topRight = new Vec2(w, h);
-            botRight = new Vec2(w * .5, -h * .25);
-            botLeft = new Vec2(-w * .25, -h);
+            let topLeft = new Vec2(-w * 0., h);
+            let topRight = new Vec2(w * 0.25, h);
+            let botRight = new Vec2(w, -h);
+            let botLeft = new Vec2(-w, -h * 0);
 
-            // topLeft = new Vec2(-w, h);
-            // topRight = new Vec2(w, h);
-            // botRight = new Vec2(w, -h);
-            // botLeft = new Vec2(-w, -h);
+            // diagonals
+            let intersection = IntersectionOfLines(topLeft, botRight, topRight, botLeft);
+            let topLeftD = topLeft.Dist(intersection);
+            let topRightD = topRight.Dist(intersection);
+            let botRightD = botRight.Dist(intersection);
+            let botLeftD = botLeft.Dist(intersection);
 
-            // q1, q2, someFactor
-            // 0, -0.75 -> 1
-            // -0.666, 0 -> 1
-            // anything with q1 or q2 = 0 -> 1
-            // 0.25, -0.25 -> 1 ?
-            // 0.5, -0.5 -> 0.75
-            // 0.75, -0.75 -> 0.5
-            // 2.25, -0.75 -> 0.333 or 0.325
-            // 2.75, -0.25 -> ~0.8
-            // 3.5, 0.5 -> ~1.333 or 1.35
-            // 0.875, -0.25 -> 0.875
-            // 0.8333, -0.333 -> 0.8333
-            // 0.7, -0.6 -> 0.6
-            // 0.5909, -0.8181 -> ~0.375
-            // -0.75, 1.5 -> 0.333
-            // 1, 1 -> sqrt(2)...
-            // 2, 1 -> 1.5
-            // 0.666, -0.333 -> 0.8333
-            // -0.8, 0.0666 -> ~0.8
-            // -0.4, -0.375 -> 1.666 for sure
-
-            let p0 = topLeft;
-            let p1 = topRight;
-            let p2 = botRight;
-            let p3 = botLeft;
-
-            let a = p1.Copy().Sub(p0);
-            let b = p3.Copy().Sub(p0);
-            let c = p0.Copy().Add(p2).Sub(p1).Sub(p3);
-
-            let det_ab = a.Det(b);
-            let det_cb = c.Det(b);
-            let det_ac = a.Det(c);
-
-            let q1 = det_cb / det_ab;
-            let q2 = det_ac / det_ab;
-            let someFactor = Math.sqrt(1 + ((q1 - 1)/4 + 1) * q2);
-            // someFactor = 1.666;
-
-            console.log(q1, q2, someFactor);
-
-            let topLeftUvQ = 1; // 1
-            let topRightUvQ = (1 + q2) / someFactor; // 1 + q2
-            let botLeftUvQ = (1 + q1) / someFactor; // 1 + q1
-            let botRightUvQ = (1 + q2 + q1); // 1 + q1 + q2
+            let topLeftUvQ = topLeftD / botRightD + 1;
+            let topRightUvQ = topRightD / botLeftD + 1; 
+            let botRightUvQ = botRightD / topLeftD + 1;
+            let botLeftUvQ = botLeftD / topRightD + 1;
 
             let topLeftUv = new Vec2(-0.5, -0.5);
             let topRightUv = new Vec2(0.5, -0.5);
@@ -255,13 +221,15 @@ class DrawObjs {
             botLeftUv.Scale(botLeftUvQ);
             botRightUv.Scale(botRightUvQ);
 
+            // console.log(botRightUvQ - topLeftUvQ, botLeftUvQ - topRightUvQ);
+
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off);
-            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, topRightUvQ, 0], off + 7);
-            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, botRightUvQ, 0], off + 14);
-            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off + 21);
-            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, botRightUvQ, 0], off + 28);
-            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, botLeftUvQ, 0], off + 35);
+            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, topRightUvQ, 0], off);
+            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, botLeftUvQ, 0], off + 7);
+            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off + 14);
+            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, botLeftUvQ, 0], off + 21);
+            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, topRightUvQ, 0], off + 28);
+            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, botRightUvQ, 0], off + 35);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 13);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 20);
@@ -274,8 +242,34 @@ class DrawObjs {
 
 }
 
-function GetHomography() {
+function IntersectionOfLines(a1, a2, b1, b2) {
+    let aA = a2.y - a1.y;
+    let aB = a1.x - a2.x;
+    let aC = a1.y * a2.x - a1.x * a2.y;
 
+    let bA = b2.y - b1.y;
+    let bB = b1.x - b2.x;
+    let bC = b1.y * b2.x - b1.x * b2.y;
+
+    let denom = aA * bB - bA * aB;
+    if (Math.abs(denom) < 1e-12)
+        return null;
+
+    return new Vec2(
+        (aB * bC - bB * aC) / denom,
+        (bA * aC - aA * bC) / denom
+    );
 }
+
+function UnitTest() {
+    let test1 = IntersectionOfLines(
+        new Vec2(0, 1), new Vec2(2, 0),
+        new Vec2(0, 0), new Vec2(2, 1),
+    );
+    if (!test1.EqualsXY(1, 0.5))
+        throw new Error('failed 1 ' + test1.ToString());
+}
+
+UnitTest();
 
 export default DrawObjs;

@@ -14,7 +14,7 @@ struct DrawObj {
 
 @fragment
 fn main(
-    @location(0) @interpolate(linear, center) fragUv: vec3f,
+    @location(0) fragUv: vec3f,
     @location(1) fragColor: vec4f,
     @location(2) @interpolate(flat) atlasUv0 : vec2f,
     @location(3) @interpolate(flat) atlasUv1 : vec2f

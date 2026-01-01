@@ -109,7 +109,7 @@ class Spritter {
         let now = new Date() / 500;
 
         let testSprite = new DrawObjs.PerspectiveSprite(128, 128);
-        testSprite.SetTexture(this.textureManager.textureAtlas, 'test2');
+        testSprite.SetTexture(this.textureManager.textureAtlas, 'test');
         // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
         // testSprite.mat3.ScaleXY(Math.sin(this.tick / 50), Math.sin(this.tick / 50));
         // testSprite.mat3.Rotate(this.tick);
