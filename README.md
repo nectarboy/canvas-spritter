@@ -10,7 +10,8 @@ Note: I am learning WebGPU alongside making this project, so any feedback on any
 ![Polygons and Sprites](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot1.webp?raw=true)
 ![Fake Perspective Sprite](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot2.webp?raw=true)
 
-Roadmap:
+## Roadmap:
+
 - [x] get something on screen
 - [x] be able to provide a list of objects to render each frame from JS land
 - [x] do the above every frame
@@ -30,7 +31,8 @@ Roadmap:
     - use a better bin packing algorithm as well as tesselation algorithm
 - [ ] different draw calls for bigger amounts of data (multiple texture atlases) or smth
 
-What would be pretty cool to add later:
+## What would be pretty cool to add later:
+
 * dynamically add and remove textures from the texture atlas
 * ability for sprite to distort whats behind it (glass warping effects) [possibly using previous frame]
 * checking if a sprite is visible on screen / obstructed
