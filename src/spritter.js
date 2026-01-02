@@ -108,12 +108,12 @@ class Spritter {
     doStuff() {        
         let now = new Date() / 500;
 
-        let testSprite = new DrawObjs.PerspectiveSprite(128, 128);
+        let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTexture(this.textureManager.textureAtlas, 'test');
         // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
-        // testSprite.mat3.ScaleXY(Math.sin(this.tick / 50), Math.sin(this.tick / 50));
+        // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testSprite, 0);
+        this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         let testPoly = new DrawObjs.Poly([
             new Vec2(-2, 0),
@@ -133,7 +133,7 @@ class Spritter {
         // this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 0; i++) {
+        for (let i = 0; i < 1; i++) {
             testPoly.mat3.Rotate(1);
             testPoly.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
             this.drawObjQueue.BufferDrawobj(testPoly, 0);

@@ -7,14 +7,17 @@ struct DrawObj {
     atlasSize : vec2f,
     atlasDimension : f32,
     iAtlasDimension : f32,
+    flags : u32
 }
 
 struct VertexOutput {
     @builtin(position) position : vec4f,
-    @location(0) fragUv : vec3f,
-    @location(1) fragColor : vec4f,
-    @location(2) @interpolate(flat) atlasUv0 : vec2f,
-    @location(3) @interpolate(flat) atlasUv1 : vec2f
+    @location(0) rawUv : vec2f,
+    @location(1) fragUv : vec3f,
+    @location(2) fragColor : vec4f,
+    @location(3) @interpolate(flat) atlasUv0 : vec2f,
+    @location(4) @interpolate(flat) atlasUv1 : vec2f,
+    @location(5) @interpolate(flat) drawObjIndex : u32
 }   
 
 @vertex
@@ -29,7 +32,6 @@ fn main(
     const screenH = 360f;
 
     var drawObj : DrawObj = drawObjs[drawObjIndex];
-
     var out : VertexOutput;
 
     var transformedPosition : vec3f = drawObj.mat3 * vec3f(position, 1);
@@ -37,6 +39,8 @@ fn main(
     transformedPosition.y /= screenH;
     out.position = vec4f(transformedPosition.x, transformedPosition.y, 0.0, 1.0);
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
+
+    out.rawUv = uv.xy;
 
     var transformedUv : vec3f = drawObj.uvMat3 * uv;
     out.fragUv = transformedUv;
@@ -51,6 +55,7 @@ fn main(
     out.atlasUv0 = drawObj.atlasPos / drawObj.atlasDimension;
     out.atlasUv1 = (drawObj.atlasPos + drawObj.atlasSize) / drawObj.atlasDimension;
 
-    return out;
+    out.drawObjIndex = drawObjIndex;
 
+    return out;
 }

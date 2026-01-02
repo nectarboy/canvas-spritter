@@ -38,7 +38,7 @@ class DrawObj {
         if (this.patternMode)
             uvMat3.ScaleXY(0.5 / this.atlasSize.x, 0.5 / this.atlasSize.y);
 
-        // uvMat3.TranslateXY(queue.spritter.tick * 1 / this.atlasSize.x, 0);
+        // uvMat3.TranslateXY(queue.spritter.tick * 0.1 / this.atlasSize.x, 0);
         // uvMat3.ScaleXY(4, 4);
         // uvMat3.Rotate(queue.spritter.tick / 2);
 
@@ -181,55 +181,38 @@ class DrawObjs {
     static PerspectiveSprite = class PerspectiveSprite extends DrawObj {
         constructor() {
             super();
+            this.topLeft = new Vec2(-1, 1);
+            this.topRight = new Vec2(1, 1);
+            this.botRight = new Vec2(1, -1);
+            this.botLeft = new Vec2(-1, -1);
+            this.tlQ = 1;
+            this.trQ = 1;
+            this.brQ = 1;
+            this.blQ = 1;
+            this.UpdatePerspectiveWeights();
+        }
+
+        UpdatePerspectiveWeights() {
+            let intersection = IntersectionOfLines(this.topLeft, this.botRight, this.topRight, this.botLeft);
+            let topLeftD = this.topLeft.Dist(intersection);
+            let topRightD = this.topRight.Dist(intersection);
+            let botRightD = this.botRight.Dist(intersection);
+            let botLeftD = this.botLeft.Dist(intersection);
+
+            this.tlQ = topLeftD / botRightD + 1;
+            this.trQ = topRightD / botLeftD + 1; 
+            this.brQ = botRightD / topLeftD + 1;
+            this.blQ = botLeftD / topRightD + 1;
         }
 
         BufferVerticesAt(queue, mat3, drawObjIndex) {
-            const w = 292;
-            const h = 292;
-
-            let sin = Math.sin(queue.spritter.tick / 50)/2 + .3;
-            let cos = Math.cos(queue.spritter.tick / 50)/2 + .3;
-
-            // let topLeft = new Vec2(-w * 0.5 * sin, h * (cos + .5));
-            // let topRight = new Vec2(w * 0.5 * (sin + 1), h * 1);
-            // let botRight = new Vec2(w, -h * cos);
-            // let botLeft = new Vec2(-w * 0.2, -h * cos);
-
-            let topLeft = new Vec2(-w * 0., h);
-            let topRight = new Vec2(w * 0.25, h);
-            let botRight = new Vec2(w, -h);
-            let botLeft = new Vec2(-w, -h * 0);
-
-            // diagonals
-            let intersection = IntersectionOfLines(topLeft, botRight, topRight, botLeft);
-            let topLeftD = topLeft.Dist(intersection);
-            let topRightD = topRight.Dist(intersection);
-            let botRightD = botRight.Dist(intersection);
-            let botLeftD = botLeft.Dist(intersection);
-
-            let topLeftUvQ = topLeftD / botRightD + 1;
-            let topRightUvQ = topRightD / botLeftD + 1; 
-            let botRightUvQ = botRightD / topLeftD + 1;
-            let botLeftUvQ = botLeftD / topRightD + 1;
-
-            let topLeftUv = new Vec2(-0.5, -0.5);
-            let topRightUv = new Vec2(0.5, -0.5);
-            let botLeftUv = new Vec2(-0.5, 0.5);
-            let botRightUv = new Vec2(0.5, 0.5);
-            topLeftUv.Scale(topLeftUvQ);
-            topRightUv.Scale(topRightUvQ);
-            botLeftUv.Scale(botLeftUvQ);
-            botRightUv.Scale(botRightUvQ);
-
-            // console.log(botRightUvQ - topLeftUvQ, botLeftUvQ - topRightUvQ);
-
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, topRightUvQ, 0], off);
-            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, botLeftUvQ, 0], off + 7);
-            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, topLeftUvQ, 0], off + 14);
-            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, botLeftUvQ, 0], off + 21);
-            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, topRightUvQ, 0], off + 28);
-            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, botRightUvQ, 0], off + 35);
+            queue.verticesStage.set([this.topRight.x, this.topRight.y,     0.5 * this.trQ, -0.5 * this.trQ, this.trQ, 0], off);
+            queue.verticesStage.set([this.botLeft.x, this.botLeft.y,       -0.5 * this.blQ, 0.5 * this.blQ, this.blQ, 0], off + 7);
+            queue.verticesStage.set([this.topLeft.x, this.topLeft.y,       -0.5 * this.tlQ, -0.5 * this.tlQ, this.tlQ, 0], off + 14);
+            queue.verticesStage.set([this.botLeft.x, this.botLeft.y,       -0.5 * this.blQ, 0.5 * this.blQ, this.blQ, 0], off + 21);
+            queue.verticesStage.set([this.topRight.x, this.topRight.y,     0.5 * this.trQ, -0.5 * this.trQ, this.trQ, 0], off + 28);
+            queue.verticesStage.set([this.botRight.x, this.botRight.y,     0.5 * this.brQ, 0.5 * this.brQ, this.brQ, 0], off + 35);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 13);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 20);
@@ -252,8 +235,8 @@ function IntersectionOfLines(a1, a2, b1, b2) {
     let bC = b1.y * b2.x - b1.x * b2.y;
 
     let denom = aA * bB - bA * aB;
-    if (Math.abs(denom) < 1e-12)
-        return null;
+    // if (Math.abs(denom) < 1e-12)
+    //     return null;
 
     return new Vec2(
         (aB * bC - bB * aC) / denom,
