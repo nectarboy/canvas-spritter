@@ -1,6 +1,7 @@
 # Canvas Spritter
 
 A toy 2D rendering library for JS, made with WebGPU.
+
 Made primarily for 2D games utilizing sprites and polygons.
 While it does not aim to be as feature complete as Canvas2D, it aims to serve as a faster alternative for projects that do not need to utilize everything that Canvas2D offers and mainly need drawing textured sprites.
 
@@ -17,17 +18,17 @@ Roadmap:
 - [x] different textures through texture atlas
 - [x] polygons
 - [x] fake perspective 2d sprite
-- [] different porter duff composite modes (for masking effects)
-- [] basic built-in shaders like outlines
-- [] sprite tinting
-- [] circles / arcs
-- [] cleanup interface, make it good and easy to use
-- [] optimize / reduce data throughput
+- [ ] different porter duff composite modes (for masking effects)
+- [ ] basic built-in shaders like outlines
+- [ ] sprite tinting
+- [ ] circles / arcs
+- [ ] cleanup interface, make it good and easy to use
+- [ ] optimize / reduce data throughput
     - optimize vertex generation by cpu (its the main bottleneck, hurts when sprite count > 1000)
     - drawobjs using same vertex data? (maybe would be good for polygons with the same shape)
     - reduce data used / transported between shaders?
     - use a better bin packing algorithm as well as tesselation algorithm
-- [] different draw calls for bigger amounts of data (multiple texture atlases) or smth
+- [ ] different draw calls for bigger amounts of data (multiple texture atlases) or smth
 
 What would be pretty cool to add later:
 * dynamically add and remove textures from the texture atlas
