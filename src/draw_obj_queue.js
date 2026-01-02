@@ -5,6 +5,10 @@ class DrawObjHolder {
         this.drawObj = drawObj;
         this.mat3 = mat3;
         this.priority = priority;
+
+        // used to speed up repeated drawobj buffering with the same priority
+        this.lastDrawobjPriority = 0;
+        this.lastDrawobjIndex = 0;
     }
 }
 
@@ -108,7 +112,15 @@ class DrawObjQueue {
         }
 
         let holder = new DrawObjHolder(drawobj, drawobj.mat3.Copy(), priority); // TODO: We can make this a pool
-        this.holders.splice(this.GetDrawobjUpperBound(holder), 0, holder); // Do this or sort once at the end?
+
+        if (priority === this.lastDrawobjPriority) {
+            this.lastDrawobjIndex++;
+        }
+        else {
+            this.lastDrawobjPriority = priority;
+            this.lastDrawobjIndex = this.GetDrawobjUpperBound(holder);
+        }
+        this.holders.splice(this.lastDrawobjIndex, 0, holder); // Do this or sort once at the end?
     }
 
     BufferDrawObjData(data) {
@@ -154,6 +166,8 @@ class DrawObjQueue {
         this.holders.length = 0;
         this.verticesCount = 0;
         this.drawObjDataCount = 0;
+        this.lastDrawobjPriority = 0;
+        this.lastDrawobjIndex = 0;
     }
 }
 
