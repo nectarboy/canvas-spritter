@@ -3,11 +3,18 @@ Roadmap:
 [x] be able to provide Spritter a list of objects to render each frame from JS land
 [x] do the above every frame
 [x] get a texture working
+[x] different textures
 [x] polygons
-[] different textures
-[] different draw calls for huge amounts of data (multiple tatlases) or smth
+[x] fake perspective 2d sprite
+[] different porter duff composite modes (for masking effects)
 [] basic shaders like outlines?
-[] a good interface
+[] circles / arcs
+[] cleanup interface, make it good and easy to use
+[] optimize / reduce data throughput
+	- optimize vertex generation by cpu (its the main bottleneck, hurts when sprite count > 1000)
+	- drawobjs using same vertex data? (maybe would be good for polygons with the same shape)
+	- reduce data used / transported between shaders?
+[] different draw calls for huge amounts of data (multiple tatlases) or smth
 
 Planned Features:
 * rendering textured quads (sprites) with rotation and scale
