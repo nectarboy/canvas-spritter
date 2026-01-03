@@ -23,12 +23,13 @@ class DrawObjQueue {
         // DrawObj storage buffer
         this.storageBufferSize = 4096 * 1024;
         this.storageStage = new Float32Array(this.storageBufferSize);
+        this.storageStage_Uint32 = new Uint32Array(this.storageStage.buffer);
         this.storageBuffer = spritter.device.createBuffer({
             size: this.storageStage.byteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
         this.drawObjDataCount = 0;
-        this.drawObjDataEntrySize = 32;
+        this.drawObjDataEntrySize = 48;
         this.drawObjDataEntryByteSize = this.drawObjDataEntrySize * this.storageStage.BYTES_PER_ELEMENT;
 
         this.storageBindGroupLayout = spritter.device.createBindGroupLayout({

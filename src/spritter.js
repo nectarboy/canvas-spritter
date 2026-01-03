@@ -4,8 +4,18 @@ import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
 import DrawObjs from './objects/draw_objs.js';
 
-const vs = await (await fetch('./src/shaders/vs.wgsl', { cache: 'no-store' })).text();
-const fs = await (await fetch('./src/shaders/fs.wgsl', { cache: 'no-store' })).text();
+async function fetchShader(path, dependencies) {
+    let wgsl = await (await fetch(path, { cache: 'no-store' })).text();
+    for (let dependencyWgsl of dependencies) {
+        wgsl = dependencyWgsl + wgsl + "\n\n";
+    }
+    return wgsl;
+}
+
+const drawObjWgsl = await (await fetch('./src/wgsl/draw_obj.wgsl', { cache: 'no-store' })).text();
+const drawObjFlagsWgsl = await (await fetch('./src/wgsl/draw_obj_flags.wgsl', { cache: 'no-store' })).text();
+const vsWgsl = await fetchShader('./src/wgsl/vs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
+const fsWgsl = await fetchShader('./src/wgsl/fs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
 
 class Spritter {
     constructor(canvas, device) {
@@ -40,7 +50,7 @@ class Spritter {
             vertex: {
                 module: device.createShaderModule({
                     label: 'vs',
-                    code: vs
+                    code: vsWgsl
                 }),
                 buffers: [
                     this.drawObjQueue.vertexBufferDescriptor
@@ -49,7 +59,7 @@ class Spritter {
             fragment: {
                 module: device.createShaderModule({
                     label: 'fs',
-                    code: fs
+                    code: fsWgsl
                 }),
                 targets: [
                     {
@@ -70,18 +80,20 @@ class Spritter {
                 ]
             },
             primitive: {
-                topology: 'triangle-list'
+                topology: 'triangle-list',
+                frontFace: 'cw'
             }
         });
     };
 
     async init() {
         let bitmaps = [
-            await this.loadImageBitmap('src/test.png', 'test'),
-            await this.loadImageBitmap('src/test2.png', 'test2'),
-            await this.loadImageBitmap('src/terrain.png', 'terrain'),
-            await this.loadImageBitmap('src/bunny.png', 'bunny'),
-            await this.loadImageBitmap('src/atlas_test.png', 'atlas_test')
+            await this.loadImageBitmap('src/assets/test.png', 'test'),
+            await this.loadImageBitmap('src/assets/test2.png', 'test2'),
+            await this.loadImageBitmap('src/assets/terrain.png', 'terrain'),
+            await this.loadImageBitmap('src/assets/bunny.png', 'bunny'),
+            await this.loadImageBitmap('src/assets/atlas_test.png', 'atlas_test'),
+            await this.loadImageBitmap('src/assets/mask.png', 'mask')
         ];
 
         console.log('bitmaps:', bitmaps);
@@ -109,7 +121,9 @@ class Spritter {
         let now = new Date() / 500;
 
         let testSprite = new DrawObjs.Sprite(128, 128);
-        testSprite.SetTexture(this.textureManager.textureAtlas, 'test');
+        testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
+        testSprite.SetTexture('test');
+        testSprite.SetSecondaryTexture('mask');
         // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
@@ -126,7 +140,8 @@ class Spritter {
             new Vec2(-1, -1)
         ], 100);
         testPoly.TestDraw();
-        testPoly.SetTexture(this.textureManager.textureAtlas, 'terrain');
+        testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
+        testPoly.SetTexture('terrain');
         testPoly.mat3.TranslateXY(-Math.sin(this.tick / 100) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);

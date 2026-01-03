@@ -1,62 +1,118 @@
 import Mat3 from '../mat3.js';
 import Vec2 from '../vec2.js';
 
+const DrawObjFlag = {
+    UseTexture: 0x1,
+    UseSecondaryTexture: 0x2,
+    RepeatTexture: 0x4,
+    RepeatSecondaryTexture: 0x8,
+    MaskTextureMode: 0x10,          // Use secondary texture as a soft-mask
+    DisplacementTextureMode: 0x20,  // Use secondary texture as a displacement map
+    PatternMode: 0x40,              // Use texture's real size instead of DrawObj size
+};
+
 class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
-        // this.texName = '';
-        // this.textured = false;
+        this.flags = 0;
 
+        this.atlas = null;
         this.atlasDimension = -1;
         this.iAtlasDimension = -1;
-        this.atlasPos = new Vec2(0, 0);
-        this.atlasSize = new Vec2(0, 0);
-        this.atlasUv0 = new Vec2(0, 0);
-        this.atlasUv1 = new Vec2(0, 0);
+
+        this.texPos = new Vec2(0, 0);
+        this.texSize = new Vec2(0, 0);
+        this.tex2Pos = new Vec2(0, 0);
+        this.tex2Size = new Vec2(0, 0);
 
         this.posOffset = new Vec2(0, 0);
 
         this.patternMode = false;
     };
 
-    SetTexture(atlas, texName) {
-        let texBounds = atlas.GetTextureBounds(texName);
-        if (texBounds === null)
-            return;
+    SetFlags(flags) {
+        this.flags |= flags;
+    }
 
+    ClearFlags(flags) {
+        this.flags &= ~flags;
+    }
+
+    SetTextureAtlas(atlas) {
+        this.atlas = atlas;
         this.atlasDimension = atlas.dimension;
-        this.iAtlasDimension = 1 / atlas.dimension;
-        this.atlasPos.SetXY(texBounds.x, texBounds.y);
-        this.atlasSize.SetXY(texBounds.w, texBounds.h);
-        this.atlasUv0.SetXY(texBounds.x * this.iAtlasDimension, texBounds.y * this.iAtlasDimension);
-        this.atlasUv1.Set(this.atlasUv0).AddXY(texBounds.w * this.iAtlasDimension, texBounds.h * this.iAtlasDimension);
+        this.iAtlasDimension = atlas.iDimension;
+        this.ClearFlags(DrawObjFlag.UseTexture | DrawObj.UseSecondaryTexture);
+    }
+
+    SetTexture(texName) {
+        let bounds = this.atlas.GetTextureBounds(texName);
+        if (bounds === null) {
+            this.UnsetTexture();
+            return;
+        }
+        this.texPos.SetXY(bounds.x, bounds.y);
+        this.texSize.SetXY(bounds.w, bounds.h);
+        this.SetFlags(DrawObjFlag.UseTexture);
+    }
+
+    SetSecondaryTexture(texName) {
+        let bounds = this.atlas.GetTextureBounds(texName);
+        if (bounds === null) {
+            this.UnsetSecondaryTexture();
+            return;
+        }
+        this.tex2Pos.SetXY(bounds.x, bounds.y);
+        this.tex2Size.SetXY(bounds.w, bounds.h);
+        this.SetFlags(DrawObjFlag.UseSecondaryTexture);
+    }
+
+    UnsetTexture() {
+        this.ClearFlags(DrawObjFlag.UseTexture);
+    }
+
+    UnsetSecondaryTexture() {
+        this.ClearFlags(DrawObjFlag.UseSecondaryTexture);
     }
 
     BufferDataAt(queue, mat3, i) {
-        const uvMat3 = new Mat3();
+        const texMat3 = new Mat3();
+        const tex2Mat3 = new Mat3();
 
         if (this.patternMode)
-            uvMat3.ScaleXY(0.5 / this.atlasSize.x, 0.5 / this.atlasSize.y);
+            texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        // uvMat3.TranslateXY(queue.spritter.tick * 0.1 / this.atlasSize.x, 0);
-        // uvMat3.ScaleXY(4, 4);
-        // uvMat3.Rotate(queue.spritter.tick / 2);
+        // texMat3.TranslateXY(queue.spritter.tick * 0.1 / this.atlasSize.x, 0);
+        // texMat3.ScaleXY(4, 4);
+        // texMat3.Rotate(queue.spritter.tick / 2);
 
-        queue.BufferDrawObjData([
+        let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
+
+        queue.storageStage.set([
             mat3.m[0], mat3.m[1], mat3.m[2], 0,
             mat3.m[3], mat3.m[4], mat3.m[5], 0,
             mat3.m[6], mat3.m[7], mat3.m[8], 0,
 
-            uvMat3.m[0], uvMat3.m[1], uvMat3.m[2], 0,
-            uvMat3.m[3], uvMat3.m[4], uvMat3.m[5], 0,
-            uvMat3.m[6], uvMat3.m[7], uvMat3.m[8], 0,
+            texMat3.m[0], texMat3.m[1], texMat3.m[2], 0,
+            texMat3.m[3], texMat3.m[4], texMat3.m[5], 0,
+            texMat3.m[6], texMat3.m[7], texMat3.m[8], 0,
 
-            this.atlasPos.x, this.atlasPos.y,
-            this.atlasSize.x, this.atlasSize.y,
+            tex2Mat3.m[0], tex2Mat3.m[1], tex2Mat3.m[2], 0,
+            tex2Mat3.m[3], tex2Mat3.m[4], tex2Mat3.m[5], 0,
+            tex2Mat3.m[6], tex2Mat3.m[7], tex2Mat3.m[8], 0,
+
+            this.texPos.x, this.texPos.y,
+            this.texSize.x, this.texSize.y,
+
+            this.tex2Pos.x, this.tex2Pos.y,
+            this.tex2Size.x, this.tex2Size.y,
 
             this.atlasDimension,
             this.iAtlasDimension,
-        ]);
+        ], off);
+        queue.storageStage_Uint32[off + 46] = this.flags;
+
+        queue.drawObjDataCount++;
     }
 
     BufferVerticesAt(queue, mat3, drawObjIndex) {}

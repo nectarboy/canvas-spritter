@@ -3,12 +3,18 @@
 A toy 2D rendering library for JS, made with WebGPU.
 
 Made primarily for 2D games utilizing sprites and polygons.
-While it does not aim to be as feature complete as Canvas2D, it aims to serve as a faster alternative for projects that do not need to utilize everything that Canvas2D offers and mainly need drawing textured sprites.
+While it does not aim to be as feature complete as Canvas2D, it aims to serve as a faster alternative for projects that do not need to utilize everything that Canvas2D offers, while also offering some features that Canvas2D does not.
 
 Note: I am learning WebGPU alongside making this project, so any feedback on anything it could be doing better is fully welcome.
 
 ![Polygons and Sprites](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot1.webp?raw=true)
 ![Fake Perspective Sprite](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot2.webp?raw=true)
+
+## Goals:
+
+* Implement a variety of "Draw Objects" like textured sprites, polygons, etc.
+* Implement special effects like masking and shaders
+* Do everything in as little draw calls and passes as possible
 
 ## Roadmap:
 
@@ -19,7 +25,7 @@ Note: I am learning WebGPU alongside making this project, so any feedback on any
 - [x] different textures through texture atlas
 - [x] polygons
 - [x] fake perspective 2d sprite
-- [ ] different porter duff composite modes (for masking effects)
+- [ ] different porter duff composite modes (for masking effects) or just 1 masking mode through stencil buffer?
 - [ ] basic built-in shaders like outlines
 - [ ] sprite tinting
 - [ ] circles / arcs

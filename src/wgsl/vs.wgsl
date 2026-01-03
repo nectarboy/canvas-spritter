@@ -1,23 +1,15 @@
 @group(1) @binding(0) var<storage, read> drawObjs : array<DrawObj>;
 
-struct DrawObj {
-    mat3 : mat3x3<f32>,
-    uvMat3 : mat3x3<f32>,
-    atlasPos : vec2f,
-    atlasSize : vec2f,
-    atlasDimension : f32,
-    iAtlasDimension : f32,
-    flags : u32
-}
-
 struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(0) rawUv : vec2f,
     @location(1) fragUv : vec3f,
     @location(2) fragColor : vec4f,
-    @location(3) @interpolate(flat) atlasUv0 : vec2f,
-    @location(4) @interpolate(flat) atlasUv1 : vec2f,
-    @location(5) @interpolate(flat) drawObjIndex : u32
+    @location(3) @interpolate(flat) texUv0 : vec2f,
+    @location(4) @interpolate(flat) texUv1 : vec2f,
+    @location(5) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(6) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(7) @interpolate(flat) drawObjIndex : u32
 }   
 
 @vertex
@@ -42,7 +34,7 @@ fn main(
 
     out.rawUv = uv.xy;
 
-    var transformedUv : vec3f = drawObj.uvMat3 * uv;
+    var transformedUv : vec3f = drawObj.texMat3 * uv;
     out.fragUv = transformedUv;
 
     if ((VertexIndex & 1) == 1) {
@@ -52,8 +44,10 @@ fn main(
         out.fragColor = vec4(1.0, 0.0, 1.0, 1.0);
     }
 
-    out.atlasUv0 = drawObj.atlasPos / drawObj.atlasDimension;
-    out.atlasUv1 = (drawObj.atlasPos + drawObj.atlasSize) / drawObj.atlasDimension;
+    out.texUv0 = drawObj.texPos / drawObj.atlasDimension;
+    out.texUv1 = (drawObj.texPos + drawObj.texSize) / drawObj.atlasDimension;
+    out.tex2Uv0 = drawObj.tex2Pos / drawObj.atlasDimension;
+    out.tex2Uv1 = (drawObj.tex2Pos + drawObj.tex2Size) / drawObj.atlasDimension;
 
     out.drawObjIndex = drawObjIndex;
 

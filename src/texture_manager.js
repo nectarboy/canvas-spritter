@@ -8,6 +8,7 @@ class TextureAtlas {
         this.device = textureManager.spritter.device;
         this.binding = binding;
         this.dimension = dimension;
+        this.iDimension = 1 / dimension;
 
         this.texture = this.device.createTexture({
             size: [this.dimension, this.dimension, 1],
