@@ -27,18 +27,20 @@ class TextureAtlas {
     };
 
     LoadTextureBitmaps(bitmapDescriptors) {
+        const PAD_TEXTURES = true;
+
         this.boxes.length = 0;
         this.boxMap.clear();
         for (let i = 0; i < bitmapDescriptors.length; i++) {
             let bitmap = bitmapDescriptors[i].bitmap;
-            if (bitmap.width > this.dimension || bitmap.height > this.dimension)
+            if (bitmap.width + PAD_TEXTURES*2 > this.dimension || bitmap.height + PAD_TEXTURES*2 > this.dimension)
                 throw 'bitmap too big!';
 
             let box = {
                 x: -1,
                 y: -1,
-                w: bitmap.width,
-                h: bitmap.height
+                w: bitmap.width + PAD_TEXTURES*2,
+                h: bitmap.height + PAD_TEXTURES*2
             };
             this.boxes.push(box);
             this.boxMap.set(bitmapDescriptors[i].name, box);
@@ -50,20 +52,48 @@ class TextureAtlas {
 
         for (let i = 0; i < this.boxes.length; i++) {
             let bitmap = bitmapDescriptors[i].bitmap;
-            this.device.queue.copyExternalImageToTexture(
-                { source: bitmap },
-                {
-                    texture: this.texture,
-                    origin: {
-                        x: this.boxes[i].x,
-                        y: this.boxes[i].y
+
+            // TODO: there has to be a better way to do ts
+            let offs;
+            if (PAD_TEXTURES) {
+                offs = [
+                    { x: 0, y: 0 },
+                    { x: 2, y: 0 },
+                    { x: 2, y: 2 },
+                    { x: 0, y: 2 },
+                    { x: 1, y: 0 },
+                    { x: 2, y: 1 },
+                    { x: 1, y: 2 },
+                    { x: 0, y: 1 },
+                    { x: 1, y: 1 }
+                ];
+            }
+            else {
+                offs = [{ x: 0, y: 0 }];
+            }
+
+            for (let off of offs) {
+                this.device.queue.copyExternalImageToTexture(
+                    { source: bitmap },
+                    {
+                        texture: this.texture,
+                        origin: {
+                            x: this.boxes[i].x + off.x,
+                            y: this.boxes[i].y + off.y
+                        }
+                    },
+                    {
+                        width: bitmap.width,
+                        height: bitmap.height
                     }
-                },
-                {
-                    width: bitmap.width,
-                    height: bitmap.height
-                }
-            );
+                );
+            }
+
+            // Fix boxes from padding
+            this.boxes[i].x += PAD_TEXTURES;
+            this.boxes[i].y += PAD_TEXTURES;
+            this.boxes[i].w -= PAD_TEXTURES * 2;
+            this.boxes[i].h -= PAD_TEXTURES * 2;
         }
     }
 

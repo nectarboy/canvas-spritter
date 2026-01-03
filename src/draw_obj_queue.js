@@ -1,5 +1,6 @@
 const MAX_DRAWOBJS = 10000;
 
+// An entry in the buffer that holds a DrawObj and the Mat3 where it will be drawn
 class DrawObjHolder {
     constructor(drawObj, mat3, priority) {
         this.drawObj = drawObj;
