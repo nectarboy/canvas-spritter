@@ -75,6 +75,20 @@ class DrawObj {
         this.ClearFlags(DrawObjFlag.UseSecondaryTexture);
     }
 
+    SetMaskMode(enable) {
+        if (enable)
+            this.SetFlags(DrawObjFlag.MaskTextureMode);
+        else
+            this.ClearFlags(DrawObjFlag.MaskTextureMode);
+    }
+
+    SetDisplacementMode(enable) {
+        if (enable)
+            this.SetFlags(DrawObjFlag.DisplacementTextureMode);
+        else
+            this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
+    }
+
     BufferDataAt(queue, mat3, i) {
         const texMat3 = new Mat3();
         const tex2Mat3 = new Mat3();
@@ -82,9 +96,9 @@ class DrawObj {
         if (this.patternMode)
             texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        // texMat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, 0);
+        tex2Mat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, 0);
         // texMat3.ScaleXY(4, 4);
-        texMat3.Rotate(queue.spritter.tick / 2);
+        // tex2Mat3.Rotate(queue.spritter.tick / 2);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
 

@@ -19,19 +19,24 @@ fn main(
     var drawObj = drawObjs[drawObjIndex];
 
     var uv = texUv.xy / texUv.z + vec2f(0.5, 0.5);
-    uv = mix(texUv0, texUv1, fract(uv));
-    var pix = textureSample(texAtlas, sam, uv);
 
     var uv2 = tex2Uv.xy / tex2Uv.z + vec2f(0.5, 0.5);
     uv2 = mix(tex2Uv0, tex2Uv1, fract(uv2));
     var pix2 = textureSample(texAtlas, sam, uv2);
 
-    if ((drawObj.flags & UseSecondaryTexture) != 0) {
-        //if ((drawObj.flags & MaskTextureMode) != 0) {
-            pix.a *= pix2.a;
-        //}
+    let displacementEnableBits = UseSecondaryTexture | DisplacementTextureMode;
+    if ((drawObj.flags & displacementEnableBits) == displacementEnableBits) {
+        uv.x += pix2.a * 0.25;
+        uv.y += pix2.a * 0.25;
+    }
+
+    uv = mix(texUv0, texUv1, fract(uv));
+    var pix = textureSample(texAtlas, sam, uv);
+
+    let maskEnableBits = UseSecondaryTexture | MaskTextureMode;
+    if ((drawObj.flags & maskEnableBits) == maskEnableBits) {
+        pix.a *= pix2.a;
     }
 
     return pix;
-
 }

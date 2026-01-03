@@ -25,7 +25,8 @@ Note: I am learning WebGPU alongside making this project, so any feedback on any
 - [x] different textures through texture atlas
 - [x] polygons
 - [x] fake perspective 2d sprite
-- [ ] different porter duff composite modes (for masking effects) or just 1 masking mode through stencil buffer?
+- [x] use a second texture as a mask or displacement map
+- [ ] switch to different porter duff composite modes in seperate passes for more complex scene-wise masking effects
 - [ ] basic built-in shaders like outlines
 - [ ] sprite tinting
 - [ ] circles / arcs
