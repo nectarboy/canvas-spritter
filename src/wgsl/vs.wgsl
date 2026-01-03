@@ -3,13 +3,14 @@
 struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(0) rawUv : vec2f,
-    @location(1) fragUv : vec3f,
-    @location(2) fragColor : vec4f,
-    @location(3) @interpolate(flat) texUv0 : vec2f,
-    @location(4) @interpolate(flat) texUv1 : vec2f,
-    @location(5) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(6) @interpolate(flat) tex2Uv1 : vec2f,
-    @location(7) @interpolate(flat) drawObjIndex : u32
+    @location(1) texUv: vec3f,
+    @location(2) tex2Uv: vec3f,
+    @location(3) fragColor : vec4f,
+    @location(4) @interpolate(flat) texUv0 : vec2f,
+    @location(5) @interpolate(flat) texUv1 : vec2f,
+    @location(6) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(7) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(8) @interpolate(flat) drawObjIndex : u32
 }   
 
 @vertex
@@ -34,8 +35,8 @@ fn main(
 
     out.rawUv = uv.xy;
 
-    var transformedUv : vec3f = drawObj.texMat3 * uv;
-    out.fragUv = transformedUv;
+    out.texUv = drawObj.texMat3 * uv;
+    out.tex2Uv = drawObj.tex2Mat3 * uv;
 
     if ((VertexIndex & 1) == 1) {
         out.fragColor = vec4(1.0, 1.0, 1.0, 1.0);

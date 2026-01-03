@@ -6,26 +6,24 @@
 @fragment
 fn main(
     @location(0) rawUv : vec2f,
-    @location(1) fragUv: vec3f,
-    @location(2) fragColor: vec4f,
-    @location(3) @interpolate(flat) texUv0 : vec2f,
-    @location(4) @interpolate(flat) texUv1 : vec2f,
-    @location(5) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(6) @interpolate(flat) tex2Uv1 : vec2f,
-    @location(7) @interpolate(flat) drawObjIndex : u32
+    @location(1) texUv: vec3f,
+    @location(2) tex2Uv: vec3f,
+    @location(3) fragColor: vec4f,
+    @location(4) @interpolate(flat) texUv0 : vec2f,
+    @location(5) @interpolate(flat) texUv1 : vec2f,
+    @location(6) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(7) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(8) @interpolate(flat) drawObjIndex : u32
 ) -> @location(0) vec4f {
 
     var drawObj = drawObjs[drawObjIndex];
 
-    var uv = fragUv.xy / fragUv.z + vec2f(0.5, 0.5);
-    // uv.x += sin(uv.y * 20) / 10;
+    var uv = texUv.xy / texUv.z + vec2f(0.5, 0.5);
+    uv = mix(texUv0, texUv1, fract(uv));
+    var pix = textureSample(texAtlas, sam, uv);
 
-    // texture wrap
-    var uv1 = mix(texUv0, texUv1, fract(uv));
-    var pix = textureSample(texAtlas, sam, uv1);
-    //return fragColor;
-
-    var uv2 = mix(tex2Uv0, tex2Uv1, fract(uv));
+    var uv2 = tex2Uv.xy / tex2Uv.z + vec2f(0.5, 0.5);
+    uv2 = mix(tex2Uv0, tex2Uv1, fract(uv2));
     var pix2 = textureSample(texAtlas, sam, uv2);
 
     if ((drawObj.flags & UseSecondaryTexture) != 0) {

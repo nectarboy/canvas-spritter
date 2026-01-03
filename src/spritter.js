@@ -124,7 +124,7 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask');
-        // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);

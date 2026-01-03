@@ -82,9 +82,9 @@ class DrawObj {
         if (this.patternMode)
             texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        // texMat3.TranslateXY(queue.spritter.tick * 0.1 / this.atlasSize.x, 0);
+        // texMat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, 0);
         // texMat3.ScaleXY(4, 4);
-        // texMat3.Rotate(queue.spritter.tick / 2);
+        texMat3.Rotate(queue.spritter.tick / 2);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
 
