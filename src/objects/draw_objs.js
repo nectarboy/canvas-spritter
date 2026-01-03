@@ -6,9 +6,11 @@ const DrawObjFlag = {
     UseSecondaryTexture: 0x2,
     RepeatTexture: 0x4,
     RepeatSecondaryTexture: 0x8,
-    MaskTextureMode: 0x10,          // Use secondary texture as a soft-mask
-    DisplacementTextureMode: 0x20,  // Use secondary texture as a displacement map
-    PatternMode: 0x40,              // Use texture's real size instead of DrawObj size
+    FilterTexture: 0x10,
+    FilterSecondaryTexture: 0x20,
+    MaskTextureMode: 0x40,          // Use secondary texture as a soft-mask
+    DisplacementTextureMode: 0x80,  // Use secondary texture as a displacement map
+    PatternMode: 0x100,             // Use texture's real size instead of DrawObj size
 };
 
 class DrawObj {
@@ -96,7 +98,7 @@ class DrawObj {
         if (this.patternMode)
             texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        tex2Mat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, 0);
+        // tex2Mat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, 0);
         // texMat3.ScaleXY(4, 4);
         // tex2Mat3.Rotate(queue.spritter.tick / 2);
 

@@ -5,10 +5,6 @@ class DrawObjHolder {
         this.drawObj = drawObj;
         this.mat3 = mat3;
         this.priority = priority;
-
-        // used to speed up repeated drawobj buffering with the same priority
-        this.lastDrawobjPriority = 0;
-        this.lastDrawobjIndex = 0;
     }
 }
 
@@ -19,6 +15,9 @@ class DrawObjQueue {
 
         // DrawObjHolder array
         this.holders = [];
+        // used to speed up repeated drawobj buffering with the same priority
+        this.lastDrawobjPriority = 0;
+        this.lastDrawobjIndex = 0;
 
         // DrawObj storage buffer
         this.storageBufferSize = 4096 * 1024;
@@ -106,13 +105,13 @@ class DrawObjQueue {
         return low;
     }
 
-    BufferDrawobj(drawobj, priority = 0) {
+    BufferDrawobj(drawObj, priority = 0) {
         if (this.count === MAX_DRAWOBJS) {
             console.warn("Drawobj queue full.");
             return;
         }
 
-        let holder = new DrawObjHolder(drawobj, drawobj.mat3.Copy(), priority); // TODO: We can make this a pool
+        let holder = new DrawObjHolder(drawObj, drawObj.mat3.Copy(), priority); // TODO: We can make this a pool
 
         if (priority === this.lastDrawobjPriority) {
             this.lastDrawobjIndex++;

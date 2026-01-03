@@ -124,13 +124,20 @@ class Spritter {
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
-        testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetMaskMode(true);
+        testSprite.SetSecondaryTexture('mask');
+        // testSprite.SetMaskMode(true);
         // testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
+
+        let testPerspective = new DrawObjs.PerspectiveSprite();
+        testPerspective.topLeft.SetXY(-100 * .5, 100 * .5);
+        testPerspective.topRight.SetXY(100 * .5, 100);
+        testPerspective.botRight.SetXY(100, -100);
+        testPerspective.botLeft.SetXY(-100, -100);
+        testPerspective.UpdatePerspectiveWeights();
 
         let testPoly = new DrawObjs.Poly([
             new Vec2(-2, 0),
