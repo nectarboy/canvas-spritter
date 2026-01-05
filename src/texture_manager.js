@@ -86,23 +86,14 @@ class TextureAtlas {
             ctx.drawImage(image.img, box.x, box.y, box.w, box.h);
         }
 
-        let bitmap = canvas.transferToImageBitmap();
         this.device.queue.copyExternalImageToTexture(
-            { source: bitmap },
+            { source: canvas },
+            { texture: this.texture },
             {
-                texture: this.texture,
-                origin: {
-                    x: 0,
-                    y: 0
-                }
-            },
-            {
-                width: bitmap.width,
-                height: bitmap.height
+                width: canvas.width,
+                height: canvas.height
             }
         );
-
-        bitmap.close();
 
         console.timeEnd('LoadImageTextures');
     }
