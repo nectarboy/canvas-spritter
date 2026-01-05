@@ -73,17 +73,22 @@ class TextureAtlas {
             let image = images[i];
             if (PAD_TEXTURES) {
                 // Corners
-                ctx.drawImage(image.img, 0,0,1,1, box.x - 1, box.y - 1, box.w, box.h);
-                ctx.drawImage(image.img, box.w-1,0,1,1, box.x + 1, box.y - 1, box.w, box.h);
-                ctx.drawImage(image.img, box.w-1,box.h-1,1,1, box.x + 1, box.y + 1, box.w, box.h);
-                ctx.drawImage(image.img, 0,box.h-1,1,1, box.x - 1, box.y + 1, box.w, box.h);
+                ctx.drawImage(image.img, 0,0,1,1, box.x - 1, box.y - 1, 1, 1);
+                ctx.drawImage(image.img, box.w-1,0,1,1, box.x + box.w, box.y - 1, 1, 1);
+                ctx.drawImage(image.img, box.w-1,box.h-1,1,1, box.x + box.w, box.y + box.h, 1, 1);
+                ctx.drawImage(image.img, 0,box.h-1,1,1, box.x - 1, box.y + box.h, 1, 1);
                 // Sides
-                ctx.drawImage(image.img, 0,0,box.w,1, box.x, box.y - 1, box.w, box.h);
-                ctx.drawImage(image.img, box.w-1,0,1,box.h, box.x + 1, box.y, box.w, box.h);
-                ctx.drawImage(image.img, 0,box.h-1,box.w,1, box.x, box.y + 1, box.w, box.h);
-                ctx.drawImage(image.img, 0,0,1,box.h, box.x - 1, box.y, box.w, box.h);
+                ctx.drawImage(image.img, 0,0,box.w,1, box.x, box.y - 1, box.w, 1);
+                ctx.drawImage(image.img, box.w-1,0,1,box.h, box.x + box.w, box.y, 1, box.h);
+                ctx.drawImage(image.img, 0,box.h-1,box.w,1, box.x, box.y + box.h, box.w, 1);
+                ctx.drawImage(image.img, 0,0,1,box.h, box.x - 1, box.y, 1, box.h);
             }
             ctx.drawImage(image.img, box.x, box.y, box.w, box.h);
+
+            // box.x -= PAD_TEXTURES;
+            // box.y -= PAD_TEXTURES;
+            // box.w += PAD_TEXTURES * 2;
+            // box.h += PAD_TEXTURES * 2;
         }
 
         this.device.queue.copyExternalImageToTexture(

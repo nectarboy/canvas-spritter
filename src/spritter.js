@@ -125,10 +125,10 @@ class Spritter {
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
-        // testSprite.SetSecondaryTexture('mask2');
-        // testSprite.SetMaskMode(true);
+        testSprite.SetSecondaryTexture('mask2');
+        testSprite.SetMaskMode(true);
         // testSprite.SetDisplacementMode(true);
-        // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
