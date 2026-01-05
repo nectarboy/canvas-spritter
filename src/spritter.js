@@ -87,31 +87,32 @@ class Spritter {
     };
 
     async init() {
-        let bitmaps = [
-            await this.loadImageBitmap('src/assets/test.png', 'test'),
-            await this.loadImageBitmap('src/assets/test2.png', 'test2'),
-            await this.loadImageBitmap('src/assets/terrain.png', 'terrain'),
-            await this.loadImageBitmap('src/assets/bunny.png', 'bunny'),
-            await this.loadImageBitmap('src/assets/atlas_test.png', 'atlas_test'),
-            await this.loadImageBitmap('src/assets/mask.png', 'mask'),
-            await this.loadImageBitmap('src/assets/mask2.png', 'mask2'),
+        let images = [
+            await this.GetImage('src/assets/test.png', 'test'),
+            await this.GetImage('src/assets/test2.png', 'test2'),
+            await this.GetImage('src/assets/terrain.png', 'terrain'),
+            await this.GetImage('src/assets/bunny.png', 'bunny'),
+            await this.GetImage('src/assets/atlas_test.png', 'atlas_test'),
+            await this.GetImage('src/assets/mask.png', 'mask'),
+            await this.GetImage('src/assets/mask2.png', 'mask2'),
         ];
 
-        console.log('bitmaps:', bitmaps);
+        console.log('images:', images);
 
-        this.textureManager.textureAtlas.LoadTextureBitmaps(bitmaps);
+        await this.textureManager.textureAtlas.LoadImageTextures(images);
     }
 
-    async loadImageBitmap(url, name = '') {
-        if (name === '')
-            throw 'please provide a valid texture name';
-        let blob = await (await fetch(url)).blob();
-        let bitmap = await createImageBitmap(blob);
-        let bitmapDescriptor = {
-            name: name,
-            bitmap: bitmap
-        };
-        return bitmapDescriptor;
+    GetImage(url, name = '') {
+        return new Promise((resolve, reject) => {
+            let image = {
+                name: name,
+                img: new Image()
+            };
+            image.img.src = url;
+
+            image.img.onload = () => resolve(image);
+            image.img.onerror = (e) => reject(e);
+        });
     }
 
     flushVertexStaging() {
@@ -124,7 +125,7 @@ class Spritter {
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
-        testSprite.SetSecondaryTexture('mask2');
+        // testSprite.SetSecondaryTexture('mask2');
         // testSprite.SetMaskMode(true);
         // testSprite.SetDisplacementMode(true);
         // testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
