@@ -26,75 +26,76 @@ class TextureAtlas {
         this.boxMap = new Map();
     };
 
-    LoadTextureBitmaps(bitmapDescriptors) {
+    async LoadImageTextures(images) {
+        console.time('LoadImageTextures');
+
         const PAD_TEXTURES = true;
 
         this.boxes.length = 0;
         this.boxMap.clear();
-        for (let i = 0; i < bitmapDescriptors.length; i++) {
-            let bitmap = bitmapDescriptors[i].bitmap;
-            if (bitmap.width + PAD_TEXTURES*2 > this.dimension || bitmap.height + PAD_TEXTURES*2 > this.dimension)
-                throw 'bitmap too big!';
+        for (let i = 0; i < images.length; i++) {
+            let image = images[i];
+            if (image.img.width + PAD_TEXTURES*2 > this.dimension || image.img.height + PAD_TEXTURES*2 > this.dimension)
+                throw 'Image too big!';
 
             let box = {
                 x: -1,
                 y: -1,
-                w: bitmap.width + PAD_TEXTURES*2,
-                h: bitmap.height + PAD_TEXTURES*2
+                w: image.img.width + PAD_TEXTURES*2,
+                h: image.img.height + PAD_TEXTURES*2
             };
             this.boxes.push(box);
-            this.boxMap.set(bitmapDescriptors[i].name, box);
+            this.boxMap.set(image.name, box);
         }
+
 
         BinPacker.PackBoxes(this.boxes, this.dimension);
         BinPacker.DrawBinPack(this.boxes, this.dimension);
-        console.log(this.boxes);
+        // console.log(this.boxes);
+
+        let maxW = 0;
+        let maxH = 0;
+        for (let i = 0; i < this.boxes.length; i++) {
+            if (this.boxes[i].x + this.boxes[i].w > maxW) maxW = this.boxes[i].x + this.boxes[i].w;
+            if (this.boxes[i].y + this.boxes[i].h > maxH) maxH = this.boxes[i].y + this.boxes[i].h;
+        }
+        let canvas = new OffscreenCanvas(maxW, maxH); // [!] max canvas is 4096 on safari...
+        let ctx = canvas.getContext('2d');
 
         for (let i = 0; i < this.boxes.length; i++) {
-            let bitmap = bitmapDescriptors[i].bitmap;
-
-            // TODO: there has to be a better way to do ts
-            let offs;
-            if (PAD_TEXTURES) {
-                offs = [
-                    { x: 0, y: 0 },
-                    { x: 2, y: 0 },
-                    { x: 2, y: 2 },
-                    { x: 0, y: 2 },
-                    { x: 1, y: 0 },
-                    { x: 2, y: 1 },
-                    { x: 1, y: 2 },
-                    { x: 0, y: 1 },
-                    { x: 1, y: 1 }
-                ];
-            }
-            else {
-                offs = [{ x: 0, y: 0 }];
-            }
-
-            for (let off of offs) {
-                this.device.queue.copyExternalImageToTexture(
-                    { source: bitmap },
-                    {
-                        texture: this.texture,
-                        origin: {
-                            x: this.boxes[i].x + off.x,
-                            y: this.boxes[i].y + off.y
-                        }
-                    },
-                    {
-                        width: bitmap.width,
-                        height: bitmap.height
-                    }
-                );
-            }
-
             // Fix boxes from padding
-            this.boxes[i].x += PAD_TEXTURES;
-            this.boxes[i].y += PAD_TEXTURES;
-            this.boxes[i].w -= PAD_TEXTURES * 2;
-            this.boxes[i].h -= PAD_TEXTURES * 2;
+            let box = this.boxes[i];
+            box.x += PAD_TEXTURES;
+            box.y += PAD_TEXTURES;
+            box.w -= PAD_TEXTURES * 2;
+            box.h -= PAD_TEXTURES * 2;
+
+            let image = images[i];
+            if (PAD_TEXTURES) {
+                // Corners
+                ctx.drawImage(image.img, 0,0,1,1, box.x - 1, box.y - 1, box.w, box.h);
+                ctx.drawImage(image.img, box.w-1,0,1,1, box.x + 1, box.y - 1, box.w, box.h);
+                ctx.drawImage(image.img, box.w-1,box.h-1,1,1, box.x + 1, box.y + 1, box.w, box.h);
+                ctx.drawImage(image.img, 0,box.h-1,1,1, box.x - 1, box.y + 1, box.w, box.h);
+                // Sides
+                ctx.drawImage(image.img, 0,0,box.w,1, box.x, box.y - 1, box.w, box.h);
+                ctx.drawImage(image.img, box.w-1,0,1,box.h, box.x + 1, box.y, box.w, box.h);
+                ctx.drawImage(image.img, 0,box.h-1,box.w,1, box.x, box.y + 1, box.w, box.h);
+                ctx.drawImage(image.img, 0,0,1,box.h, box.x - 1, box.y, box.w, box.h);
+            }
+            ctx.drawImage(image.img, box.x, box.y, box.w, box.h);
         }
+
+        this.device.queue.copyExternalImageToTexture(
+            { source: canvas },
+            { texture: this.texture },
+            {
+                width: canvas.width,
+                height: canvas.height
+            }
+        );
+
+        console.timeEnd('LoadImageTextures');
     }
 
     GetTextureBounds(name) {
