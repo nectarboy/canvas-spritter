@@ -84,11 +84,6 @@ class TextureAtlas {
                 ctx.drawImage(image.img, 0,0,1,box.h, box.x - 1, box.y, 1, box.h);
             }
             ctx.drawImage(image.img, box.x, box.y, box.w, box.h);
-
-            // box.x -= PAD_TEXTURES;
-            // box.y -= PAD_TEXTURES;
-            // box.w += PAD_TEXTURES * 2;
-            // box.h += PAD_TEXTURES * 2;
         }
 
         this.device.queue.copyExternalImageToTexture(
@@ -131,12 +126,21 @@ class TextureManager {
             texture: { viewDimension: '2d' }
         });
 
-        this.testSampler = device.createSampler({
+        this.nearestSampler = device.createSampler({
             magFilter: 'nearest',
             minFilter: 'linear',
         });
+        this.linearSampler = device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear'
+        });
         bindGroupLayoutDescriptor.entries.push({
             binding: this.samplerBindOff,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {}
+        });
+        bindGroupLayoutDescriptor.entries.push({
+            binding: this.samplerBindOff + 1,
             visibility: GPUShaderStage.FRAGMENT,
             sampler: {}
         });
@@ -154,7 +158,11 @@ class TextureManager {
         });
         bindGroupDescriptor.entries.push({
             binding: this.samplerBindOff,
-            resource: this.testSampler
+            resource: this.nearestSampler
+        });
+        bindGroupDescriptor.entries.push({
+            binding: this.samplerBindOff + 1,
+            resource: this.linearSampler
         });
 
         this.bindGroup = device.createBindGroup(bindGroupDescriptor);

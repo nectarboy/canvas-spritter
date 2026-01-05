@@ -1,7 +1,8 @@
 @group(1) @binding(0) var<storage, read> drawObjs : array<DrawObj>;
 
 @group(0) @binding(0) var texAtlas : texture_2d<f32>;
-@group(0) @binding(1) var sam : sampler;
+@group(0) @binding(1) var nearestSam : sampler;
+@group(0) @binding(2) var linearSam : sampler;
 
 @fragment
 fn main(
@@ -22,7 +23,7 @@ fn main(
 
     var uv2 = tex2Uv.xy / tex2Uv.z + vec2f(0.5, 0.5);
     uv2 = mix(tex2Uv0, tex2Uv1, fract(uv2));
-    var pix2 = textureSample(texAtlas, sam, uv2);
+    var pix2 : vec4f = select(textureSample(texAtlas, nearestSam, uv2), textureSample(texAtlas, linearSam, uv2), (drawObj.flags & FilterSecondaryTexture) != 0);
 
     let displacementEnableBits = UseSecondaryTexture | DisplacementTextureMode;
     if ((drawObj.flags & displacementEnableBits) == displacementEnableBits) {
@@ -31,7 +32,7 @@ fn main(
     }
 
     uv = mix(texUv0, texUv1, fract(uv));
-    var pix = textureSample(texAtlas, sam, uv);
+    var pix = select(textureSample(texAtlas, nearestSam, uv), textureSample(texAtlas, linearSam, uv), (drawObj.flags & FilterTexture) != 0);
 
     let maskEnableBits = UseSecondaryTexture | MaskTextureMode;
     if ((drawObj.flags & maskEnableBits) == maskEnableBits) {

@@ -2,7 +2,7 @@ import EngineConsts from './engine_consts.js';
 import TextureManager from './texture_manager.js';
 import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
-import DrawObjs from './objects/draw_objs.js';
+import { DrawObjFlag, DrawObjs } from './objects/draw_objs.js';
 
 async function fetchShader(path, dependencies) {
     let wgsl = await (await fetch(path, { cache: 'no-store' })).text();
@@ -126,6 +126,7 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
+        testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
         testSprite.SetMaskMode(true);
         // testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);

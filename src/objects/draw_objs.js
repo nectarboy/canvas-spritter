@@ -100,7 +100,7 @@ class DrawObj {
 
         tex2Mat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, 0);
         // texMat3.ScaleXY(4, 4);
-        // tex2Mat3.Rotate(queue.spritter.tick / 2);
+        tex2Mat3.Rotate(queue.spritter.tick / 2);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
 
@@ -327,4 +327,7 @@ function UnitTest() {
 
 UnitTest();
 
-export default DrawObjs;
+export {
+    DrawObjFlag,
+    DrawObjs,
+};
