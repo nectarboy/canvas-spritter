@@ -111,6 +111,7 @@ class Spritter {
             await this.GetImage('src/assets/atlas_test.png', 'atlas_test'),
             await this.GetImage('src/assets/mask.png', 'mask'),
             await this.GetImage('src/assets/mask2.png', 'mask2'),
+            await this.GetImage('src/assets/background.png', 'background')
         ];
 
         console.log('images:', images);
@@ -138,12 +139,18 @@ class Spritter {
     doStuff() {        
         let now = new Date() / 1600;
 
-        let testSprite = new DrawObjs.Sprite(128, 128);
+        let backgroundSprite = new DrawObjs.Sprite(480, 360);
+        backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
+        backgroundSprite.SetTexture('background');
+        this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
+
+        let testSprite = new DrawObjs.Sprite(32, 32);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
         testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
-        testSprite.tex2Alpha = 0;
+        testSprite.tex2Alpha = 1;
+        testSprite.thresholdLowerColor.a = 0.95;
         testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
@@ -177,9 +184,9 @@ class Spritter {
         // this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 1000; i++) {
-            testSprite.mat3.Rotate(1);
-            testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
+        for (let i = 0; i < 5000; i++) {
+            // testSprite.mat3.Rotate(1);
+            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
@@ -188,7 +195,6 @@ class Spritter {
         let start = performance.now();
 
         this.doStuff();
-
         this.drawObjQueue.PushDrawObjsToStageBuffers();
         this.drawObjQueue.UploadStageBuffersToBuffers();
 
@@ -226,12 +232,14 @@ class Spritter {
         this.device.queue.submit([commandEncoder.finish()]);
 
         // performance measurement
-        // if (this.perfResultBuffer.mapState === 'unmapped') {
-        //     await this.perfResultBuffer.mapAsync(GPUMapMode.READ);
-        //     let times = new BigUint64Array(this.perfResultBuffer.getMappedRange());
-        //     this.gpuMicroS = Number(times[1] - times[0]) / 1000;
-        //     this.perfResultBuffer.unmap();
-        // }
+        if (this.tick % 30 === 0) {
+            if (this.perfResultBuffer.mapState === 'unmapped') {
+                await this.perfResultBuffer.mapAsync(GPUMapMode.READ);
+                let times = new BigUint64Array(this.perfResultBuffer.getMappedRange());
+                this.gpuMicroS = Number(times[1] - times[0]) / 1000;
+                this.perfResultBuffer.unmap();
+            }
+        }
 
         this.drawObjQueue.Flush();
         this.tick++;

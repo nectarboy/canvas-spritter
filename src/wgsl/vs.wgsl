@@ -10,7 +10,9 @@ struct VertexOutput {
     @location(5) @interpolate(flat) texUv0 : vec2f,
     @location(6) @interpolate(flat) texUv1 : vec2f,
     @location(7) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(8) @interpolate(flat) tex2Uv1 : vec2f
+    @location(8) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(9) @interpolate(flat) thresholdLowerColor : vec4f,
+    @location(10) @interpolate(flat) thresholdUpperColor : vec4f,
 }   
 
 @vertex
@@ -44,6 +46,9 @@ fn main(
     out.texUv1 = (drawObj.texPos + drawObj.texSize) / drawObj.atlasDimension;
     out.tex2Uv0 = drawObj.tex2Pos / drawObj.atlasDimension;
     out.tex2Uv1 = (drawObj.tex2Pos + drawObj.tex2Size) / drawObj.atlasDimension;
+
+    out.thresholdLowerColor = drawObj.thresholdLowerColor;
+    out.thresholdUpperColor = drawObj.thresholdUpperColor;
 
     return out;
 }

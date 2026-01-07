@@ -26,6 +26,11 @@ Note: I am learning WebGPU alongside making this project, so any feedback on any
 - [x] polygons
 - [x] fake perspective 2d sprite
 - [x] use a second texture as a mask or displacement map
+- [ ] optimize opaque overdraw
+    - with alpha blending enabled, apparently this is a REALLY BAD gpu performance killer. even just 1000 sprites take *10ms* if they all overlap, even if they are completely opaque. adding just one simple opaque background also increases total time dramatically, due to blending technically having to occur everywhere across the clip space.
+    - disabling blending alltogether as a test doesnt seem to have any effect at all on overdraw performance though?
+    - if we render front-to-back with depth testing, performance should increase, but how do we do transparency then?
+    - maybe an opaque front-to-back pass + transparent back-to-front pass is the best solution
 - [ ] switch to different porter duff composite modes in seperate passes for more complex scene-wise masking effects
 - [ ] basic built-in shaders like outlines
 - [ ] sprite tinting

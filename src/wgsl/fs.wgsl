@@ -19,6 +19,8 @@ fn main(
     @location(6) @interpolate(flat) texUv1 : vec2f,
     @location(7) @interpolate(flat) tex2Uv0 : vec2f,
     @location(8) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(9) @interpolate(flat) thresholdLowerColor : vec4f,
+    @location(10) @interpolate(flat) thresholdUpperColor : vec4f,
 ) -> @location(0) vec4f {
 
     var uv = texUv.xy / texUv.z + vec2f(0.5, 0.5);
@@ -84,7 +86,7 @@ fn main(
     pix *= tintColor;
 
     // Threshold cutting
-    // pix = select(pix, vec4f(0), (pix > drawObj.thresholdLowerColor) & (pix <= drawObj.thresholdUpperColor));
+    pix = select(pix, vec4f(0), (pix > thresholdLowerColor) & (pix <= thresholdUpperColor));
 
     return pix;
 }

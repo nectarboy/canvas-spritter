@@ -202,7 +202,7 @@ class DrawObjs {
             }
             queue.verticesCount += this.polyVerts.length;
 
-            if (queue.spritter.tick === 0) console.log(this.polyVerts);
+            // if (queue.spritter.tick === 0) console.log(this.polyVerts);
         }
 
         // points must be a Vec2 array
