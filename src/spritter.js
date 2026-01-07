@@ -154,14 +154,14 @@ class Spritter {
         backgroundSprite.SetTexture('background');
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
-        let testSprite = new DrawObjs.Sprite(32, 32);
+        let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
         testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha = 1;
         // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
-        testSprite.thresholdLowerColor.a = 0.95;
+        // testSprite.thresholdLowerColor.a = 0.95;
         testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
@@ -197,8 +197,8 @@ class Spritter {
         // Stress tester
         for (let i = 0; i < 10000; i++) {
             // testSprite.mat3.Rotate(1);
-            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(testSprite, 0);
+            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(testSprite, i);
         }
     }
 
