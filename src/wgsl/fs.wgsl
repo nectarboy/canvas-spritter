@@ -4,10 +4,6 @@
 @group(0) @binding(1) var nearestSam : sampler;
 @group(0) @binding(2) var linearSam : sampler;
 
-//bool vecLessThanVecFully(a : vec4f, b : vec4f) -> bool {
-//    return (a.x < b.x) & (a.y < b.y) & (a.z < b.z) & (a.w < b.w);
-//}
-
 @fragment
 fn main(
     @location(0) texUv: vec3f,
@@ -25,6 +21,9 @@ fn main(
 
     var uv = texUv.xy / texUv.z + vec2f(0.5, 0.5);
     var pix : vec4f;
+
+    //return vec4f(1, f32(flags) / 10000.0, 1, 1);
+    //return textureSample(texAtlas, linearSam, texUv0);
 
     // Single texture
     if ((flags & UseSecondaryTexture) == 0) {

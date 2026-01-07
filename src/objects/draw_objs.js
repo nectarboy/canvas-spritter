@@ -22,6 +22,7 @@ class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
         this.flags = 0;
+        this.transparent = false;
 
         this.atlas = null;
         this.atlasDimension = -1;
@@ -106,9 +107,10 @@ class DrawObj {
             this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
     }
 
-    BufferDataAt(queue, mat3, i) {
+    BufferDataAt(queue, holder, i) {
         let now = new Date() / 1000;
 
+        const mat3 = holder.mat3;
         const texMat3 = new Mat3();
         const tex2Mat3 = new Mat3();
 
@@ -120,7 +122,6 @@ class DrawObj {
         tex2Mat3.Rotate(now * 100);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
-
         queue.storageStage.set([
             mat3.m[0], mat3.m[1], mat3.m[2], 0,
             mat3.m[3], mat3.m[4], mat3.m[5], 0,
@@ -149,8 +150,10 @@ class DrawObj {
 
             this.atlasDimension,
             this.iAtlasDimension,
+
+            holder.priority
         ], off);
-        queue.storageStage_Uint32[off + 59] = this.flags;
+        queue.storageStage_Uint32[off + 60] = this.flags;
 
         queue.drawObjDataCount++;
     }
@@ -167,7 +170,7 @@ class DrawObjs {
             this.h = h;
         };
 
-        BufferVerticesAt(queue, mat3, drawObjIndex) {
+        BufferVerticesAt(queue, holder, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             queue.verticesStage.set([this.w, this.h,        0.5, -0.5, 1, 0], off); // tr
             queue.verticesStage.set([-this.w, -this.h,        -0.5, 0.5, 1, 0], off + 7); // bl
@@ -193,7 +196,7 @@ class DrawObjs {
             this.TessellatePoints(points, pointScale);
         }
 
-        BufferVerticesAt(queue, mat3, drawObjIndex) {
+        BufferVerticesAt(queue, holder, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             for (let i = 0; i < this.polyVerts.length; i++, off += 7) {
                 let vert = this.polyVerts[i];
@@ -288,7 +291,7 @@ class DrawObjs {
             this.blQ = botLeftD / topRightD + 1;
         }
 
-        BufferVerticesAt(queue, mat3, drawObjIndex) {
+        BufferVerticesAt(queue, holder, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             queue.verticesStage.set([this.topRight.x, this.topRight.y,     0.5 * this.trQ, -0.5 * this.trQ, this.trQ, 0], off);
             queue.verticesStage.set([this.botLeft.x, this.botLeft.y,       -0.5 * this.blQ, 0.5 * this.blQ, this.blQ, 0], off + 7);

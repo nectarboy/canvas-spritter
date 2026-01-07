@@ -21,6 +21,8 @@ class Spritter {
     constructor(canvas, device) {
         globalThis.spritter = this;
 
+        this.tick = 0;
+
         this.canvas = canvas;
         this.ctx = canvas.getContext('webgpu');
         this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -36,8 +38,11 @@ class Spritter {
         this.textureManager = new TextureManager(this);
         this.drawObjQueue = new DrawObjQueue(this);
 
-        this.tick = 0;
-        this.aspectRatio = this.canvas.width / this.canvas.height;
+        this.depthStencilTexture = this.device.createTexture({
+            size: [canvas.width, canvas.height],
+            format: "depth24plus",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
 
         this.pipelineLayout = device.createPipelineLayout({
             label: 'pipeline layout',
@@ -78,6 +83,11 @@ class Spritter {
                         }
                     }
                 ]
+            },
+            depthStencil: {
+                format: 'depth24plus',
+                depthWriteEnabled: true,
+                depthCompare: 'greater'
             },
             primitive: {
                 topology: 'triangle-list',
@@ -150,6 +160,7 @@ class Spritter {
         testSprite.SetSecondaryTexture('mask2');
         testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha = 1;
+        // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
         testSprite.thresholdLowerColor.a = 0.95;
         testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
@@ -184,9 +195,9 @@ class Spritter {
         // this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 5000; i++) {
+        for (let i = 0; i < 10000; i++) {
             // testSprite.mat3.Rotate(1);
-            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
@@ -209,6 +220,13 @@ class Spritter {
                     storeOp: 'store'
                 }
             ],
+            depthStencilAttachment: {
+                view: this.depthStencilTexture.createView(),
+                depthLoadOp: 'clear',
+                depthClearValue: 0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store'
+            },
             timestampWrites: {
                 querySet: this.perfQuerySet,
                 beginningOfPassWriteIndex: 0,
@@ -221,7 +239,7 @@ class Spritter {
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
         passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
-        passEncoder.draw(this.drawObjQueue.verticesCount);
+        passEncoder.draw(this.drawObjQueue.opaqueVertices);
         passEncoder.end();
 
         commandEncoder.resolveQuerySet(this.perfQuerySet, 0, this.perfQuerySet.count, this.perfResolveBuffer, 0);
