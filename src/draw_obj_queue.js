@@ -149,26 +149,26 @@ class DrawObjQueue {
 
     PushDrawObjsToStageBuffers() {
         // Opaque (Front to back)
-        let n = this.opaqueList.holders.length;
-        for (let i = 0; i < n; i++) {
-            let holder = this.opaqueList.holders[n - i - 1];
+        const opaqueN = this.opaqueList.holders.length;
+        for (let i = 0; i < opaqueN; i++) {
+            let holder = this.opaqueList.holders[opaqueN - i - 1];
             holder.drawObj.BufferDataAt(this, holder, i);
         }
-        for (let i = 0; i < n; i++) {
-            let holder = this.opaqueList.holders[n - i - 1];
+        for (let i = 0; i < opaqueN; i++) {
+            let holder = this.opaqueList.holders[opaqueN - i - 1];
             holder.drawObj.BufferVerticesAt(this, holder, i);
         }
         this.opaqueVertices = this.verticesCount;
 
         // Transparent (Back to front)
-        n = this.transparentList.holders.length;
-        for (let i = 0; i < n; i++) {
+        const transparentN = this.transparentList.holders.length;
+        for (let i = 0; i < transparentN; i++) {
             let holder = this.transparentList.holders[i];
-            holder.drawObj.BufferDataAt(this, holder, i);
+            holder.drawObj.BufferDataAt(this, holder, i + opaqueN);
         }
-        for (let i = 0; i < n; i++) {
+        for (let i = 0; i < transparentN; i++) {
             let holder = this.transparentList.holders[i];
-            holder.drawObj.BufferVerticesAt(this, holder, i);
+            holder.drawObj.BufferVerticesAt(this, holder, i + opaqueN);
         }
         this.transparentVertices = this.verticesCount - this.opaqueVertices;
     }

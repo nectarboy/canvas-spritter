@@ -95,6 +95,52 @@ class Spritter {
             }
         });
 
+        this.transparentPipeline = device.createRenderPipeline({
+            label: 'spritter pipeline',
+            layout: this.pipelineLayout,
+            vertex: {
+                module: device.createShaderModule({
+                    label: 'vs',
+                    code: vsWgsl
+                }),
+                buffers: [
+                    this.drawObjQueue.vertexBufferDescriptor
+                ]
+            },
+            fragment: {
+                module: device.createShaderModule({
+                    label: 'fs',
+                    code: fsWgsl
+                }),
+                targets: [
+                    {
+                        format: this.canvasFormat,
+                        blend: {
+                            color: {
+                                operation: 'add',
+                                srcFactor: 'src-alpha',
+                                dstFactor: 'one-minus-src-alpha'
+                            },
+                            alpha: {
+                                operation: 'add',
+                                srcFactor: 'src-alpha',
+                                dstFactor: 'one-minus-src-alpha'
+                            }
+                        }
+                    }
+                ]
+            },
+            depthStencil: {
+                format: 'depth24plus',
+                depthWriteEnabled: false,
+                depthCompare: 'greater-equal'
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'cw'
+            }
+        });
+
         // performance measuring
         this.gpuMicroS = -1;
 
@@ -150,11 +196,13 @@ class Spritter {
         let now = new Date() / 1600;
 
         let backgroundSprite = new DrawObjs.Sprite(480, 360);
+        backgroundSprite.transparent = true;
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
         let testSprite = new DrawObjs.Sprite(128, 128);
+        // testSprite.transparent = true;
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
@@ -195,7 +243,7 @@ class Spritter {
         // this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 0; i++) {
             // testSprite.mat3.Rotate(1);
             testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, i);
@@ -234,13 +282,18 @@ class Spritter {
             }
         };
 
+        console.log(this.drawObjQueue.opaqueVertices, this.drawObjQueue.transparentVertices);
+
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
         passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
         passEncoder.draw(this.drawObjQueue.opaqueVertices);
+        passEncoder.setPipeline(this.transparentPipeline);
+        passEncoder.draw(this.drawObjQueue.transparentVertices, 1, this.drawObjQueue.opaqueVertices);
         passEncoder.end();
+
 
         commandEncoder.resolveQuerySet(this.perfQuerySet, 0, this.perfQuerySet.count, this.perfResolveBuffer, 0);
         if (this.perfResultBuffer.mapState === 'unmapped') {
