@@ -29,7 +29,7 @@ class DrawObjQueue {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
         this.drawObjDataCount = 0;
-        this.drawObjDataEntrySize = 48;
+        this.drawObjDataEntrySize = 60;
         this.drawObjDataEntryByteSize = this.drawObjDataEntrySize * this.storageStage.BYTES_PER_ELEMENT;
 
         this.storageBindGroupLayout = spritter.device.createBindGroupLayout({
@@ -136,10 +136,12 @@ class DrawObjQueue {
 
     PushDrawObjsToStageBuffers() {
         // this.verticesCount = 0;
-        for (let i = 0; i < this.holders.length; i++) {
-            let holder = this.holders[i];
-            holder.drawObj.BufferDataAt(this, holder.mat3, i);
-            holder.drawObj.BufferVerticesAt(this, holder.mat3, i);
+        const n = this.holders.length;
+        for (let i = 0; i < n; i++) {
+            this.holders[i].drawObj.BufferDataAt(this, this.holders[i].mat3, i);
+        }
+        for (let i = 0; i < n; i++) {
+            this.holders[i].drawObj.BufferVerticesAt(this, this.holders[i].mat3, i);
         }
         // this.holders.length = 0;
     }

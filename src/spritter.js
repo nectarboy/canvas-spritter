@@ -84,6 +84,22 @@ class Spritter {
                 frontFace: 'cw'
             }
         });
+
+        // performance measuring
+        this.gpuMicroS = 0;
+
+        this.perfQuerySet = device.createQuerySet({
+            type: 'timestamp',
+            count: 2
+        });
+        this.perfResolveBuffer = device.createBuffer({
+            size: this.perfQuerySet.count * 8,
+            usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC
+        });
+        this.perfResultBuffer = device.createBuffer({
+            size: this.perfResolveBuffer.size,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        });
     };
 
     async init() {
@@ -120,16 +136,17 @@ class Spritter {
     }
 
     doStuff() {        
-        let now = new Date() / 500;
+        let now = new Date() / 1600;
 
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
         testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
+        testSprite.tex2Alpha = 0;
         testSprite.SetMaskMode(true);
-        // testSprite.SetDisplacementMode(true);
-        testSprite.mat3.TranslateXY(Math.sin(this.tick / 100) * 100, 0);
+        testSprite.SetDisplacementMode(true);
+        testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
@@ -154,21 +171,26 @@ class Spritter {
         // testPoly.TestDraw();
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');
-        testPoly.mat3.TranslateXY(-Math.sin(this.tick / 100) * 100, 0);
+        testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
         // this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 1; i++) {
-            testPoly.mat3.Rotate(1);
-            testPoly.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
-            this.drawObjQueue.BufferDrawobj(testPoly, 0);
+        for (let i = 0; i < 1000; i++) {
+            testSprite.mat3.Rotate(1);
+            testSprite.mat3.TranslateXY(Math.random() - 0.5, Math.random() - 0.5);
+            this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
 
-    draw() {
+    async draw() {
+        let start = performance.now();
+
         this.doStuff();
+
+        this.drawObjQueue.PushDrawObjsToStageBuffers();
+        this.drawObjQueue.UploadStageBuffersToBuffers();
 
         const canvasTextureView = this.ctx.getCurrentTexture().createView();
         const commandEncoder = this.device.createCommandEncoder();
@@ -180,12 +202,13 @@ class Spritter {
                     loadOp: 'clear',
                     storeOp: 'store'
                 }
-            ]
+            ],
+            timestampWrites: {
+                querySet: this.perfQuerySet,
+                beginningOfPassWriteIndex: 0,
+                endOfPassWriteIndex: 1
+            }
         };
-
-
-        this.drawObjQueue.PushDrawObjsToStageBuffers();
-        this.drawObjQueue.UploadStageBuffersToBuffers();
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
@@ -195,10 +218,26 @@ class Spritter {
         passEncoder.draw(this.drawObjQueue.verticesCount);
         passEncoder.end();
 
+        commandEncoder.resolveQuerySet(this.perfQuerySet, 0, this.perfQuerySet.count, this.perfResolveBuffer, 0);
+        if (this.perfResultBuffer.mapState === 'unmapped') {
+            commandEncoder.copyBufferToBuffer(this.perfResolveBuffer, 0, this.perfResultBuffer, 0, this.perfResultBuffer.size);
+        }
+
         this.device.queue.submit([commandEncoder.finish()]);
+
+        // performance measurement
+        // if (this.perfResultBuffer.mapState === 'unmapped') {
+        //     await this.perfResultBuffer.mapAsync(GPUMapMode.READ);
+        //     let times = new BigUint64Array(this.perfResultBuffer.getMappedRange());
+        //     this.gpuMicroS = Number(times[1] - times[0]) / 1000;
+        //     this.perfResultBuffer.unmap();
+        // }
 
         this.drawObjQueue.Flush();
         this.tick++;
+
+        let ms = (performance.now() - start);
+        document.getElementById('status').textContent = 'js ms: ' + ms.toFixed(2) + '\ngpu µs: ' + this.gpuMicroS.toFixed(2);
     }
 }
 

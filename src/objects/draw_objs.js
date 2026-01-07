@@ -8,9 +8,14 @@ const DrawObjFlag = {
     RepeatSecondaryTexture: 0x8,
     FilterTexture: 0x10,
     FilterSecondaryTexture: 0x20,
-    MaskTextureMode: 0x40,          // Use secondary texture as a soft-mask
-    DisplacementTextureMode: 0x80,  // Use secondary texture as a displacement map
-    PatternMode: 0x100,             // Use texture's real size instead of DrawObj size
+    MaskTextureMode: 0x40,              // Use secondary texture as a soft-mask
+    MaskTextureColorChannels: 0x80,     // (When Mask Mode enabled) mask texture color channels too
+    DisplacementTextureMode: 0x100,     // Use secondary texture as a displacement map
+    PatternMode: 0x200,                 // Use texture's real size instead of DrawObj size
+    FlipTextureX: 0x400,
+    FlipTextureY: 0x800,
+    FlipSecondaryTextureX: 0x100,
+    FlipSecondaryTextureY: 0x2000
 };
 
 class DrawObj {
@@ -26,6 +31,15 @@ class DrawObj {
         this.texSize = new Vec2(0, 0);
         this.tex2Pos = new Vec2(0, 0);
         this.tex2Size = new Vec2(0, 0);
+
+        this.tintColor = { r: 1, g: 1, b: 1, a: 1 };
+
+        // If a pixel's channel > channel of lower threshold and <= channel of upper threshold, the channel will be zeroed out.
+        this.thresholdLowerColor = { r: 1, g: 1, b: 1, a: 1 };
+        this.thresholdUpperColor = { r: 1, g: 1, b: 1, a: 1 };
+
+        // The opacity of tex2 being overlayed on top of tex1. If 0.0, only tex1 will show as normal.
+        this.tex2Alpha = 0;
 
         this.posOffset = new Vec2(0, 0);
 
@@ -75,6 +89,7 @@ class DrawObj {
 
     UnsetSecondaryTexture() {
         this.ClearFlags(DrawObjFlag.UseSecondaryTexture);
+        this.tex2Alpha = 0;
     }
 
     SetMaskMode(enable) {
@@ -92,15 +107,17 @@ class DrawObj {
     }
 
     BufferDataAt(queue, mat3, i) {
+        let now = new Date() / 1000;
+
         const texMat3 = new Mat3();
         const tex2Mat3 = new Mat3();
 
         if (this.patternMode)
             texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        tex2Mat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, 0);
+        tex2Mat3.TranslateXY(Math.sin(now) * 10 / this.texSize.x, 0);
         // texMat3.ScaleXY(4, 4);
-        tex2Mat3.Rotate(queue.spritter.tick / 2);
+        tex2Mat3.Rotate(now * 100);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
 
@@ -117,16 +134,23 @@ class DrawObj {
             tex2Mat3.m[3], tex2Mat3.m[4], tex2Mat3.m[5], 0,
             tex2Mat3.m[6], tex2Mat3.m[7], tex2Mat3.m[8], 0,
 
+            this.tintColor.r, this.tintColor.g, this.tintColor.b, this.tintColor.a, 
+
+            this.thresholdLowerColor.r, this.thresholdLowerColor.g, this.thresholdLowerColor.b, this.thresholdLowerColor.a, 
+            this.thresholdUpperColor.r, this.thresholdUpperColor.g, this.thresholdUpperColor.b, this.thresholdUpperColor.a, 
+
             this.texPos.x, this.texPos.y,
             this.texSize.x, this.texSize.y,
 
             this.tex2Pos.x, this.tex2Pos.y,
             this.tex2Size.x, this.tex2Size.y,
 
+            this.tex2Alpha,
+
             this.atlasDimension,
             this.iAtlasDimension,
         ], off);
-        queue.storageStage_Uint32[off + 46] = this.flags;
+        queue.storageStage_Uint32[off + 59] = this.flags;
 
         queue.drawObjDataCount++;
     }
@@ -144,26 +168,13 @@ class DrawObjs {
         };
 
         BufferVerticesAt(queue, mat3, drawObjIndex) {
-            let halfW = this.w;
-            let halfH = this.h;
-
-            let topLeftUv = new Vec2(-0.5, -0.5);
-            let topRightUv = new Vec2(0.5, -0.5);
-            let botLeftUv = new Vec2(-0.5, 0.5);
-            let botRightUv = new Vec2(0.5, 0.5);
-
-            let topLeft = new Vec2(-halfW, halfH);
-            let topRight = new Vec2(halfW, halfH);
-            let botLeft = new Vec2(-halfW, -halfH);
-            let botRight = new Vec2(halfW, -halfH);
-
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, 1, 0], off);
-            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, 1, 0], off + 7);
-            queue.verticesStage.set([topLeft.x, topLeft.y,       topLeftUv.x, topLeftUv.y, 1, 0], off + 14);
-            queue.verticesStage.set([botLeft.x, botLeft.y,       botLeftUv.x, botLeftUv.y, 1, 0], off + 21);
-            queue.verticesStage.set([topRight.x, topRight.y,     topRightUv.x, topRightUv.y, 1, 0], off + 28);
-            queue.verticesStage.set([botRight.x, botRight.y,     botRightUv.x, botRightUv.y, 1, 0], off + 35);
+            queue.verticesStage.set([this.w, this.h,        0.5, -0.5, 1, 0], off); // tr
+            queue.verticesStage.set([-this.w, -this.h,        -0.5, 0.5, 1, 0], off + 7); // bl
+            queue.verticesStage.set([-this.w, this.h,        -0.5, -0.5, 1, 0], off + 14); // tl
+            queue.verticesStage.set([-this.w, -this.h,      -0.5, 0.5, 1, 0], off + 21); // bl
+            queue.verticesStage.set([this.w, this.h,    0.5, -0.5, 1, 0], off + 28); // tr
+            queue.verticesStage.set([this.w, -this.h,    0.5, 0.5, 1, 0], off + 35); // br
             queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 13);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 20);

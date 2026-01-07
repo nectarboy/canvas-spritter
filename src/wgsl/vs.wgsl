@@ -2,15 +2,15 @@
 
 struct VertexOutput {
     @builtin(position) position : vec4f,
-    @location(0) rawUv : vec2f,
-    @location(1) texUv: vec3f,
-    @location(2) tex2Uv: vec3f,
-    @location(3) fragColor : vec4f,
-    @location(4) @interpolate(flat) texUv0 : vec2f,
-    @location(5) @interpolate(flat) texUv1 : vec2f,
-    @location(6) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(7) @interpolate(flat) tex2Uv1 : vec2f,
-    @location(8) @interpolate(flat) drawObjIndex : u32
+    @location(0) texUv: vec3f,
+    @location(1) tex2Uv: vec3f,
+    @location(2) @interpolate(flat) flags : u32,
+    @location(3) @interpolate(flat) tex2Alpha : f32,
+    @location(4) @interpolate(flat) tintColor: vec4f,
+    @location(5) @interpolate(flat) texUv0 : vec2f,
+    @location(6) @interpolate(flat) texUv1 : vec2f,
+    @location(7) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(8) @interpolate(flat) tex2Uv1 : vec2f
 }   
 
 @vertex
@@ -33,24 +33,17 @@ fn main(
     out.position = vec4f(transformedPosition.x, transformedPosition.y, 0.0, 1.0);
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
-    out.rawUv = uv.xy;
-
     out.texUv = drawObj.texMat3 * uv;
     out.tex2Uv = drawObj.tex2Mat3 * uv;
 
-    if ((VertexIndex & 1) == 1) {
-        out.fragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-    else {
-        out.fragColor = vec4(1.0, 0.0, 1.0, 1.0);
-    }
+    out.tintColor = drawObj.tintColor;
+    out.tex2Alpha = drawObj.tex2Alpha;
+    out.flags = drawObj.flags;
 
     out.texUv0 = drawObj.texPos / drawObj.atlasDimension;
     out.texUv1 = (drawObj.texPos + drawObj.texSize) / drawObj.atlasDimension;
     out.tex2Uv0 = drawObj.tex2Pos / drawObj.atlasDimension;
     out.tex2Uv1 = (drawObj.tex2Pos + drawObj.tex2Size) / drawObj.atlasDimension;
-
-    out.drawObjIndex = drawObjIndex;
 
     return out;
 }

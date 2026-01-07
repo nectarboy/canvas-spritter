@@ -19,7 +19,7 @@
     <h3>Canvas Spritter</h3>
     <hr>
     <canvas id='canvas' width='480' height='360'></canvas>
-    <p id='status'>Hi!</p>
+    <pre id='status'>Hi!</pre>
 
     <canvas id='binpackcanvas' width='2048' height='2048'></canvas>
 
@@ -30,11 +30,6 @@
     import BinPacker from './src/bin_packer.js';
 
     globalThis.Helpers = Helpers;
-
-    function writeStatus(text)
-    {
-        document.getElementById('status').textContent = text;
-    }
 
     let canvas = document.getElementById('canvas');
     let spritter = null;
@@ -48,7 +43,11 @@
         if (!adapter)
             throw "Couldn't get adapter";
 
-        const device = await adapter.requestDevice();
+        const device = await adapter.requestDevice({
+            requiredFeatures: [
+                ['timestamp-query']
+            ]
+        });
 
         console.log('device success');
 
