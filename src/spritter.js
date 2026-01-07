@@ -86,7 +86,7 @@ class Spritter {
         });
 
         // performance measuring
-        this.gpuMicroS = 0;
+        this.gpuMicroS = -1;
 
         this.perfQuerySet = device.createQuerySet({
             type: 'timestamp',
@@ -237,7 +237,7 @@ class Spritter {
         this.tick++;
 
         let ms = (performance.now() - start);
-        document.getElementById('status').textContent = 'js ms: ' + ms.toFixed(2) + '\ngpu µs: ' + this.gpuMicroS.toFixed(2);
+        document.getElementById('status').textContent = 'js ms: ' + ms.toFixed(2) + (this.gpuMicroS === -1 ? '' : '\ngpu µs: ' + this.gpuMicroS.toFixed(2));
     }
 }
 
