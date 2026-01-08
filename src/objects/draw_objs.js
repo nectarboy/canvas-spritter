@@ -14,7 +14,7 @@ const DrawObjFlag = {
     PatternMode: 0x200,                 // Use texture's real size instead of DrawObj size
     FlipTextureX: 0x400,
     FlipTextureY: 0x800,
-    FlipSecondaryTextureX: 0x100,
+    FlipSecondaryTextureX: 0x1000,
     FlipSecondaryTextureY: 0x2000
 };
 
@@ -137,9 +137,11 @@ class DrawObj {
         if (this.patternMode)
             texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
+        // tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
         // texMat3.ScaleXY(4, 4);
-        tex2Mat3.Rotate(now * 100);
+        // tex2Mat3.Rotate(now * 100);
+
+        texMat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, Math.sin(now));
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([
@@ -300,7 +302,6 @@ class DrawObjs {
 
         UpdatePerspectiveWeights() {
             let intersection = IntersectionOfLines(this.topLeft, this.botRight, this.topRight, this.botLeft);
-            
             if (intersection === null) {
                 this.tlQ = this.trQ = this.brQ = this.blQ = 1;
             }

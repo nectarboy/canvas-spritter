@@ -38,7 +38,11 @@ fn main(
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
     out.texUv = drawObj.texMat3 * uv;
+    out.texUv.x = select(out.texUv.x, -out.texUv.x, (drawObj.flags & FlipTextureX) != 0);
+    out.texUv.y = select(out.texUv.y, -out.texUv.y, (drawObj.flags & FlipTextureY) != 0);
     out.tex2Uv = drawObj.tex2Mat3 * uv;
+    out.tex2Uv.x = select(out.tex2Uv.x, -out.tex2Uv.x, (drawObj.flags & FlipSecondaryTextureX) != 0);
+    out.tex2Uv.y = select(out.tex2Uv.y, -out.tex2Uv.y, (drawObj.flags & FlipSecondaryTextureY) != 0);
 
     out.tintColor = drawObj.tintColor;
     out.tex2Alpha = drawObj.tex2Alpha;

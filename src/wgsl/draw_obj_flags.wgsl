@@ -11,5 +11,5 @@ const DisplacementTextureMode : DrawObjFlag = 0x100;
 const PatternMode : DrawObjFlag = 0x200;
 const FlipTextureX : DrawObjFlag = 0x400;
 const FlipTextureY : DrawObjFlag = 0x800;
-const FlipSecondaryTextureX : DrawObjFlag = 0x100;
+const FlipSecondaryTextureX : DrawObjFlag = 0x1000;
 const FlipSecondaryTextureY : DrawObjFlag = 0x2000;

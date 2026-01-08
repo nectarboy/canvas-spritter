@@ -195,6 +195,8 @@ class Spritter {
 
     doStuff() {        
         let now = new Date() / 1600;
+        let flip = (this.tick % 60) >= 30;
+        let flop = (this.tick % 120) >= 60;
 
         let backgroundSprite = new DrawObjs.Sprite(480, 360);
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
@@ -206,8 +208,8 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
-        testSprite.tex2Alpha = 1;
+        testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        // testSprite.tex2Alpha = 1;
         // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
         // testSprite.thresholdLowerColor.a = 0.95;
         testSprite.SetMaskMode(true);
@@ -223,6 +225,13 @@ class Spritter {
         testPerspective.botRight.SetXY(100, -100);
         testPerspective.botLeft.SetXY(-100, -100);
         testPerspective.UpdatePerspectiveWeights();
+        testPerspective.SetTextureAtlas(this.textureManager.textureAtlas);
+        testPerspective.SetTexture('bunny');
+        testPerspective.SetSecondaryTexture('mask2');
+        testPerspective.SetDisplacementMode(true);
+        testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        testPerspective.mat3.ScaleXY(2, 2);
+        // this.drawObjQueue.BufferDrawobj(testPerspective, 2);
 
         let testPoly = new DrawObjs.Poly([
             new Vec2(-2, 0),
@@ -241,10 +250,10 @@ class Spritter {
         testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testPoly, 5000);
+        this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 0; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
