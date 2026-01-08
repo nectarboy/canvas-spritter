@@ -23,7 +23,7 @@ fn main(
     @location(2) drawObjIndex : u32
 ) -> VertexOutput {
 
-    const MAX_PRIORITY = 1000000f;
+    const MAX_ORDERING = 1000000f;
 
     const screenW = 480f;
     const screenH = 360f;
@@ -34,7 +34,7 @@ fn main(
     var transformedPosition : vec3f = drawObj.mat3 * vec3f(position, 1);
     transformedPosition.x /= screenW;
     transformedPosition.y /= screenH;
-    out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.priority + 1) / MAX_PRIORITY, 1.0);
+    out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.ordering + 1) / MAX_ORDERING, 1.0);
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
     out.texUv = drawObj.texMat3 * uv;

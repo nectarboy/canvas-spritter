@@ -54,10 +54,12 @@
         spritter = new Spritter(canvas, device);
         await spritter.init();
 
-        setInterval(() => {
-            spritter.draw();   
-        }, 1000 / 60);
+        async function loop() {
+            await spritter.draw();
+            requestAnimationFrame(loop);
+        }
 
+        loop();
     }
 
     main();

@@ -107,7 +107,7 @@ class DrawObj {
             this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
     }
 
-    BufferDataAt(queue, holder, i) {
+    BufferDataAt(queue, holder, ordering) {
         let now = new Date() / 1000;
 
         const mat3 = holder.mat3;
@@ -151,7 +151,7 @@ class DrawObj {
             this.atlasDimension,
             this.iAtlasDimension,
 
-            holder.priority
+            ordering
         ], off);
         queue.storageStage_Uint32[off + 60] = this.flags;
 

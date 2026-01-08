@@ -133,7 +133,7 @@ class Spritter {
             depthStencil: {
                 format: 'depth24plus',
                 depthWriteEnabled: false,
-                depthCompare: 'greater-equal'
+                depthCompare: 'greater'
             },
             primitive: {
                 topology: 'triangle-list',
@@ -196,7 +196,7 @@ class Spritter {
         let now = new Date() / 1600;
 
         let backgroundSprite = new DrawObjs.Sprite(480, 360);
-        backgroundSprite.transparent = true;
+        // backgroundSprite.transparent = true;
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
@@ -234,16 +234,17 @@ class Spritter {
             new Vec2(1, -1),
             new Vec2(-1, -1)
         ], 100);
+        testPoly.transparent = true;
         // testPoly.TestDraw();
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');
         testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
-        // this.drawObjQueue.BufferDrawobj(testPoly, 0);
+        this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 0; i++) {
+        for (let i = 0; i < 1000; i++) {
             // testSprite.mat3.Rotate(1);
             testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, i);
@@ -281,8 +282,6 @@ class Spritter {
                 endOfPassWriteIndex: 1
             }
         };
-
-        console.log(this.drawObjQueue.opaqueVertices, this.drawObjQueue.transparentVertices);
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
