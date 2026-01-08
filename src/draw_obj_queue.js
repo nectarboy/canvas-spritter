@@ -111,7 +111,9 @@ class DrawObjQueue {
 
         for (let i = 0; i < this.holders.length; i++) {
             this.holders[i].orderingThisFrame = i;
-            (this.holders[i].drawObj.transparent ? transparents : opaques).push(this.holders[i]);
+
+            let isOpaque = (!this.holders[i].drawObj.transparent) | (this.holders[i].drawObj.IsFullyOpaque());
+            (isOpaque ? opaques : transparents).push(this.holders[i]);
         }
 
         // Opaque (Front to back)

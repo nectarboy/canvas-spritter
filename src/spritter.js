@@ -3,6 +3,7 @@ import TextureManager from './texture_manager.js';
 import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
 import { DrawObjFlag, DrawObjs } from './objects/draw_objs.js';
+import GetSpritterImage from './spritter_image.js';
 
 async function fetchShader(path, dependencies) {
     let wgsl = await (await fetch(path, { cache: 'no-store' })).text();
@@ -160,14 +161,14 @@ class Spritter {
 
     async init() {
         let images = [
-            await this.GetImage('src/assets/test.png', 'test'),
-            await this.GetImage('src/assets/test2.png', 'test2'),
-            await this.GetImage('src/assets/terrain.png', 'terrain'),
-            await this.GetImage('src/assets/bunny.png', 'bunny'),
-            await this.GetImage('src/assets/atlas_test.png', 'atlas_test'),
-            await this.GetImage('src/assets/mask.png', 'mask'),
-            await this.GetImage('src/assets/mask2.png', 'mask2'),
-            await this.GetImage('src/assets/background.png', 'background')
+            await GetSpritterImage('src/assets/test.png', 'test'),
+            await GetSpritterImage('src/assets/test2.png', 'test2'),
+            await GetSpritterImage('src/assets/terrain.png', 'terrain'),
+            await GetSpritterImage('src/assets/bunny.png', 'bunny'),
+            await GetSpritterImage('src/assets/atlas_test.png', 'atlas_test'),
+            await GetSpritterImage('src/assets/mask.png', 'mask'),
+            await GetSpritterImage('src/assets/mask2.png', 'mask2'),
+            await GetSpritterImage('src/assets/background.png', 'background')
         ];
 
         console.log('images:', images);
@@ -202,19 +203,20 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
         let testSprite = new DrawObjs.Sprite(128, 128);
-        // testSprite.transparent = true;
+        // testSprite.transparent = false;
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
+        testSprite.SetFlags(DrawObjFlag.FilterTexture | DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha = 1;
         // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
         // testSprite.thresholdLowerColor.a = 0.95;
-        testSprite.SetMaskMode(true);
+        // testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
+        console.log(testSprite.IsFullyOpaque());
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         let testPerspective = new DrawObjs.PerspectiveSprite();
@@ -245,8 +247,11 @@ class Spritter {
 
         // Stress tester
         for (let i = 0; i < 1000; i++) {
+            // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // this.drawObjQueue.BufferDrawobj(testPoly, i);
+
             // testSprite.mat3.Rotate(1);
-            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, i);
         }
     }
@@ -292,7 +297,6 @@ class Spritter {
         passEncoder.setPipeline(this.transparentPipeline);
         passEncoder.draw(this.drawObjQueue.transparentVertices, 1, this.drawObjQueue.opaqueVertices);
         passEncoder.end();
-
 
         commandEncoder.resolveQuerySet(this.perfQuerySet, 0, this.perfQuerySet.count, this.perfResolveBuffer, 0);
         if (this.perfResultBuffer.mapState === 'unmapped') {

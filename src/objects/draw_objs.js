@@ -22,7 +22,7 @@ class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
         this.flags = 0;
-        this.transparent = false;
+        this.transparent = true;
 
         this.atlas = null;
         this.atlasDimension = -1;
@@ -30,8 +30,10 @@ class DrawObj {
 
         this.texPos = new Vec2(0, 0);
         this.texSize = new Vec2(0, 0);
+        this.texIsFullyOpaque = false;
         this.tex2Pos = new Vec2(0, 0);
         this.tex2Size = new Vec2(0, 0);
+        this.tex2IsFullyOpaque = false;
 
         this.tintColor = { r: 1, g: 1, b: 1, a: 1 };
 
@@ -46,6 +48,23 @@ class DrawObj {
 
         this.patternMode = false;
     };
+
+    IsFullyOpaque() {
+        if ((this.tintColor.a < 1) | (this.thresholdLowerColor.a < 1)) {
+            return false;
+        }
+
+        const textureIsFullyOpaque = false;
+        if (((this.flags & DrawObjFlag.UseTexture) !== 0) & (!this.texIsFullyOpaque)) {
+            return false;
+        }
+
+        if ((this.flags & (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) === (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) {
+            return false;
+        }
+
+        return true;
+    }
 
     SetFlags(flags) {
         this.flags |= flags;
@@ -63,24 +82,26 @@ class DrawObj {
     }
 
     SetTexture(texName) {
-        let bounds = this.atlas.GetTextureBounds(texName);
-        if (bounds === null) {
+        let tex = this.atlas.GetTextureInfo(texName);
+        if (tex === null) {
             this.UnsetTexture();
             return;
         }
-        this.texPos.SetXY(bounds.x, bounds.y);
-        this.texSize.SetXY(bounds.w, bounds.h);
+        this.texPos.SetXY(tex.bounds.x, tex.bounds.y);
+        this.texSize.SetXY(tex.bounds.w, tex.bounds.h);
+        this.texIsFullyOpaque = tex.fullyOpaque;
         this.SetFlags(DrawObjFlag.UseTexture);
     }
 
     SetSecondaryTexture(texName) {
-        let bounds = this.atlas.GetTextureBounds(texName);
-        if (bounds === null) {
+        let tex = this.atlas.GetTextureInfo(texName);
+        if (tex === null) {
             this.UnsetSecondaryTexture();
             return;
         }
-        this.tex2Pos.SetXY(bounds.x, bounds.y);
-        this.tex2Size.SetXY(bounds.w, bounds.h);
+        this.tex2Pos.SetXY(tex.bounds.x, tex.bounds.y);
+        this.tex2Size.SetXY(tex.bounds.w, tex.bounds.h);
+        this.tex2IsFullyOpaque = tex.fullyOpaque;
         this.SetFlags(DrawObjFlag.UseSecondaryTexture);
     }
 
@@ -117,7 +138,7 @@ class DrawObj {
         if (this.patternMode)
             texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        tex2Mat3.TranslateXY(Math.sin(now) * 10 / this.texSize.x, 0);
+        tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
         // texMat3.ScaleXY(4, 4);
         tex2Mat3.Rotate(now * 100);
 

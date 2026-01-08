@@ -23,7 +23,7 @@ class TextureAtlas {
         });
 
         this.boxes = [];
-        this.boxMap = new Map();
+        this.texInfo = new Map();
     };
 
     async LoadImageTextures(images) {
@@ -32,7 +32,7 @@ class TextureAtlas {
         const PAD_TEXTURES = true;
 
         this.boxes.length = 0;
-        this.boxMap.clear();
+        this.texInfo.clear();
         for (let i = 0; i < images.length; i++) {
             let image = images[i];
             if (image.img.width + PAD_TEXTURES*2 > this.dimension || image.img.height + PAD_TEXTURES*2 > this.dimension)
@@ -45,7 +45,6 @@ class TextureAtlas {
                 h: image.img.height + PAD_TEXTURES*2
             };
             this.boxes.push(box);
-            this.boxMap.set(image.name, box);
         }
 
 
@@ -84,6 +83,11 @@ class TextureAtlas {
                 ctx.drawImage(image.img, 0,0,1,box.h, box.x - 1, box.y, 1, box.h);
             }
             ctx.drawImage(image.img, box.x, box.y, box.w, box.h);
+
+            this.texInfo.set(image.name, {
+                bounds: box,
+                fullyOpaque: image.fullyOpaque
+            });
         }
 
         this.device.queue.copyExternalImageToTexture(
@@ -98,10 +102,10 @@ class TextureAtlas {
         console.timeEnd('LoadImageTextures');
     }
 
-    GetTextureBounds(name) {
-        if (!this.boxMap.has(name))
+    GetTextureInfo(name) {
+        if (!this.texInfo.has(name))
             return null;
-        return this.boxMap.get(name);
+        return this.texInfo.get(name);
     }
 }
 
