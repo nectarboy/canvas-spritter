@@ -54,7 +54,6 @@ class DrawObj {
             return false;
         }
 
-        const textureIsFullyOpaque = false;
         if (((this.flags & DrawObjFlag.UseTexture) !== 0) & (!this.texIsFullyOpaque)) {
             return false;
         }

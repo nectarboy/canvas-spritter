@@ -1,10 +1,10 @@
-async function GetSpritterImage(url, name) {
+async function GetSpritterImage(url, name, fullyOpaque = false) {
     return new Promise((resolve, reject) => {
         let img = new Image();
         img.src = url;
 
         img.onload = () => {
-            let spritterImage = new SpritterImage(img, name);
+            let spritterImage = new SpritterImage(img, name, fullyOpaque);
             resolve(spritterImage);
         }
         img.onerror = (e) => reject(e);
@@ -12,11 +12,13 @@ async function GetSpritterImage(url, name) {
 }
 
 class SpritterImage {
-    constructor(img, name) {
+    constructor(img, name, fullyOpaque) {
         this.name = name;
         this.img = img;
-        this.fullyOpaque = false;
-        this.CheckIfFullyOpaque();
+        this.fullyOpaque = fullyOpaque;
+        if (!fullyOpaque) {
+            this.CheckIfFullyOpaque();
+        }
     };
 
     CheckIfFullyOpaque() {
@@ -29,8 +31,8 @@ class SpritterImage {
         this.fullyOpaque = true;
 
         let imageData = ctx.getImageData(0, 0, this.img.width, this.img.height);
-        for (let i = 0; i < imageData.data.length; i += 4) {
-            if (imageData.data[i + 3] < 0xff) {
+        for (let i = 3; i < imageData.data.length; i += 4) {
+            if (imageData.data[i] < 0xff) {
                 this.fullyOpaque = false;
                 break;
             }

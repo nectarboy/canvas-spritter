@@ -50,8 +50,8 @@ class Spritter {
             bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.storageBindGroupLayout]
         });
 
-        this.pipeline = device.createRenderPipeline({
-            label: 'spritter pipeline',
+        this.opaquePipeline = device.createRenderPipeline({
+            label: 'opaque pipeline',
             layout: this.pipelineLayout,
             vertex: {
                 module: device.createShaderModule({
@@ -70,18 +70,18 @@ class Spritter {
                 targets: [
                     {
                         format: this.canvasFormat,
-                        blend: {
-                            color: {
-                                operation: 'add',
-                                srcFactor: 'src-alpha',
-                                dstFactor: 'one-minus-src-alpha'
-                            },
-                            alpha: {
-                                operation: 'add',
-                                srcFactor: 'src-alpha',
-                                dstFactor: 'one-minus-src-alpha'
-                            }
-                        }
+                        // blend: {
+                        //     color: {
+                        //         operation: 'add',
+                        //         srcFactor: 'src-alpha',
+                        //         dstFactor: 'one-minus-src-alpha'
+                        //     },
+                        //     alpha: {
+                        //         operation: 'add',
+                        //         srcFactor: 'src-alpha',
+                        //         dstFactor: 'one-minus-src-alpha'
+                        //     }
+                        // }
                     }
                 ]
             },
@@ -97,7 +97,7 @@ class Spritter {
         });
 
         this.transparentPipeline = device.createRenderPipeline({
-            label: 'spritter pipeline',
+            label: 'transparent pipeline',
             layout: this.pipelineLayout,
             vertex: {
                 module: device.createShaderModule({
@@ -168,7 +168,7 @@ class Spritter {
             await GetSpritterImage('src/assets/atlas_test.png', 'atlas_test'),
             await GetSpritterImage('src/assets/mask.png', 'mask'),
             await GetSpritterImage('src/assets/mask2.png', 'mask2'),
-            await GetSpritterImage('src/assets/background.png', 'background')
+            await GetSpritterImage('src/assets/background.png', 'background', true)
         ];
 
         console.log('images:', images);
@@ -197,7 +197,6 @@ class Spritter {
         let now = new Date() / 1600;
 
         let backgroundSprite = new DrawObjs.Sprite(480, 360);
-        // backgroundSprite.transparent = true;
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
@@ -207,16 +206,15 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetFlags(DrawObjFlag.FilterTexture | DrawObjFlag.FilterSecondaryTexture);
+        testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha = 1;
         // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
         // testSprite.thresholdLowerColor.a = 0.95;
-        // testSprite.SetMaskMode(true);
+        testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
-        console.log(testSprite.IsFullyOpaque());
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         let testPerspective = new DrawObjs.PerspectiveSprite();
@@ -236,14 +234,14 @@ class Spritter {
             new Vec2(1, -1),
             new Vec2(-1, -1)
         ], 100);
-        testPoly.transparent = true;
+        testPoly.transparent = false;
         // testPoly.TestDraw();
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');
         testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testPoly, 0);
+        this.drawObjQueue.BufferDrawobj(testPoly, 5000);
 
         // Stress tester
         for (let i = 0; i < 1000; i++) {
@@ -251,7 +249,7 @@ class Spritter {
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
             // testSprite.mat3.Rotate(1);
-            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, i);
         }
     }
@@ -289,10 +287,10 @@ class Spritter {
         };
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
         passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
+        passEncoder.setPipeline(this.opaquePipeline);
         passEncoder.draw(this.drawObjQueue.opaqueVertices);
         passEncoder.setPipeline(this.transparentPipeline);
         passEncoder.draw(this.drawObjQueue.transparentVertices, 1, this.drawObjQueue.opaqueVertices);
