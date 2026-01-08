@@ -300,15 +300,20 @@ class DrawObjs {
 
         UpdatePerspectiveWeights() {
             let intersection = IntersectionOfLines(this.topLeft, this.botRight, this.topRight, this.botLeft);
-            let topLeftD = this.topLeft.Dist(intersection);
-            let topRightD = this.topRight.Dist(intersection);
-            let botRightD = this.botRight.Dist(intersection);
-            let botLeftD = this.botLeft.Dist(intersection);
-
-            this.tlQ = topLeftD / botRightD + 1;
-            this.trQ = topRightD / botLeftD + 1; 
-            this.brQ = botRightD / topLeftD + 1;
-            this.blQ = botLeftD / topRightD + 1;
+            
+            if (intersection === null) {
+                this.tlQ = this.trQ = this.brQ = this.blQ = 1;
+            }
+            else {
+                let topLeftD = this.topLeft.Dist(intersection);
+                let topRightD = this.topRight.Dist(intersection);
+                let botRightD = this.botRight.Dist(intersection);
+                let botLeftD = this.botLeft.Dist(intersection);
+                this.tlQ = topLeftD / botRightD + 1;
+                this.trQ = topRightD / botLeftD + 1; 
+                this.brQ = botRightD / topLeftD + 1;
+                this.blQ = botLeftD / topRightD + 1;
+            }
         }
 
         BufferVerticesAt(queue, holder, drawObjIndex) {
@@ -341,8 +346,8 @@ function IntersectionOfLines(a1, a2, b1, b2) {
     let bC = b1.y * b2.x - b1.x * b2.y;
 
     let denom = aA * bB - bA * aB;
-    // if (Math.abs(denom) < 1e-12)
-    //     return null;
+    if (Math.abs(denom) < 1e-12)
+        return null;
 
     return new Vec2(
         (aB * bC - bB * aC) / denom,
