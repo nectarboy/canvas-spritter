@@ -137,11 +137,11 @@ class DrawObj {
         const tex2Mat3 = new Mat3();
 
         tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
-        // texMat3.ScaleXY(4, 4);
+        // tex2Mat3.ScaleXY(4, 4);
         tex2Mat3.Rotate(now * 100);
 
-        texMat3.TranslateXY(queue.spritter.tick, 0);
-        // texMat3.ScaleXY(4, 4);
+        // texMat3.TranslateXY(queue.spritter.tick, 0);
+        // texMat3.ScaleXY(5, 5);
         // texMat3.Rotate(now * 100);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;

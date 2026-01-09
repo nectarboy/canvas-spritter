@@ -38,7 +38,7 @@ fn main(
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
     if ((drawObj.flags & PatternMode) != 0) {
-        out.texUv = drawObj.texMat3 * vec3f(position.x * uv.z, -position.y * uv.z, uv.z);
+        out.texUv = drawObj.texMat3 * vec3f(position.x, -position.y, uv.z);
         out.texUv.x /= 2 * drawObj.texSize.x;
         out.texUv.y /= 2 * drawObj.texSize.y;
     }

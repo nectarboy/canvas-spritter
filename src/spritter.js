@@ -208,7 +208,8 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        testSprite.SetFlags(DrawObjFlag.PatternMode*0 | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        // testSprite.ClearFlags(DrawObjFlag.RepeatTexture);
         // testSprite.tex2Alpha = 1;
         // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
         // testSprite.thresholdLowerColor.a = 0.95;
@@ -217,7 +218,7 @@ class Spritter {
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
-        // this.drawObjQueue.BufferDrawobj(testSprite, 1);
+        this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         let testPerspective = new DrawObjs.PerspectiveSprite();
         testPerspective.topLeft.SetXY(-100 * .5, 100 * .5);
@@ -233,6 +234,7 @@ class Spritter {
         testPerspective.tex2Alpha = 1;
         testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.RepeatSecondaryTexture * flop) | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
         testPerspective.ClearFlags(DrawObjFlag.RepeatTexture);
+        // testPerspective.SetFlags(DrawObjFlag.PatternMode); // will not work correctly. to be honest, what would we even define this behavior as?
         testPerspective.mat3.ScaleXY(2, 2);
         // this.drawObjQueue.BufferDrawobj(testPerspective, 2);
 
