@@ -3,6 +3,7 @@ import TextureManager from './texture_manager.js';
 import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
 import { DrawObjFlag, DrawObjs } from './objects/draw_objs.js';
+import GetSpritterImage from './spritter_image.js';
 
 async function fetchShader(path, dependencies) {
     let wgsl = await (await fetch(path, { cache: 'no-store' })).text();
@@ -21,6 +22,8 @@ class Spritter {
     constructor(canvas, device) {
         globalThis.spritter = this;
 
+        this.tick = 0;
+
         this.canvas = canvas;
         this.ctx = canvas.getContext('webgpu');
         this.canvasFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -36,16 +39,65 @@ class Spritter {
         this.textureManager = new TextureManager(this);
         this.drawObjQueue = new DrawObjQueue(this);
 
-        this.tick = 0;
-        this.aspectRatio = this.canvas.width / this.canvas.height;
+        this.depthStencilTexture = this.device.createTexture({
+            size: [canvas.width, canvas.height],
+            format: "depth24plus",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
 
         this.pipelineLayout = device.createPipelineLayout({
             label: 'pipeline layout',
             bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.storageBindGroupLayout]
         });
 
-        this.pipeline = device.createRenderPipeline({
-            label: 'spritter pipeline',
+        this.opaquePipeline = device.createRenderPipeline({
+            label: 'opaque pipeline',
+            layout: this.pipelineLayout,
+            vertex: {
+                module: device.createShaderModule({
+                    label: 'vs',
+                    code: vsWgsl
+                }),
+                buffers: [
+                    this.drawObjQueue.vertexBufferDescriptor
+                ]
+            },
+            fragment: {
+                module: device.createShaderModule({
+                    label: 'fs',
+                    code: fsWgsl
+                }),
+                targets: [
+                    {
+                        format: this.canvasFormat,
+                        // blend: {
+                        //     color: {
+                        //         operation: 'add',
+                        //         srcFactor: 'src-alpha',
+                        //         dstFactor: 'one-minus-src-alpha'
+                        //     },
+                        //     alpha: {
+                        //         operation: 'add',
+                        //         srcFactor: 'src-alpha',
+                        //         dstFactor: 'one-minus-src-alpha'
+                        //     }
+                        // }
+                    }
+                ]
+            },
+            depthStencil: {
+                format: 'depth24plus',
+                depthWriteEnabled: true,
+                depthCompare: 'greater'
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'cw'
+            }
+        });
+
+        this.transparentPipeline = device.createRenderPipeline({
+            label: 'transparent pipeline',
             layout: this.pipelineLayout,
             vertex: {
                 module: device.createShaderModule({
@@ -79,6 +131,11 @@ class Spritter {
                     }
                 ]
             },
+            depthStencil: {
+                format: 'depth24plus',
+                depthWriteEnabled: false,
+                depthCompare: 'greater'
+            },
             primitive: {
                 topology: 'triangle-list',
                 frontFace: 'cw'
@@ -104,14 +161,14 @@ class Spritter {
 
     async init() {
         let images = [
-            await this.GetImage('src/assets/test.png', 'test'),
-            await this.GetImage('src/assets/test2.png', 'test2'),
-            await this.GetImage('src/assets/terrain.png', 'terrain'),
-            await this.GetImage('src/assets/bunny.png', 'bunny'),
-            await this.GetImage('src/assets/atlas_test.png', 'atlas_test'),
-            await this.GetImage('src/assets/mask.png', 'mask'),
-            await this.GetImage('src/assets/mask2.png', 'mask2'),
-            await this.GetImage('src/assets/background.png', 'background')
+            await GetSpritterImage('src/assets/test.png', 'test'),
+            await GetSpritterImage('src/assets/test2.png', 'test2'),
+            await GetSpritterImage('src/assets/terrain.png', 'terrain'),
+            await GetSpritterImage('src/assets/bunny.png', 'bunny'),
+            await GetSpritterImage('src/assets/atlas_test.png', 'atlas_test'),
+            await GetSpritterImage('src/assets/mask.png', 'mask'),
+            await GetSpritterImage('src/assets/mask2.png', 'mask2'),
+            await GetSpritterImage('src/assets/background.png', 'background', true)
         ];
 
         console.log('images:', images);
@@ -138,20 +195,25 @@ class Spritter {
 
     doStuff() {        
         let now = new Date() / 1600;
+        let flip = (this.tick % 60) >= 30;
+        let flop = (this.tick % 120) >= 60;
 
         let backgroundSprite = new DrawObjs.Sprite(480, 360);
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
-        let testSprite = new DrawObjs.Sprite(32, 32);
+        let testSprite = new DrawObjs.Sprite(128, 128);
+        // testSprite.transparent = false;
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetFlags(DrawObjFlag.FilterSecondaryTexture);
-        testSprite.tex2Alpha = 1;
-        testSprite.thresholdLowerColor.a = 0.95;
-        testSprite.SetMaskMode(true);
+        testSprite.SetFlags(DrawObjFlag.PatternMode*0 | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        // testSprite.ClearFlags(DrawObjFlag.RepeatTexture);
+        // testSprite.tex2Alpha = 1;
+        // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
+        // testSprite.thresholdLowerColor.a = 0.95;
+        // testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
@@ -164,6 +226,17 @@ class Spritter {
         testPerspective.botRight.SetXY(100, -100);
         testPerspective.botLeft.SetXY(-100, -100);
         testPerspective.UpdatePerspectiveWeights();
+        testPerspective.transparent = false;
+        testPerspective.SetTextureAtlas(this.textureManager.textureAtlas);
+        testPerspective.SetTexture('bunny');
+        testPerspective.SetSecondaryTexture('mask2');
+        // testPerspective.SetDisplacementMode(true);
+        testPerspective.tex2Alpha = 1;
+        testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.RepeatSecondaryTexture * flop) | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        testPerspective.ClearFlags(DrawObjFlag.RepeatTexture);
+        // testPerspective.SetFlags(DrawObjFlag.PatternMode); // will not work correctly. to be honest, what would we even define this behavior as?
+        testPerspective.mat3.ScaleXY(2, 2);
+        // this.drawObjQueue.BufferDrawobj(testPerspective, 2);
 
         let testPoly = new DrawObjs.Poly([
             new Vec2(-2, 0),
@@ -175,19 +248,23 @@ class Spritter {
             new Vec2(1, -1),
             new Vec2(-1, -1)
         ], 100);
+        // testPoly.transparent = false;
         // testPoly.TestDraw();
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');
         testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
         testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
-        // this.drawObjQueue.BufferDrawobj(testPoly, 0);
+        this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
-        for (let i = 0; i < 5000; i++) {
+        for (let i = 0; i < 0; i++) {
+            // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // this.drawObjQueue.BufferDrawobj(testPoly, i);
+
             // testSprite.mat3.Rotate(1);
             testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(testSprite, 0);
+            this.drawObjQueue.BufferDrawobj(testSprite, i);
         }
     }
 
@@ -209,6 +286,13 @@ class Spritter {
                     storeOp: 'store'
                 }
             ],
+            depthStencilAttachment: {
+                view: this.depthStencilTexture.createView(),
+                depthLoadOp: 'clear',
+                depthClearValue: 0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store'
+            },
             timestampWrites: {
                 querySet: this.perfQuerySet,
                 beginningOfPassWriteIndex: 0,
@@ -217,11 +301,13 @@ class Spritter {
         };
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setPipeline(this.pipeline);
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
         passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
-        passEncoder.draw(this.drawObjQueue.verticesCount);
+        passEncoder.setPipeline(this.opaquePipeline);
+        passEncoder.draw(this.drawObjQueue.opaqueVertices);
+        passEncoder.setPipeline(this.transparentPipeline);
+        passEncoder.draw(this.drawObjQueue.transparentVertices, 1, this.drawObjQueue.opaqueVertices);
         passEncoder.end();
 
         commandEncoder.resolveQuerySet(this.perfQuerySet, 0, this.perfQuerySet.count, this.perfResolveBuffer, 0);

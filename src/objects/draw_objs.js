@@ -14,14 +14,15 @@ const DrawObjFlag = {
     PatternMode: 0x200,                 // Use texture's real size instead of DrawObj size
     FlipTextureX: 0x400,
     FlipTextureY: 0x800,
-    FlipSecondaryTextureX: 0x100,
+    FlipSecondaryTextureX: 0x1000,
     FlipSecondaryTextureY: 0x2000
 };
 
 class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
-        this.flags = 0;
+        this.flags = DrawObjFlag.RepeatTexture;
+        this.transparent = true;
 
         this.atlas = null;
         this.atlasDimension = -1;
@@ -29,8 +30,10 @@ class DrawObj {
 
         this.texPos = new Vec2(0, 0);
         this.texSize = new Vec2(0, 0);
+        this.texIsFullyOpaque = false;
         this.tex2Pos = new Vec2(0, 0);
         this.tex2Size = new Vec2(0, 0);
+        this.tex2IsFullyOpaque = false;
 
         this.tintColor = { r: 1, g: 1, b: 1, a: 1 };
 
@@ -42,9 +45,27 @@ class DrawObj {
         this.tex2Alpha = 0;
 
         this.posOffset = new Vec2(0, 0);
-
-        this.patternMode = false;
     };
+
+    IsFullyOpaque() {
+        if ((this.tintColor.a < 1) | (this.thresholdLowerColor.a < 1)) {
+            return false;
+        }   
+
+        if ((this.flags & DrawObjFlag.RepeatTexture) === 0) {
+            return false;
+        }
+
+        if (((this.flags & DrawObjFlag.UseTexture) !== 0) & (!this.texIsFullyOpaque)) {
+            return false;
+        }
+
+        if ((this.flags & (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) === (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) {
+            return false;
+        }
+
+        return true;
+    }
 
     SetFlags(flags) {
         this.flags |= flags;
@@ -62,24 +83,26 @@ class DrawObj {
     }
 
     SetTexture(texName) {
-        let bounds = this.atlas.GetTextureBounds(texName);
-        if (bounds === null) {
+        let tex = this.atlas.GetTextureInfo(texName);
+        if (tex === null) {
             this.UnsetTexture();
             return;
         }
-        this.texPos.SetXY(bounds.x, bounds.y);
-        this.texSize.SetXY(bounds.w, bounds.h);
+        this.texPos.SetXY(tex.bounds.x, tex.bounds.y);
+        this.texSize.SetXY(tex.bounds.w, tex.bounds.h);
+        this.texIsFullyOpaque = tex.fullyOpaque;
         this.SetFlags(DrawObjFlag.UseTexture);
     }
 
     SetSecondaryTexture(texName) {
-        let bounds = this.atlas.GetTextureBounds(texName);
-        if (bounds === null) {
+        let tex = this.atlas.GetTextureInfo(texName);
+        if (tex === null) {
             this.UnsetSecondaryTexture();
             return;
         }
-        this.tex2Pos.SetXY(bounds.x, bounds.y);
-        this.tex2Size.SetXY(bounds.w, bounds.h);
+        this.tex2Pos.SetXY(tex.bounds.x, tex.bounds.y);
+        this.tex2Size.SetXY(tex.bounds.w, tex.bounds.h);
+        this.tex2IsFullyOpaque = tex.fullyOpaque;
         this.SetFlags(DrawObjFlag.UseSecondaryTexture);
     }
 
@@ -106,21 +129,22 @@ class DrawObj {
             this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
     }
 
-    BufferDataAt(queue, mat3, i) {
+    BufferDataAt(queue, holder, ordering) {
         let now = new Date() / 1000;
 
+        const mat3 = holder.mat3;
         const texMat3 = new Mat3();
         const tex2Mat3 = new Mat3();
 
-        if (this.patternMode)
-            texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
-
-        tex2Mat3.TranslateXY(Math.sin(now) * 10 / this.texSize.x, 0);
-        // texMat3.ScaleXY(4, 4);
+        tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
+        // tex2Mat3.ScaleXY(4, 4);
         tex2Mat3.Rotate(now * 100);
 
-        let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
+        // texMat3.TranslateXY(queue.spritter.tick, 0);
+        // texMat3.ScaleXY(5, 5);
+        // texMat3.Rotate(now * 100);
 
+        let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([
             mat3.m[0], mat3.m[1], mat3.m[2], 0,
             mat3.m[3], mat3.m[4], mat3.m[5], 0,
@@ -149,8 +173,10 @@ class DrawObj {
 
             this.atlasDimension,
             this.iAtlasDimension,
+
+            ordering
         ], off);
-        queue.storageStage_Uint32[off + 59] = this.flags;
+        queue.storageStage_Uint32[off + 60] = this.flags;
 
         queue.drawObjDataCount++;
     }
@@ -167,7 +193,7 @@ class DrawObjs {
             this.h = h;
         };
 
-        BufferVerticesAt(queue, mat3, drawObjIndex) {
+        BufferVerticesAt(queue, holder, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             queue.verticesStage.set([this.w, this.h,        0.5, -0.5, 1, 0], off); // tr
             queue.verticesStage.set([-this.w, -this.h,        -0.5, 0.5, 1, 0], off + 7); // bl
@@ -188,12 +214,12 @@ class DrawObjs {
     static Poly = class Poly extends DrawObj {
         constructor(points, pointScale) {
             super();
-            this.patternMode = true;
+            this.SetFlags(DrawObjFlag.PatternMode);
             this.polyVerts = [];
             this.TessellatePoints(points, pointScale);
         }
 
-        BufferVerticesAt(queue, mat3, drawObjIndex) {
+        BufferVerticesAt(queue, holder, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             for (let i = 0; i < this.polyVerts.length; i++, off += 7) {
                 let vert = this.polyVerts[i];
@@ -277,18 +303,22 @@ class DrawObjs {
 
         UpdatePerspectiveWeights() {
             let intersection = IntersectionOfLines(this.topLeft, this.botRight, this.topRight, this.botLeft);
-            let topLeftD = this.topLeft.Dist(intersection);
-            let topRightD = this.topRight.Dist(intersection);
-            let botRightD = this.botRight.Dist(intersection);
-            let botLeftD = this.botLeft.Dist(intersection);
-
-            this.tlQ = topLeftD / botRightD + 1;
-            this.trQ = topRightD / botLeftD + 1; 
-            this.brQ = botRightD / topLeftD + 1;
-            this.blQ = botLeftD / topRightD + 1;
+            if (intersection === null) {
+                this.tlQ = this.trQ = this.brQ = this.blQ = 1;
+            }
+            else {
+                let topLeftD = this.topLeft.Dist(intersection);
+                let topRightD = this.topRight.Dist(intersection);
+                let botRightD = this.botRight.Dist(intersection);
+                let botLeftD = this.botLeft.Dist(intersection);
+                this.tlQ = topLeftD / botRightD + 1;
+                this.trQ = topRightD / botLeftD + 1; 
+                this.brQ = botRightD / topLeftD + 1;
+                this.blQ = botLeftD / topRightD + 1;
+            }
         }
 
-        BufferVerticesAt(queue, mat3, drawObjIndex) {
+        BufferVerticesAt(queue, holder, drawObjIndex) {
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             queue.verticesStage.set([this.topRight.x, this.topRight.y,     0.5 * this.trQ, -0.5 * this.trQ, this.trQ, 0], off);
             queue.verticesStage.set([this.botLeft.x, this.botLeft.y,       -0.5 * this.blQ, 0.5 * this.blQ, this.blQ, 0], off + 7);
@@ -318,8 +348,8 @@ function IntersectionOfLines(a1, a2, b1, b2) {
     let bC = b1.y * b2.x - b1.x * b2.y;
 
     let denom = aA * bB - bA * aB;
-    // if (Math.abs(denom) < 1e-12)
-    //     return null;
+    if (Math.abs(denom) < 1e-12)
+        return null;
 
     return new Vec2(
         (aB * bC - bB * aC) / denom,

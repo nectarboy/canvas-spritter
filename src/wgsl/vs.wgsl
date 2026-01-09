@@ -23,6 +23,8 @@ fn main(
     @location(2) drawObjIndex : u32
 ) -> VertexOutput {
 
+    const MAX_ORDERING = 1000000f;
+
     const screenW = 480f;
     const screenH = 360f;
 
@@ -32,11 +34,23 @@ fn main(
     var transformedPosition : vec3f = drawObj.mat3 * vec3f(position, 1);
     transformedPosition.x /= screenW;
     transformedPosition.y /= screenH;
-    out.position = vec4f(transformedPosition.x, transformedPosition.y, 0.0, 1.0);
+    out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.ordering + 1) / MAX_ORDERING, 1.0);
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
-    out.texUv = drawObj.texMat3 * uv;
+    if ((drawObj.flags & PatternMode) != 0) {
+        out.texUv = drawObj.texMat3 * vec3f(position.x, -position.y, uv.z);
+        out.texUv.x /= 2 * drawObj.texSize.x;
+        out.texUv.y /= 2 * drawObj.texSize.y;
+    }
+    else {
+        out.texUv = drawObj.texMat3 * uv;
+    }
+    out.texUv.x = select(out.texUv.x, -out.texUv.x, (drawObj.flags & FlipTextureX) != 0);
+    out.texUv.y = select(out.texUv.y, -out.texUv.y, (drawObj.flags & FlipTextureY) != 0);
+
     out.tex2Uv = drawObj.tex2Mat3 * uv;
+    out.tex2Uv.x = select(out.tex2Uv.x, -out.tex2Uv.x, (drawObj.flags & FlipSecondaryTextureX) != 0);
+    out.tex2Uv.y = select(out.tex2Uv.y, -out.tex2Uv.y, (drawObj.flags & FlipSecondaryTextureY) != 0);
 
     out.tintColor = drawObj.tintColor;
     out.tex2Alpha = drawObj.tex2Alpha;

@@ -15,5 +15,6 @@ struct DrawObj {
     tex2Alpha : f32,
     atlasDimension : f32,
     iAtlasDimension : f32,
+    ordering : f32,
     flags : u32
 }

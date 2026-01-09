@@ -6,6 +6,7 @@ class DrawObjHolder {
         this.drawObj = drawObj;
         this.mat3 = mat3;
         this.priority = priority;
+        this.orderingThisFrame = 0;
     }
 }
 
@@ -14,11 +15,11 @@ class DrawObjQueue {
     constructor(spritter) {
         this.spritter = spritter;
 
-        // DrawObjHolder array
         this.holders = [];
-        // used to speed up repeated drawobj buffering with the same priority
-        this.lastDrawobjPriority = 0;
-        this.lastDrawobjIndex = 0;
+        this.opaqueN = 0;
+        this.transparentN = 0;
+        this.opaqueVertices = 0;
+        this.transparentVertices = 0;
 
         // DrawObj storage buffer
         this.storageBufferSize = 4096 * 1024;
@@ -29,7 +30,7 @@ class DrawObjQueue {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
         this.drawObjDataCount = 0;
-        this.drawObjDataEntrySize = 60;
+        this.drawObjDataEntrySize = 64;
         this.drawObjDataEntryByteSize = this.drawObjDataEntrySize * this.storageStage.BYTES_PER_ELEMENT;
 
         this.storageBindGroupLayout = spritter.device.createBindGroupLayout({
@@ -91,59 +92,51 @@ class DrawObjQueue {
         };
     }
 
-    GetDrawobjUpperBound(holder) {
-        let low = 0;
-        let high = this.holders.length - 1;
-
-        while (low <= high) {
-            let mid = (low + high) >> 1;
-            if (this.holders[mid].priority > holder.priority)
-                high = mid - 1;
-            else
-                low = mid + 1;
-        }
-
-        return low;
-    }
-
-    BufferDrawobj(drawObj, priority = 0) {
+    BufferDrawobj(drawObj, priority) {
         if (this.count === MAX_DRAWOBJS) {
-            console.warn("Drawobj queue full.");
+            console.warn("Drawobj queue full, cannot buffer drawobj.");
             return;
         }
 
-        let holder = new DrawObjHolder(drawObj, drawObj.mat3.Copy(), priority); // TODO: We can make this a pool
-
-        if (priority === this.lastDrawobjPriority) {
-            this.lastDrawobjIndex++;
-        }
-        else {
-            this.lastDrawobjPriority = priority;
-            this.lastDrawobjIndex = this.GetDrawobjUpperBound(holder);
-        }
-        this.holders.splice(this.lastDrawobjIndex, 0, holder); // Do this or sort once at the end?
-    }
-
-    BufferDrawObjData(data) {
-        this.storageStage.set(data, this.drawObjDataCount * this.drawObjDataEntrySize);
-        this.drawObjDataCount++;
-    }
-
-    BufferDrawObjVertices(vertices, increment) {
-        this.verticesStage.set(vertices, this.verticesCount * this.vertexBufferEntrySize);
-        this.verticesCount += increment;
+        // this.opaqueN += !drawObj.transparent;
+        // this.transparentN += !!drawObj.transparent;
+        this.holders.push(new DrawObjHolder(drawObj, drawObj.mat3.Copy(), priority));
     }
 
     PushDrawObjsToStageBuffers() {
-        // this.verticesCount = 0;
-        const n = this.holders.length;
-        for (let i = 0; i < n; i++) {
-            this.holders[i].drawObj.BufferDataAt(this, this.holders[i].mat3, i);
+        this.holders.sort((a, b) => a.priority - b.priority);
+
+        let opaques = [];
+        let transparents = [];
+
+        for (let i = 0; i < this.holders.length; i++) {
+            this.holders[i].orderingThisFrame = i;
+
+            let isOpaque = (!this.holders[i].drawObj.transparent) | (this.holders[i].drawObj.IsFullyOpaque());
+            (isOpaque ? opaques : transparents).push(this.holders[i]);
         }
-        for (let i = 0; i < n; i++) {
-            this.holders[i].drawObj.BufferVerticesAt(this, this.holders[i].mat3, i);
+
+        // Opaque (Front to back)
+        for (let i = 0; i < opaques.length; i++) {
+            let holder = opaques[opaques.length - i - 1];
+            holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
         }
-        // this.holders.length = 0;
+        for (let i = 0; i < opaques.length; i++) {
+            let holder = opaques[opaques.length - i - 1];
+            holder.drawObj.BufferVerticesAt(this, holder, i);
+        }
+        this.opaqueVertices = this.verticesCount;
+
+        // Transparent (Back to front)
+        for (let i = 0; i < transparents.length; i++) {
+            let holder = transparents[i];
+            holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
+        }
+        for (let i = 0; i < transparents.length; i++) {
+            let holder = transparents[i];
+            holder.drawObj.BufferVerticesAt(this, holder, i + opaques.length);
+        }
+        this.transparentVertices = this.verticesCount - this.opaqueVertices;
     }
 
     UploadStageBuffersToBuffers() {
@@ -165,12 +158,13 @@ class DrawObjQueue {
     }
 
     Flush() {
-        // console.log(this.drawObjDataCount, this.verticesCount);
         this.holders.length = 0;
+        this.opaqueN = 0;
+        this.transparentN = 0;
+        this.opaqueVertices = 0;
+        this.transparentVertices = 0;
         this.verticesCount = 0;
         this.drawObjDataCount = 0;
-        this.lastDrawobjPriority = 0;
-        this.lastDrawobjIndex = 0;
     }
 }
 
