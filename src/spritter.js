@@ -212,7 +212,7 @@ class Spritter {
         // testSprite.tex2Alpha = 1;
         // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
         // testSprite.thresholdLowerColor.a = 0.95;
-        testSprite.SetMaskMode(true);
+        // testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);

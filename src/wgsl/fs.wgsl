@@ -19,7 +19,7 @@ fn main(
     @location(10) @interpolate(flat) thresholdUpperColor : vec4f,
 ) -> @location(0) vec4f {
 
-    var uv = texUv.xy / texUv.z + vec2f(0.5, 0.5);
+    var uv = texUv.xy / texUv.z;
     var pix : vec4f;
 
     //return vec4f(1, f32(flags) / 10000.0, 1, 1);
@@ -28,7 +28,9 @@ fn main(
     // Single texture
     if ((flags & UseSecondaryTexture) == 0) {
 
-        uv = mix(texUv0, texUv1, fract(uv));
+        // Sample texture
+        var oob : bool = (abs(uv.x) > 0.5) | (abs(uv.y) > 0.5);
+        uv = mix(texUv0, texUv1, fract(uv + vec2f(0.5, 0.5)));
         if ((flags & FilterTexture) != 0) {
             pix = textureSampleLevel(texAtlas, linearSam, uv, 0);
         }
@@ -36,12 +38,18 @@ fn main(
             pix = textureSampleLevel(texAtlas, nearestSam, uv, 0);
         }
 
+        // Make pixel invisible if O.O.B. and repeat is unset
+        var dontWrap = oob & ((flags & RepeatTexture) == 0);
+        pix = select(pix, vec4f(0,0,0,0), dontWrap);
+
     }
     // Using secondary texture
     else {
 
-        var uv2 = tex2Uv.xy / tex2Uv.z + vec2f(0.5, 0.5);
-        uv2 = mix(tex2Uv0, tex2Uv1, fract(uv2));
+        // Sample secondary texture
+        var uv2 = tex2Uv.xy / tex2Uv.z;
+        var oob2 : bool = (abs(uv2.x) > 0.5) | (abs(uv2.y) > 0.5);
+        uv2 = mix(tex2Uv0, tex2Uv1, fract(uv2 + vec2f(0.5, 0.5)));
         var pix2 : vec4f;
         if ((flags & FilterSecondaryTexture) != 0) {
             pix2 = textureSampleLevel(texAtlas, linearSam, uv2, 0);
@@ -50,19 +58,27 @@ fn main(
             pix2 = textureSampleLevel(texAtlas, nearestSam, uv2, 0);
         }
 
+        var dontWrap2 = oob2 & ((flags & RepeatSecondaryTexture) == 0);
+        pix2 = select(pix2, vec4f(0,0,0,0), dontWrap2);
+
         // Displacement
         if ((flags & DisplacementTextureMode) != 0) {
-            uv.x += (pix2.a - 0.5) * .5;
-            uv.y += (pix2.a - 0.5) * .5;
+            uv.x += (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureX) != 0);
+            uv.y += (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureY) != 0);
         }
 
-        uv = mix(texUv0, texUv1, fract(uv));
+        // Sample primary texture
+        var oob : bool = (abs(uv.x) > 0.5) | (abs(uv.y) > 0.5);
+        uv = mix(texUv0, texUv1, fract(uv + vec2f(0.5, 0.5)));
         if ((flags & FilterTexture) != 0) {
             pix = textureSampleLevel(texAtlas, linearSam, uv, 0);
         }
         else {
             pix = textureSampleLevel(texAtlas, nearestSam, uv, 0);
         }
+
+        var dontWrap = oob & ((flags & RepeatTexture) == 0);
+        pix = select(pix, vec4f(0,0,0,0), dontWrap);
 
         // Masking
         if ((flags & MaskTextureMode) != 0) {

@@ -21,7 +21,7 @@ const DrawObjFlag = {
 class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
-        this.flags = 0;
+        this.flags = DrawObjFlag.RepeatTexture;
         this.transparent = true;
 
         this.atlas = null;
@@ -51,6 +51,10 @@ class DrawObj {
 
     IsFullyOpaque() {
         if ((this.tintColor.a < 1) | (this.thresholdLowerColor.a < 1)) {
+            return false;
+        }   
+
+        if ((this.flags & DrawObjFlag.RepeatTexture) === 0) {
             return false;
         }
 
@@ -137,11 +141,11 @@ class DrawObj {
         if (this.patternMode)
             texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
 
-        // tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
+        tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
         // texMat3.ScaleXY(4, 4);
-        // tex2Mat3.Rotate(now * 100);
+        tex2Mat3.Rotate(now * 100);
 
-        texMat3.TranslateXY(queue.spritter.tick * 0.1 / this.texSize.x, Math.sin(now));
+        texMat3.TranslateXY(Math.cos(now) * .25, Math.sin(now) * .25);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([
