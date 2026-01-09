@@ -217,7 +217,7 @@ class Spritter {
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testSprite, 1);
+        // this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         let testPerspective = new DrawObjs.PerspectiveSprite();
         testPerspective.topLeft.SetXY(-100 * .5, 100 * .5);
@@ -225,11 +225,14 @@ class Spritter {
         testPerspective.botRight.SetXY(100, -100);
         testPerspective.botLeft.SetXY(-100, -100);
         testPerspective.UpdatePerspectiveWeights();
+        testPerspective.transparent = false;
         testPerspective.SetTextureAtlas(this.textureManager.textureAtlas);
         testPerspective.SetTexture('bunny');
         testPerspective.SetSecondaryTexture('mask2');
-        testPerspective.SetDisplacementMode(true);
-        testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        // testPerspective.SetDisplacementMode(true);
+        testPerspective.tex2Alpha = 1;
+        testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.RepeatSecondaryTexture * flop) | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        testPerspective.ClearFlags(DrawObjFlag.RepeatTexture);
         testPerspective.mat3.ScaleXY(2, 2);
         // this.drawObjQueue.BufferDrawobj(testPerspective, 2);
 
@@ -243,7 +246,7 @@ class Spritter {
             new Vec2(1, -1),
             new Vec2(-1, -1)
         ], 100);
-        testPoly.transparent = false;
+        // testPoly.transparent = false;
         // testPoly.TestDraw();
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');

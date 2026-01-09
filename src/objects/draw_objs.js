@@ -45,8 +45,6 @@ class DrawObj {
         this.tex2Alpha = 0;
 
         this.posOffset = new Vec2(0, 0);
-
-        this.patternMode = false;
     };
 
     IsFullyOpaque() {
@@ -138,14 +136,13 @@ class DrawObj {
         const texMat3 = new Mat3();
         const tex2Mat3 = new Mat3();
 
-        if (this.patternMode)
-            texMat3.ScaleXY(0.5 / this.texSize.x, 0.5 / this.texSize.y);
-
         tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
         // texMat3.ScaleXY(4, 4);
         tex2Mat3.Rotate(now * 100);
 
-        texMat3.TranslateXY(Math.cos(now) * .25, Math.sin(now) * .25);
+        texMat3.TranslateXY(queue.spritter.tick, 0);
+        // texMat3.ScaleXY(4, 4);
+        // texMat3.Rotate(now * 100);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([
@@ -217,7 +214,7 @@ class DrawObjs {
     static Poly = class Poly extends DrawObj {
         constructor(points, pointScale) {
             super();
-            this.patternMode = true;
+            this.SetFlags(DrawObjFlag.PatternMode);
             this.polyVerts = [];
             this.TessellatePoints(points, pointScale);
         }
