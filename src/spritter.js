@@ -201,7 +201,7 @@ class Spritter {
         let backgroundSprite = new DrawObjs.Sprite(480, 360);
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
-        // this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
+        this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
         let testSprite = new DrawObjs.Sprite(128, 128);
         // testSprite.transparent = false;
@@ -248,14 +248,24 @@ class Spritter {
             new Vec2(1, -1),
             new Vec2(-1, -1)
         ], 100);
-        // testPoly.transparent = false;
-        // testPoly.TestDraw();
+
+        let spikeballShape = new Array(20);
+        for (let i = 0; i < spikeballShape.length; i++) {
+            let ang = i / spikeballShape.length * 360;
+            let size = (i & 1) ? 1 : 3;
+            spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
+        }
+        if (this.tick === 0) console.log(spikeballShape);
+        testPoly.TessellatePoints(spikeballShape, 100);
+
+        testPoly.transparent = false;
+        testPoly.TestDraw();
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');
         testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
         // testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
-        // this.drawObjQueue.BufferDrawobj(testPoly, 0);
+        this.drawObjQueue.BufferDrawobj(testPoly, 2);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {

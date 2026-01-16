@@ -133,6 +133,10 @@ class DrawObj {
         let now = new Date() / 1000;
 
         const mat3 = holder.mat3;
+
+        // currently, these transforms can be thought of as a 'camera' with its own position, orientation, and scale, that 'captures' the texture.
+        // example, scaling texMat3 up, makes the 'camera' 'bigger', effectively making the textures tiling look smaller, instead of what one would expect, that is making the textures look bigger.
+        // this will probably be changed sometime when i figure out how...
         const texMat3 = new Mat3();
         const tex2Mat3 = new Mat3();
 
@@ -140,9 +144,9 @@ class DrawObj {
         // tex2Mat3.ScaleXY(4, 4);
         tex2Mat3.Rotate(now * 100);
 
-        texMat3.TranslateXY(-queue.spritter.tick * 2, 0);
+        texMat3.TranslateXY(queue.spritter.tick * 0, 0);
         texMat3.ScaleWithTranslation(0.5);
-        texMat3.RotateWithTranslation(-45);
+        texMat3.RotateWithTranslation(45);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([
@@ -235,7 +239,9 @@ class DrawObjs {
         TessellatePoints(points, pointScale) {
             this.polyVerts.length = 0;
 
-            for (let i = 0; i < points.length; i++) {
+            let i = 0;
+            let concaves = 0;
+            while (points.length >= 3) {
                 let p = points[i];
                 let pBefore = (i === 0) ? points[points.length - 1] : points[i - 1];
                 let pAfter = (i === points.length - 1) ? points[0] : points[i + 1];
@@ -243,18 +249,22 @@ class DrawObjs {
                 let lineAfter = pAfter.Copy().Sub(p);
 
                 // If point is concave or flat, skip
-                if (lineAfter.GetAngDiff(lineBefore) > 0)
+                if (lineAfter.GetAngDiff(lineBefore) > 0) {
+                    if (++concaves === points.length) {
+                        console.log('out');
+                        break;
+                    }
+                    i = (i + 1) % points.length;
                     continue;
+                }
+                concaves = 0;
 
                 // Push triangle and remove this point
                 this.polyVerts.push(pBefore.Copy().Scale(pointScale));
                 this.polyVerts.push(p.Copy().Scale(pointScale));
                 this.polyVerts.push(pAfter.Copy().Scale(pointScale));
                 points.splice(i, 1);
-                i--;
-
-                if (points.length < 3)
-                    break;
+                if (i === points.length) i = 0;
             }
         }
 
@@ -262,12 +272,13 @@ class DrawObjs {
             let canvas = document.getElementById('binpackcanvas');
             let ctx = canvas.getContext('2d');
             ctx.strokeStyle = 'black';
+            ctx.fillStyle = 'black'
             ctx.lineWidth = 3;
             ctx.beginPath();
 
             let cx = canvas.width/2;
             let cy = canvas.height/2;
-            let s = 1;
+            let s = 2;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let i = 0; i < this.polyVerts.length; i++) {
@@ -279,6 +290,7 @@ class DrawObjs {
                 }
                 let nextP = this.polyVerts[Math.floor(i / 3)*3 + ((i + 1) % 3)];
                 ctx.lineTo(cx + s*nextP.x, cy - s*nextP.y);
+                ctx.fillRect(cx + s*nextP.x, cy - s*nextP.y, 10, 10);
             }
             ctx.stroke();
             ctx.closePath();

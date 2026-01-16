@@ -56,6 +56,7 @@ class Mat3 {
         this.m[3] = m3;
         this.m[4] = m4;
         this.m[5] = m5;
+        return this;
     }
     RotateWithTranslation(ang) {
         let sin = -Math.sin(ang * DEG_TO_RAD); // Clockwise
@@ -76,6 +77,7 @@ class Mat3 {
         this.m[5] = m5;
         this.m[6] = m6;
         this.m[7] = m7;
+        return this;
     }
 
     Scale(scale) {
@@ -83,15 +85,18 @@ class Mat3 {
         this.m[1] *= scale;
         this.m[3] *= scale;
         this.m[4] *= scale;
+        return this;
     }
     ScaleXY(x, y) {
         this.m[0] *= x;
         this.m[1] *= x;
         this.m[3] *= y;
         this.m[4] *= y;
+        return this;
     }
     ScaleWithTranslation(scale) {
         this.ScaleWithTranslationXY(scale, scale);
+        return this;
     }
     ScaleWithTranslationXY(x, y) {
         this.m[0] *= x;
@@ -100,11 +105,13 @@ class Mat3 {
         this.m[4] *= y;
         this.m[6] *= x;
         this.m[7] *= y;
+        return this;
     }
 
     TranslateXY(x, y) {
         this.m[6] += x;
         this.m[7] += y;
+        return this;
     }
     SetTranslationXY(x, y) {
         this.m[6] = x;
@@ -114,6 +121,7 @@ class Mat3 {
     ScaleTranslationXY(x, y) {
         this.m[6] *= x;
         this.m[7] *= y;
+        return this;
     }
     GetX() {
         return this.m[6];
