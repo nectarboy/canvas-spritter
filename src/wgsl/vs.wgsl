@@ -4,15 +4,16 @@ struct VertexOutput {
     @builtin(position) position : vec4f,
     @location(0) texUv: vec3f,
     @location(1) tex2Uv: vec3f,
-    @location(2) @interpolate(flat) flags : u32,
-    @location(3) @interpolate(flat) tex2Alpha : f32,
-    @location(4) @interpolate(flat) tintColor: vec4f,
-    @location(5) @interpolate(flat) texUv0 : vec2f,
-    @location(6) @interpolate(flat) texUv1 : vec2f,
-    @location(7) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(8) @interpolate(flat) tex2Uv1 : vec2f,
-    @location(9) @interpolate(flat) thresholdLowerColor : vec4f,
-    @location(10) @interpolate(flat) thresholdUpperColor : vec4f,
+    @location(2) displacementScale : vec2f,
+    @location(3) @interpolate(flat) flags : u32,
+    @location(4) @interpolate(flat) tex2Alpha : f32,
+    @location(5) @interpolate(flat) tintColor: vec4f,
+    @location(6) @interpolate(flat) texUv0 : vec2f,
+    @location(7) @interpolate(flat) texUv1 : vec2f,
+    @location(8) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(9) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(10) @interpolate(flat) thresholdLowerColor : vec4f,
+    @location(11) @interpolate(flat) thresholdUpperColor : vec4f,
 }   
 
 @vertex
@@ -37,7 +38,13 @@ fn main(
     out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.ordering + 1) / MAX_ORDERING, 1.0);
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
+    out.displacementScale = vec2f(
+        sqrt(drawObj.texMat3[0][0]*drawObj.texMat3[0][0] + drawObj.texMat3[0][1]*drawObj.texMat3[0][1]),
+        sqrt(drawObj.texMat3[1][0]*drawObj.texMat3[1][0] + drawObj.texMat3[1][1]*drawObj.texMat3[1][1])
+    );
+
     if ((drawObj.flags & PatternMode) != 0) {
+        out.displacementScale *= drawObj.texSize;
         out.texUv = drawObj.texMat3 * vec3f(position.x, -position.y, uv.z);
         out.texUv.x /= 2 * drawObj.texSize.x;
         out.texUv.y /= 2 * drawObj.texSize.y;

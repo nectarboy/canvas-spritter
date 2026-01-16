@@ -201,21 +201,21 @@ class Spritter {
         let backgroundSprite = new DrawObjs.Sprite(480, 360);
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
-        this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
+        // this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
         let testSprite = new DrawObjs.Sprite(128, 128);
         // testSprite.transparent = false;
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
-        testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetFlags(DrawObjFlag.PatternMode*0 | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
+        // testSprite.SetSecondaryTexture('mask2');
+        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.FilterSecondaryTexture);
         // testSprite.ClearFlags(DrawObjFlag.RepeatTexture);
-        // testSprite.tex2Alpha = 1;
+        testSprite.tex2Alpha = .25;
         // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
-        testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
+        // testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
@@ -253,9 +253,9 @@ class Spritter {
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');
         testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
-        testPoly.mat3.ScaleXY(1, 1);
+        // testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testPoly, 0);
+        // this.drawObjQueue.BufferDrawobj(testPoly, 0);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {

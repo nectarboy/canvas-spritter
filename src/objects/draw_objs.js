@@ -140,9 +140,9 @@ class DrawObj {
         // tex2Mat3.ScaleXY(4, 4);
         tex2Mat3.Rotate(now * 100);
 
-        // texMat3.TranslateXY(queue.spritter.tick, 0);
-        // texMat3.ScaleXY(5, 5);
-        // texMat3.Rotate(now * 100);
+        texMat3.TranslateXY(-queue.spritter.tick * 2, 0);
+        texMat3.ScaleWithTranslation(0.5);
+        texMat3.RotateWithTranslation(-45);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([

@@ -8,15 +8,16 @@
 fn main(
     @location(0) texUv: vec3f,
     @location(1) tex2Uv: vec3f,
-    @location(2) @interpolate(flat) flags : u32,
-    @location(3) @interpolate(flat) tex2Alpha : f32,
-    @location(4) @interpolate(flat) tintColor: vec4f,
-    @location(5) @interpolate(flat) texUv0 : vec2f,
-    @location(6) @interpolate(flat) texUv1 : vec2f,
-    @location(7) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(8) @interpolate(flat) tex2Uv1 : vec2f,
-    @location(9) @interpolate(flat) thresholdLowerColor : vec4f,
-    @location(10) @interpolate(flat) thresholdUpperColor : vec4f,
+    @location(2) displacementScale : vec2f,
+    @location(3) @interpolate(flat) flags : u32,
+    @location(4) @interpolate(flat) tex2Alpha : f32,
+    @location(5) @interpolate(flat) tintColor: vec4f,
+    @location(6) @interpolate(flat) texUv0 : vec2f,
+    @location(7) @interpolate(flat) texUv1 : vec2f,
+    @location(8) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(9) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(10) @interpolate(flat) thresholdLowerColor : vec4f,
+    @location(11) @interpolate(flat) thresholdUpperColor : vec4f,
 ) -> @location(0) vec4f {
 
     var uv = texUv.xy / texUv.z;
@@ -63,8 +64,8 @@ fn main(
 
         // Displacement
         if ((flags & DisplacementTextureMode) != 0) {
-            uv.x += (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureX) != 0);
-            uv.y += (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureY) != 0);
+            uv.x += (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureX) != 0) * displacementScale.x;
+            uv.y += (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureY) != 0) * displacementScale.y;
         }
 
         // Sample primary texture
