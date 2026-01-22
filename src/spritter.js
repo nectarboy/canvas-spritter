@@ -18,6 +18,8 @@ const drawObjFlagsWgsl = await (await fetch('./src/wgsl/draw_obj_flags.wgsl', { 
 const vsWgsl = await fetchShader('./src/wgsl/vs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
 const fsWgsl = await fetchShader('./src/wgsl/fs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
 
+let spikeballShape;
+
 class Spritter {
     constructor(canvas, device) {
         globalThis.spritter = this;
@@ -239,24 +241,27 @@ class Spritter {
         // this.drawObjQueue.BufferDrawobj(testPerspective, 2);
 
         let testPoly = new DrawObjs.Poly([
-            new Vec2(-2, 0),
-            new Vec2(-1, 1),
-            new Vec2(1, 1),
-            new Vec2(2, 0),
-            new Vec2(3, 0),
-            new Vec2(2, -0.25),
-            new Vec2(1, -1),
-            new Vec2(-1, -1)
-        ], 100);
+            new Vec2(-106, 38),
+            new Vec2(-8, 100),
+            new Vec2(17, -10),
+            new Vec2(71, 31),
+            new Vec2(100, -18),
+            new Vec2(70, -52),
+            new Vec2(-86, -16),
+            new Vec2(-24, 41)
+        ], 2);
 
-        let spikeballShape = new Array(20);
-        for (let i = 0; i < spikeballShape.length; i++) {
-            let ang = i / spikeballShape.length * 360;
-            let size = (i & 1) ? 1 : 3;
-            spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
+        if ((this.tick % 120) === 0) {
+            spikeballShape = new Array(10);
+            for (let i = 0; i < spikeballShape.length; i++) {
+                let ang = i / spikeballShape.length * 360;
+                // let size = (i & 1) ? 1 : 2;
+                let size = Math.random() * 2;
+                spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
+            }
+            // console.log(spikeballShape);
         }
-        if (this.tick === 0) console.log(spikeballShape);
-        testPoly.TessellatePoints(spikeballShape, 100);
+        testPoly.SetPoints(spikeballShape, 100);
 
         testPoly.transparent = false;
         testPoly.TestDraw();

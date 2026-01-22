@@ -132,7 +132,7 @@ class Mat3 {
 
     // Apply this, then mat3 (mat3 * this)
     TransformFromMat3(mat3) {
-
+        
     }
 }
 

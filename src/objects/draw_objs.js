@@ -1,5 +1,6 @@
 import Mat3 from '../mat3.js';
 import Vec2 from '../vec2.js';
+import Triangulator from '../triangulator.js';
 
 const DrawObjFlag = {
     UseTexture: 0x1,
@@ -220,7 +221,7 @@ class DrawObjs {
             super();
             this.SetFlags(DrawObjFlag.PatternMode);
             this.polyVerts = [];
-            this.TessellatePoints(points, pointScale);
+            this.SetPoints(points, pointScale);
         }
 
         BufferVerticesAt(queue, holder, drawObjIndex) {
@@ -236,36 +237,8 @@ class DrawObjs {
         }
 
         // points must be a Vec2 array
-        TessellatePoints(points, pointScale) {
-            this.polyVerts.length = 0;
-
-            let i = 0;
-            let concaves = 0;
-            while (points.length >= 3) {
-                let p = points[i];
-                let pBefore = (i === 0) ? points[points.length - 1] : points[i - 1];
-                let pAfter = (i === points.length - 1) ? points[0] : points[i + 1];
-                let lineBefore = p.Copy().Sub(pBefore);
-                let lineAfter = pAfter.Copy().Sub(p);
-
-                // If point is concave or flat, skip
-                if (lineAfter.GetAngDiff(lineBefore) > 0) {
-                    if (++concaves === points.length) {
-                        console.log('out');
-                        break;
-                    }
-                    i = (i + 1) % points.length;
-                    continue;
-                }
-                concaves = 0;
-
-                // Push triangle and remove this point
-                this.polyVerts.push(pBefore.Copy().Scale(pointScale));
-                this.polyVerts.push(p.Copy().Scale(pointScale));
-                this.polyVerts.push(pAfter.Copy().Scale(pointScale));
-                points.splice(i, 1);
-                if (i === points.length) i = 0;
-            }
+        SetPoints(points, pointScale) {
+            this.polyVerts = Triangulator.TriangulatePolygon(points, pointScale);
         }
 
         TestDraw() {
