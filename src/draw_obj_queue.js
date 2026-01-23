@@ -103,7 +103,7 @@ class DrawObjQueue {
     }
 
     BufferDrawobj(drawObj, priority) {
-        if (this.count === MAX_DRAWOBJS) {
+        if (this.holders.length === MAX_DRAWOBJS) {
             console.warn("Drawobj queue full, cannot buffer drawobj.");
             return;
         }
@@ -172,8 +172,9 @@ class DrawObjQueue {
     }
 
     Flush() {
-        for (let i = 0; i < this.holders.length; i++)
+        for (let i = 0; i < this.holders.length; i++) {
             this.holders[i].Reset();
+        }
         this.holders.length = 0;
         this.opaqueN = 0;
         this.transparentN = 0;
