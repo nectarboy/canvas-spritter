@@ -1,6 +1,6 @@
 import Vec2 from './vec2.js';
 
-// The output of the triangulation
+// TODO: The output of the triangulation
 class TriangulatedPolygon {
     constructor(vertices) {
         this.vertices = [];

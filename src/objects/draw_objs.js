@@ -24,6 +24,13 @@ const DrawObjFlag = {
 class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
+
+        // currently, these transforms can be thought of as a 'camera' with its own position, orientation, and scale, that 'captures' the texture.
+        // example, scaling texMat3 up, makes the 'camera' 'bigger', effectively making the textures tiling look smaller, instead of what one would expect, that is making the textures look bigger.
+        // this will probably be changed sometime when i figure out how...
+        this.texMat3 = new Mat3().ToIdentity();
+        this.tex2Mat3 = new Mat3().ToIdentity();
+
         this.flags = DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture;
         this.transparent = true;
 
@@ -136,20 +143,8 @@ class DrawObj {
         let now = new Date() / 1000;
 
         const mat3 = holder.mat3;
-
-        // currently, these transforms can be thought of as a 'camera' with its own position, orientation, and scale, that 'captures' the texture.
-        // example, scaling texMat3 up, makes the 'camera' 'bigger', effectively making the textures tiling look smaller, instead of what one would expect, that is making the textures look bigger.
-        // this will probably be changed sometime when i figure out how...
-        const texMat3 = new Mat3();
-        const tex2Mat3 = new Mat3();
-
-        tex2Mat3.TranslateXY(-queue.spritter.tick * 0.005 * 500, queue.spritter.tick * 0.005 * 500);
-        tex2Mat3.ScaleWithTranslation(0.245);
-        // tex2Mat3.Rotate(now * 100);
-
-        texMat3.TranslateXY(queue.spritter.tick * 0.0025 * 500, -queue.spritter.tick * 0.002 * 500);
-        texMat3.ScaleWithTranslation(0.2445);
-        // texMat3.RotateWithTranslation(45);
+        const texMat3 = this.texMat3;
+        const tex2Mat3 = this.tex2Mat3;
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([

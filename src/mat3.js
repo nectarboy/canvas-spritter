@@ -1,6 +1,13 @@
 const DEG_TO_RAD = Math.PI / 180;
 const RAD_TO_DEG = 180 / Math.PI;
 
+const IDENTITY = new Float64Array(9);
+IDENTITY.set([
+    1, 0, 0,
+    0, 1, 0,
+    0, 0, 1    
+]);
+
 // A 3x3 matrix (column-major) representing affine transformations, used primarily for drawobjs.
 class Mat3 {
     constructor() {
@@ -15,11 +22,7 @@ class Mat3 {
     }
 
     ToIdentity() {
-        this.m.set([
-            1, 0, 0,
-            0, 1, 0,
-            0, 0, 1
-        ]);
+        this.m.set(IDENTITY);
         return this;
     }
 
