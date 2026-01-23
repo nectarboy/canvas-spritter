@@ -17,8 +17,8 @@ class TriangulatedPolygon {
     
 // TODO: Polygon vertex doubly linked list
 class VertexDLL {
-    constructor(vertex, index, prev) {
-        this.vertex = vertex;
+    constructor(val, index, prev) {
+        this.val = val;
         this.index = index;
         this.prev = prev;
         this.next = null;
@@ -49,32 +49,42 @@ class Triangulator {
         console.time('TriangulatePolygon');
 
         let polyVerts = [];
+        let remainingN = polygon.length;
 
-        let remaining = Array.from(polygon);
+        // construct circular DLL of vertices
+        let p = new VertexDLL(polygon[0], 0, null);
+        for (let i = 1, prev = p; i < polygon.length; i++) {
+            prev = new VertexDLL(polygon[i], i, prev);
+            if (i === polygon.length - 1) {
+                p.prev = prev;
+                prev.next = p;
+            }
+        }
+
 
         let i = 0;
         let skips = 0;
         let angThreshold = 40;
-        while (remaining.length >= 3) {
-            let p = remaining[i];
-            let pBefore = (i === 0) ? remaining[remaining.length - 1] : remaining[i - 1];
-            let pAfter = (i === remaining.length - 1) ? remaining[0] : remaining[i + 1];
-            let lineBefore = p.Copy().Sub(pBefore);
-            let lineAfter = pAfter.Copy().Sub(p);
+        while (remainingN >= 3) {
+            let prev = p.prev;
+            let next = p.next;
+            let prevLine = p.val.Copy().Sub(prev.val);
+            let nextLine = next.val.Copy().Sub(p.val);
 
             // If point is concave or flat, skip
-            let skip = lineBefore.GetAngDiff(lineAfter) <= angThreshold; // concave ear
+            let skip = prevLine.GetAngDiff(nextLine) <= angThreshold; // concave ear
             if (!skip) {
-                for (let ii = 0; ii < remaining.length - 3; ii++) {
-                    let pointToTest = remaining[(ii + i + 2) % remaining.length];
-                    if (PointInTriangle(pBefore, p, pAfter, pointToTest)) {
-                        skip = true; // a point is inside the ear
+                let vertexToTest = next.next;
+                for (let ii = 0; ii < remainingN - 3; ii++) {
+                    if (PointInTriangle(prev.val, p.val, next.val, vertexToTest.val)) {
+                        skip = true; // a vertex is inside the ear, we cannot triangulate it
                         break;
                     }
+                    vertexToTest = vertexToTest.next;
                 }
             }
             if (skip) {
-                if (++skips === remaining.length) {
+                if (++skips === remainingN) {
                     if (angThreshold === 0) {
                         // console.log('out');
                         break;
@@ -84,17 +94,19 @@ class Triangulator {
                         skips = 0;
                     }
                 }
-                i = (i + 1) % remaining.length;
+                p = next;
                 continue;
             }
             skips = 0;
 
             // Push triangle and remove this point
-            polyVerts.push(pBefore.Copy().Scale(scale));
-            polyVerts.push(p.Copy().Scale(scale));
-            polyVerts.push(pAfter.Copy().Scale(scale));
-            remaining.splice(i, 1);
-            if (i === remaining.length) i = 0;
+            polyVerts.push(prev.val.Copy().Scale(scale));
+            polyVerts.push(p.val.Copy().Scale(scale));
+            polyVerts.push(next.val.Copy().Scale(scale));
+            
+            p.Remove();
+            remainingN--;
+            p = next;
         }
 
         console.timeEnd('TriangulatePolygon');
