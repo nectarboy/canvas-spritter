@@ -46,7 +46,7 @@ function PointInTriangle(a, b, c, p) {
 class Triangulator {
 
     static TriangulatePolygon(polygon, scale = 1) {
-        console.time('TriangulatePolygon');
+        // console.time('TriangulatePolygon');
 
         let polyVerts = [];
         let remainingN = polygon.length;
@@ -111,7 +111,7 @@ class Triangulator {
             p = next.next; // a rough heuristic that somehow produces much better quality triangulations for things like spheres...
         }
 
-        console.timeEnd('TriangulatePolygon');
+        // console.timeEnd('TriangulatePolygon');
         // console.log('its:', its);
         return polyVerts;
     }

@@ -12,7 +12,11 @@ IDENTITY.set([
 class Mat3 {
     constructor() {
         this.m = new Float64Array(9);
-        this.ToIdentity();
+    }
+
+    Set(mat3) {
+        this.m.set(mat3.m);
+        return this;
     }
 
     Copy() {

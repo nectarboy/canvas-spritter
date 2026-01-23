@@ -1,14 +1,24 @@
+import MakeCircularPoolConstructor from './circular_pool.js';
+import Mat3 from './mat3.js';
+
 const MAX_DRAWOBJS = 10000;
 
 // An entry in the buffer that holds a DrawObj and the Mat3 where it will be drawn
 class DrawObjHolder {
-    constructor(drawObj, mat3, priority) {
-        this.drawObj = drawObj;
-        this.mat3 = mat3;
-        this.priority = priority;
+    constructor() {
+        this.drawObj = null;
+        this.mat3 = new Mat3();
+        this.priority = 0;
         this.orderingThisFrame = 0;
     }
+
+    Reset() {
+        this.drawObj = null;
+    }
 }
+
+const drawObjHolderPool = new (MakeCircularPoolConstructor(DrawObjHolder, MAX_DRAWOBJS))();
+console.log(drawObjHolderPool);
 
 // Responsible for buffering 
 class DrawObjQueue {
@@ -100,7 +110,11 @@ class DrawObjQueue {
 
         // this.opaqueN += !drawObj.transparent;
         // this.transparentN += !!drawObj.transparent;
-        this.holders.push(new DrawObjHolder(drawObj, drawObj.mat3.Copy(), priority));
+        let holder = drawObjHolderPool.Get();
+        holder.drawObj = drawObj;
+        holder.mat3.Set(drawObj.mat3);
+        holder.priority = priority;
+        this.holders.push(holder);
     }
 
     PushDrawObjsToStageBuffers() {
@@ -158,6 +172,8 @@ class DrawObjQueue {
     }
 
     Flush() {
+        for (let i = 0; i < this.holders.length; i++)
+            this.holders[i].Reset();
         this.holders.length = 0;
         this.opaqueN = 0;
         this.transparentN = 0;

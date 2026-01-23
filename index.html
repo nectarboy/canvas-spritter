@@ -28,8 +28,10 @@
     import Spritter from './src/spritter.js';
     import Helpers from './src/helpers.js';
     import BinPacker from './src/bin_packer.js';
+    import CircularPoolConstructor from './src/circular_pool.js';
 
     globalThis.Helpers = Helpers;
+    globalThis.CircularPoolConstructor = CircularPoolConstructor;
 
     let canvas = document.getElementById('canvas');
     let spritter = null;
