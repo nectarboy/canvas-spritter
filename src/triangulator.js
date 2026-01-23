@@ -62,10 +62,11 @@ class Triangulator {
         }
 
 
-        let i = 0;
+        let its = 0;
         let skips = 0;
         let angThreshold = 40;
         while (remainingN >= 3) {
+            its++;
             let prev = p.prev;
             let next = p.next;
             let prevLine = p.val.Copy().Sub(prev.val);
@@ -75,7 +76,8 @@ class Triangulator {
             let skip = prevLine.GetAngDiff(nextLine) <= angThreshold; // concave ear
             if (!skip) {
                 let vertexToTest = next.next;
-                for (let ii = 0; ii < remainingN - 3; ii++) {
+                for (let i = 0; i < remainingN - 3; i++) {
+                    its++;
                     if (PointInTriangle(prev.val, p.val, next.val, vertexToTest.val)) {
                         skip = true; // a vertex is inside the ear, we cannot triangulate it
                         break;
@@ -99,17 +101,18 @@ class Triangulator {
             }
             skips = 0;
 
-            // Push triangle and remove this point
+            // Vertices can be triangulated, push triangle and remove the center point
             polyVerts.push(prev.val.Copy().Scale(scale));
             polyVerts.push(p.val.Copy().Scale(scale));
             polyVerts.push(next.val.Copy().Scale(scale));
             
             p.Remove();
             remainingN--;
-            p = next;
+            p = next.next; // a rough heuristic that somehow produces much better quality triangulations for things like spheres...
         }
 
         console.timeEnd('TriangulatePolygon');
+        // console.log('its:', its);
         return polyVerts;
     }
 

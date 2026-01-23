@@ -255,7 +255,7 @@ class Spritter {
                 let ang = i / spikeballShape.length * 360;
                 // let size = (i & 1) ? 1 : 2;
                 // let size = 1;
-                let size = 2 + Math.random();
+                let size = 2 //+ Math.random();
                 spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
             }
             testPoly.SetPoints(spikeballShape, 100);
