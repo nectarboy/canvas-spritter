@@ -46,7 +46,7 @@ function PointInTriangle(a, b, c, p) {
 class Triangulator {
 
     static TriangulatePolygon(polygon, scale = 1) {
-        // console.time('TriangulatePolygon');
+        console.time('TriangulatePolygon');
 
         let polyVerts = [];
 
@@ -54,7 +54,7 @@ class Triangulator {
 
         let i = 0;
         let skips = 0;
-        let angThreshold = 0;
+        let angThreshold = 40;
         while (remaining.length >= 3) {
             let p = remaining[i];
             let pBefore = (i === 0) ? remaining[remaining.length - 1] : remaining[i - 1];
@@ -63,7 +63,7 @@ class Triangulator {
             let lineAfter = pAfter.Copy().Sub(p);
 
             // If point is concave or flat, skip
-            let skip = lineBefore.GetAngDiff(lineAfter) <= 0; // concave ear
+            let skip = lineBefore.GetAngDiff(lineAfter) <= angThreshold; // concave ear
             if (!skip) {
                 for (let ii = 0; ii < remaining.length - 3; ii++) {
                     let pointToTest = remaining[(ii + i + 2) % remaining.length];
@@ -97,7 +97,7 @@ class Triangulator {
             if (i === remaining.length) i = 0;
         }
 
-        // console.timeEnd('TriangulatePolygon');
+        console.timeEnd('TriangulatePolygon');
         return polyVerts;
     }
 

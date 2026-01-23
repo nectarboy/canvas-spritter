@@ -55,7 +55,14 @@ fn main(
     out.texUv.x = select(out.texUv.x, -out.texUv.x, (drawObj.flags & FlipTextureX) != 0);
     out.texUv.y = select(out.texUv.y, -out.texUv.y, (drawObj.flags & FlipTextureY) != 0);
 
-    out.tex2Uv = drawObj.tex2Mat3 * uv;
+    if ((drawObj.flags & SecondaryPatternMode) != 0) {
+        out.tex2Uv = drawObj.tex2Mat3 * vec3f(position.x, -position.y, uv.z);
+        out.tex2Uv.x /= 2 * drawObj.tex2Size.x;
+        out.tex2Uv.y /= 2 * drawObj.tex2Size.y;
+    }
+    else {
+        out.tex2Uv = drawObj.tex2Mat3 * uv;
+    }
     out.tex2Uv.x = select(out.tex2Uv.x, -out.tex2Uv.x, (drawObj.flags & FlipSecondaryTextureX) != 0);
     out.tex2Uv.y = select(out.tex2Uv.y, -out.tex2Uv.y, (drawObj.flags & FlipSecondaryTextureY) != 0);
 

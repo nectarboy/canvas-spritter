@@ -13,16 +13,18 @@ const DrawObjFlag = {
     MaskTextureColorChannels: 0x80,     // (When Mask Mode enabled) mask texture color channels too
     DisplacementTextureMode: 0x100,     // Use secondary texture as a displacement map
     PatternMode: 0x200,                 // Use texture's real size instead of DrawObj size
-    FlipTextureX: 0x400,
-    FlipTextureY: 0x800,
-    FlipSecondaryTextureX: 0x1000,
-    FlipSecondaryTextureY: 0x2000
+    SecondaryPatternMode: 0x400,        // Use secondary texture as pattern
+    FlipTextureX: 0x800,
+    FlipTextureY: 0x1000,
+    FlipSecondaryTextureX: 0x2000,
+    FlipSecondaryTextureY: 0x4000,
+    SecondaryTextureAddBlend: 0x8000    // Simply adds the second texture instead of proper alpha blending
 };
 
 class DrawObj {
     constructor() {
         this.mat3 = new Mat3().ToIdentity();
-        this.flags = DrawObjFlag.RepeatTexture;
+        this.flags = DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture;
         this.transparent = true;
 
         this.atlas = null;
@@ -51,7 +53,7 @@ class DrawObj {
     IsFullyOpaque() {
         if ((this.tintColor.a < 1) | (this.thresholdLowerColor.a < 1)) {
             return false;
-        }   
+        }
 
         if ((this.flags & DrawObjFlag.RepeatTexture) === 0) {
             return false;
@@ -141,13 +143,13 @@ class DrawObj {
         const texMat3 = new Mat3();
         const tex2Mat3 = new Mat3();
 
-        tex2Mat3.TranslateXY(Math.sin(now) * 20 / this.tex2Size.x, 0);
-        // tex2Mat3.ScaleXY(4, 4);
-        tex2Mat3.Rotate(now * 100);
+        tex2Mat3.TranslateXY(-queue.spritter.tick * 0.005 * 500, queue.spritter.tick * 0.005 * 500);
+        tex2Mat3.ScaleWithTranslation(0.245);
+        // tex2Mat3.Rotate(now * 100);
 
-        texMat3.TranslateXY(queue.spritter.tick * 0, 0);
-        texMat3.ScaleWithTranslation(0.5);
-        texMat3.RotateWithTranslation(45);
+        texMat3.TranslateXY(queue.spritter.tick * 0.0025 * 500, -queue.spritter.tick * 0.002 * 500);
+        texMat3.ScaleWithTranslation(0.2445);
+        // texMat3.RotateWithTranslation(45);
 
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
         queue.storageStage.set([
@@ -219,7 +221,7 @@ class DrawObjs {
     static Poly = class Poly extends DrawObj {
         constructor(points, pointScale) {
             super();
-            this.SetFlags(DrawObjFlag.PatternMode);
+            this.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode);
             this.polyVerts = [];
             this.SetPoints(points, pointScale);
         }

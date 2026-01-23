@@ -92,9 +92,14 @@ fn main(
 
         // Blending tex1 with tex2
         if (tex2Alpha != 0) {
-            let pix2Alpha = tex2Alpha * pix2.a;
-            pix2.a = 1;
-            pix = pix2 * pix2Alpha + pix * (1 - pix2Alpha);
+            if ((flags & SecondaryTextureAddBlend) != 0) {
+                pix += pix2 * tex2Alpha;
+            }
+            else {
+                let pix2Alpha = tex2Alpha * pix2.a;
+                pix2.a = 1;
+                pix = pix2 * pix2Alpha + pix * (1 - pix2Alpha);
+            }
         }
     }
 

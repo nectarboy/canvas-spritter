@@ -170,7 +170,8 @@ class Spritter {
             await GetSpritterImage('src/assets/atlas_test.png', 'atlas_test'),
             await GetSpritterImage('src/assets/mask.png', 'mask'),
             await GetSpritterImage('src/assets/mask2.png', 'mask2'),
-            await GetSpritterImage('src/assets/background.png', 'background', true)
+            await GetSpritterImage('src/assets/background.png', 'background', true),
+            await GetSpritterImage('src/assets/water.png', 'water')
         ];
 
         console.log('images:', images);
@@ -206,39 +207,36 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
         let testSprite = new DrawObjs.Sprite(128, 128);
-        // testSprite.transparent = false;
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
-        // testSprite.SetSecondaryTexture('mask2');
-        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.FilterSecondaryTexture);
-        // testSprite.ClearFlags(DrawObjFlag.RepeatTexture);
-        testSprite.tex2Alpha = .25;
-        // testSprite.tintColor = {r:1, g: 0, b:0, a:1};
+        testSprite.SetSecondaryTexture('water');
+        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.FilterSecondaryTexture);
+        testSprite.tex2Alpha = 0;
+        testSprite.tintColor = {r: 1, g: 1, b: 1, a: 1};
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         // testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         // testSprite.mat3.ScaleXY(1, 1);
         // testSprite.mat3.Rotate(this.tick);
-        this.drawObjQueue.BufferDrawobj(testSprite, 1);
+        this.drawObjQueue.BufferDrawobj(testSprite, 3);
 
-        let testPerspective = new DrawObjs.PerspectiveSprite();
-        testPerspective.topLeft.SetXY(-100 * .5, 100 * .5);
-        testPerspective.topRight.SetXY(100 * .5, 100);
-        testPerspective.botRight.SetXY(100, -100);
-        testPerspective.botLeft.SetXY(-100, -100);
-        testPerspective.UpdatePerspectiveWeights();
-        testPerspective.transparent = false;
-        testPerspective.SetTextureAtlas(this.textureManager.textureAtlas);
-        testPerspective.SetTexture('bunny');
-        testPerspective.SetSecondaryTexture('mask2');
-        // testPerspective.SetDisplacementMode(true);
-        testPerspective.tex2Alpha = 1;
-        testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.RepeatSecondaryTexture * flop) | (DrawObjFlag.FlipTextureX * flip) | (DrawObjFlag.FlipTextureY * flop));
-        testPerspective.ClearFlags(DrawObjFlag.RepeatTexture);
+        // let testPerspective = new DrawObjs.PerspectiveSprite();
+        // testPerspective.topLeft.SetXY(-100 * .5, 100 * .5);
+        // testPerspective.topRight.SetXY(100 * .5, 100);
+        // testPerspective.botRight.SetXY(100, -100);
+        // testPerspective.botLeft.SetXY(-100, -100);
+        // testPerspective.UpdatePerspectiveWeights();
+        // testPerspective.SetTextureAtlas(this.textureManager.textureAtlas);
+        // testPerspective.SetTexture('water');
+        // testPerspective.SetSecondaryTexture('water');
+        // testPerspective.tex2Alpha = 1;
+        // testPerspective.thresholdLowerColor.a = 0.25;
+        // testPerspective.thresholdUpperColor.a = 0.8;
+        // testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | DrawObjFlag.FilterTexture | DrawObjFlag.SecondaryTextureAddBlend);
         // testPerspective.SetFlags(DrawObjFlag.PatternMode); // will not work correctly. to be honest, what would we even define this behavior as?
-        testPerspective.mat3.ScaleXY(2, 2);
-        // this.drawObjQueue.BufferDrawobj(testPerspective, 2);
+        // testPerspective.mat3.ScaleXY(2, 2);
+        // this.drawObjQueue.BufferDrawobj(testPerspective, 3);
 
         let testPoly = new DrawObjs.Poly([
             new Vec2(-106, 38),
@@ -252,34 +250,44 @@ class Spritter {
         ], 2);
 
         if ((this.tick % 120) === 0) {
-            spikeballShape = new Array(10);
+            spikeballShape = new Array(25);
             for (let i = 0; i < spikeballShape.length; i++) {
                 let ang = i / spikeballShape.length * 360;
                 // let size = (i & 1) ? 1 : 2;
-                let size = Math.random() * 2;
+                // let size = 1;
+                let size = 2 + Math.random();
                 spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
             }
+            testPoly.SetPoints(spikeballShape, 100);
+            testPoly.TestDraw();
             // console.log(spikeballShape);
         }
-        testPoly.SetPoints(spikeballShape, 100);
+        else
+            testPoly.SetPoints(spikeballShape, 100);
 
-        testPoly.transparent = false;
-        testPoly.TestDraw();
+        // testPoly.transparent = false;
         testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         testPoly.SetTexture('terrain');
         testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
         // testPoly.mat3.ScaleXY(1, 1);
         // testPoly.mat3.Rotate(this.tick);
+        testPoly.SetTexture('water');
+        testPoly.SetSecondaryTexture('water');
+        testPoly.tex2Alpha = 0;
+        // testPoly.thresholdLowerColor.a = 0.15;
+        // testPoly.thresholdUpperColor.a = 1;
+        testPoly.SetMaskMode(true);
+        testPoly.SetFlags(DrawObjFlag.FilterSecondaryTexture | DrawObjFlag.FilterTexture | DrawObjFlag.SecondaryTextureAddBlend);
         this.drawObjQueue.BufferDrawobj(testPoly, 2);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {
-            // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            // this.drawObjQueue.BufferDrawobj(testPoly, i);
+            testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(testPoly, i);
 
             // testSprite.mat3.Rotate(1);
-            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(testSprite, i);
+            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // this.drawObjQueue.BufferDrawobj(testSprite, i);
         }
     }
 
