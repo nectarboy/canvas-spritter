@@ -170,7 +170,7 @@ class DrawObjs {
             this.w = w;
             this.h = h;
 
-            this.vertices = new Float32Array(48)
+            this.vertices = new Float32Array(42);
             this.vertices_Uint32 = new Uint32Array(this.vertices.buffer);
             this.UpdateVertices();
         };
@@ -218,7 +218,7 @@ class DrawObjs {
             // if (queue.spritter.tick === 0) console.log(this.polyVerts);
         }
 
-        // points must be a Vec2 DATA_ARRAY
+        // points must be a Vec2 array
         SetPoints(points, pointScale) {
             this.polyVerts = Triangulator.TriangulatePolygon(points, pointScale);
         }

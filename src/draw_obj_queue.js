@@ -17,14 +17,16 @@ class DrawObjHolder {
     }
 }
 
-const drawObjHolderPool = new (MakeCircularPoolConstructor(DrawObjHolder, MAX_DRAWOBJS))();
-console.log(drawObjHolderPool);
-
 // Responsible for buffering 
 class DrawObjQueue {
     constructor(spritter) {
         this.spritter = spritter;
 
+        // TODO: one big heap that includes the buffered holders' drawObjData as well as the final drawObjData stage?
+        // MDN: "If the source array is a typed array, the two arrays may share the same underlying ArrayBuffer; the JavaScript engine will intelligently copy the source range of the buffer to the destination range."
+
+        this.holderPool = new (MakeCircularPoolConstructor(DrawObjHolder, MAX_DRAWOBJS))();
+        console.log(this.holderPool);
         this.holders = [];
         this.opaqueN = 0;
         this.transparentN = 0;
@@ -108,7 +110,7 @@ class DrawObjQueue {
             return;
         }
 
-        let holder = drawObjHolderPool.Get();
+        let holder = this.holderPool.Get();
         holder.drawObj = drawObj;
         drawObj.CopyDataTo(holder.drawObjData, holder.drawObjData_Uint32);
         holder.priority = priority;
@@ -123,7 +125,8 @@ class DrawObjQueue {
     }
 
     PushDrawObjsToStageBuffers() {
-        this.holders.sort((a, b) => a.priority - b.priority);
+        const comparer = (a, b) => a.priority - b.priority;
+        this.holders.sort(comparer);
 
         let opaques = [];
         let transparents = [];

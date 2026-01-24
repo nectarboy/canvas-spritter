@@ -209,7 +209,7 @@ class Spritter {
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
-        testSprite.SetSecondaryTexture('water');
+        // testSprite.SetSecondaryTexture('water');
         testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha[0] = 1;
         testSprite.tintColor.set([1, 1, 1, 1]);
@@ -224,7 +224,7 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         // Stress tester
-        for (let i = 0; i < 4000; i++) {
+        for (let i = 0; i < 0; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 

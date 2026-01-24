@@ -1,18 +1,24 @@
 const DEG_TO_RAD = Math.PI / 180;
 const RAD_TO_DEG = 180 / Math.PI;
 
-const IDENTITY = new Float64Array(12);
+const IDENTITY = new Float32Array(12);
 IDENTITY.set([
     1, 0, 0, 0,
     0, 1, 0, 0,
     0, 0, 1, 0,
 ]);
 
-// A version of Mat3 that works with existing data, and has padding after every column for alignment.
+// A Float32 version of Mat3 that works with existing data, and has padding after every column for alignment.
 // Might replace Mat3 itself
 class DataMat3 {
     constructor(view) {
         this.m = view;
+    }
+
+    Copy() {
+        let mat3 = new DataMat3(new Float32Array(12));
+        mat3.m.set(this.m);
+        return mat3;
     }
 
     Set(mat3) {
