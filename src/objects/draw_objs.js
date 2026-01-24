@@ -69,7 +69,7 @@ class DrawObj {
     };
 
     IsFullyOpaque() {
-        if ((this.tintColor.a < 1) | (this.thresholdLowerColor.a < 1)) {
+        if ((this.tintColor[3] < 1) | (this.thresholdLowerColor[3] < 1)) {
             return false;
         }
 
@@ -191,7 +191,7 @@ class DrawObjs {
             this.vertices_Uint32[27] = drawObjIndex;
             this.vertices_Uint32[34] = drawObjIndex;
             this.vertices_Uint32[41] = drawObjIndex;
-            
+
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
             queue.verticesStage.set(this.vertices, off);
             queue.verticesCount += 6;

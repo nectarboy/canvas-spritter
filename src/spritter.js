@@ -224,10 +224,13 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         // Stress tester
-        for (let i = 0; i < 10000 - 100; i++) {
+        for (let i = 0; i < 4000; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
+            testSprite.tintColor[0] = Math.random();
+            testSprite.tintColor[1] = Math.random();
+            testSprite.tintColor[2] = Math.random();
             testSprite.mat3.Rotate(1);
             testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, i);
