@@ -28,8 +28,6 @@ class DrawObjQueue {
         this.holderPool = new (MakeCircularPoolConstructor(DrawObjHolder, MAX_DRAWOBJS))();
         console.log(this.holderPool);
         this.holders = [];
-        this.opaqueN = 0;
-        this.transparentN = 0;
         this.opaqueVertices = 0;
         this.transparentVertices = 0;
 
@@ -138,27 +136,51 @@ class DrawObjQueue {
             (isOpaque ? opaques : transparents).push(this.holders[i]);
         }
 
-        // Opaque (Front to back)
+        // Opaque Data
         for (let i = 0; i < opaques.length; i++) {
             let holder = opaques[opaques.length - i - 1];
             this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
         }
+        // Transparent Data
+        for (let i = 0; i < transparents.length; i++) {
+            let holder = transparents[i];
+            holder.drawObj.BufferVerticesAt(this, holder, i + opaques.length);
+        }
+
+        // Opaque Vertices
         for (let i = 0; i < opaques.length; i++) {
             let holder = opaques[opaques.length - i - 1];
             holder.drawObj.BufferVerticesAt(this, holder, i);
         }
         this.opaqueVertices = this.verticesCount;
-
-        // Transparent (Back to front)
+        // Transparent Vertices
         for (let i = 0; i < transparents.length; i++) {
             let holder = transparents[i];
             this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
         }
-        for (let i = 0; i < transparents.length; i++) {
-            let holder = transparents[i];
-            holder.drawObj.BufferVerticesAt(this, holder, i + opaques.length);
-        }
         this.transparentVertices = this.verticesCount - this.opaqueVertices;
+
+        // // Opaque (Front to back)
+        // for (let i = 0; i < opaques.length; i++) {
+        //     let holder = opaques[opaques.length - i - 1];
+        //     this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
+        // }
+        // for (let i = 0; i < opaques.length; i++) {
+        //     let holder = opaques[opaques.length - i - 1];
+        //     holder.drawObj.BufferVerticesAt(this, holder, i);
+        // }
+        // this.opaqueVertices = this.verticesCount;
+
+        // // Transparent (Back to front)
+        // for (let i = 0; i < transparents.length; i++) {
+        //     let holder = transparents[i];
+        //     this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
+        // }
+        // for (let i = 0; i < transparents.length; i++) {
+        //     let holder = transparents[i];
+        //     holder.drawObj.BufferVerticesAt(this, holder, i + opaques.length);
+        // }
+        // this.transparentVertices = this.verticesCount - this.opaqueVertices;
     }
 
     UploadStageBuffersToBuffers() {
@@ -184,8 +206,6 @@ class DrawObjQueue {
             this.holders[i].Reset();
         }
         this.holders.length = 0;
-        this.opaqueN = 0;
-        this.transparentN = 0;
         this.opaqueVertices = 0;
         this.transparentVertices = 0;
         this.verticesCount = 0;
