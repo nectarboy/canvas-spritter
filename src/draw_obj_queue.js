@@ -119,8 +119,8 @@ class DrawObjQueue {
 
     BufferDrawObjData(data, ordering) {
         let off = this.drawObjDataCount * this.drawObjDataEntrySize;
+        data[59] = ordering;
         this.storageStage.set(data, off);
-        this.storageStage[off + 59] = ordering;
         this.drawObjDataCount++;
     }
 
@@ -142,7 +142,6 @@ class DrawObjQueue {
         for (let i = 0; i < opaques.length; i++) {
             let holder = opaques[opaques.length - i - 1];
             this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
-            // holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
         }
         for (let i = 0; i < opaques.length; i++) {
             let holder = opaques[opaques.length - i - 1];
@@ -154,7 +153,6 @@ class DrawObjQueue {
         for (let i = 0; i < transparents.length; i++) {
             let holder = transparents[i];
             this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
-            // holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
         }
         for (let i = 0; i < transparents.length; i++) {
             let holder = transparents[i];

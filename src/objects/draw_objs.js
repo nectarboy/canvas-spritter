@@ -30,7 +30,6 @@ WHITE.set([1, 1, 1, 1]);
 class DrawObj {
     constructor() {
         this.transparent = true;
-        this.flags = DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture;
         this.posOffset = new Vec2(0, 0);
 
         this.data = new DATA_ARRAY(64);
@@ -66,34 +65,54 @@ class DrawObj {
         this.atlas = null;
         this.atlasDimension = new DATA_ARRAY(this.data.buffer, 57 * DATA_BYTES, 1);
         this.iAtlasDimension = new DATA_ARRAY(this.data.buffer, 58 * DATA_BYTES, 1);
+
+        // Set by the queue, do not use this value!
+        this.ordering = new DATA_ARRAY(this.data.buffer, 59 * DATA_BYTES, 1);
+
+        this.flags = new Uint32Array(this.data.buffer, 60 * DATA_BYTES, 1);
+        this.SetFlags(DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture);
     };
 
     IsFullyOpaque() {
-        if ((this.tintColor[3] < 1) | (this.thresholdLowerColor[3] < 1)) {
-            return false;
-        }
+        const flags = this.flags[0];
 
-        if ((this.flags & DrawObjFlag.RepeatTexture) === 0) {
-            return false;
-        }
+        // Is opaque if all of the following are true
+        return (
+            // Is not transparent and doesn't use threshold cutting
+            ((this.tintColor[3] === 1) & (this.thresholdLowerColor[3] === 1)) &
+            // Texture repeats
+            ((this.flags[0] & DrawObjFlag.RepeatTexture) !== 0) &
+            // Doesn't use texture or texture is fully opaque
+            (((this.flags[0] & DrawObjFlag.UseTexture) === 0) | (this.texIsFullyOpaque)) &
+            // Not using secondary texture or not using secondary texture as a mask
+            (((this.flags[0] & DrawObjFlag.UseSecondaryTexture) === 0) | ((this.flags[0] & DrawObjFlag.MaskTextureMode) === 0))
+        );
 
-        if (((this.flags & DrawObjFlag.UseTexture) !== 0) & (!this.texIsFullyOpaque)) {
-            return false;
-        }
+        // if ((this.tintColor[3] < 1) | (this.thresholdLowerColor[3] < 1)) {
+        //     return false;
+        // }
 
-        if ((this.flags & (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) === (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) {
-            return false;
-        }
+        // if ((flags & DrawObjFlag.RepeatTexture) === 0) {
+        //     return false;
+        // }
 
-        return true;
+        // if (((flags & DrawObjFlag.UseTexture) !== 0) & (!this.texIsFullyOpaque)) {
+        //     return false;
+        // }
+
+        // if ((flags & (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) === (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) {
+        //     return false;
+        // }
+
+        // return true;
     }
 
     SetFlags(flags) {
-        this.flags |= flags;
+        this.flags[0] |= flags;
     }
 
     ClearFlags(flags) {
-        this.flags &= ~flags;
+        this.flags[0] &= ~flags;
     }
 
     SetTextureAtlas(atlas) {
@@ -156,7 +175,9 @@ class DrawObj {
 
     CopyDataTo(data, dataU32) {
         data.set(this.data);
-        dataU32[60] = this.flags;
+        if (DATA_BYTES !== 4) {
+            dataU32[60] = this.flags;
+        }
     }
 
     BufferVerticesAt(queue, mat3, drawObjIndex) {}
