@@ -154,14 +154,9 @@ class DrawObj {
             this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
     }
 
-    BufferDataAt(queue, holder, ordering) {
-        let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
-
-        queue.storageStage.set(this.data, off);
-        queue.storageStage[off + 59] = ordering;
-        queue.storageStage_Uint32[off + 60] = this.flags;
-
-        queue.drawObjDataCount++;
+    CopyDataTo(data, dataU32) {
+        data.set(this.data);
+        dataU32[60] = this.flags;
     }
 
     BufferVerticesAt(queue, mat3, drawObjIndex) {}
@@ -174,22 +169,31 @@ class DrawObjs {
             super();
             this.w = w;
             this.h = h;
+
+            this.vertices = new Float32Array(48)
+            this.vertices_Uint32 = new Uint32Array(this.vertices.buffer);
+            this.UpdateVertices();
         };
 
+        UpdateVertices() {
+            this.vertices.set([this.w, this.h,        0.5, -0.5, 1, 0], 0); // tr
+            this.vertices.set([-this.w, -this.h,        -0.5, 0.5, 1, 0], 7); // bl
+            this.vertices.set([-this.w, this.h,        -0.5, -0.5, 1, 0], 14); // tl
+            this.vertices.set([-this.w, -this.h,      -0.5, 0.5, 1, 0], 21); // bl
+            this.vertices.set([this.w, this.h,    0.5, -0.5, 1, 0], 28); // tr
+            this.vertices.set([this.w, -this.h,    0.5, 0.5, 1, 0], 35); // br
+        }
+
         BufferVerticesAt(queue, holder, drawObjIndex) {
+            this.vertices_Uint32[6] = drawObjIndex;
+            this.vertices_Uint32[13] = drawObjIndex;
+            this.vertices_Uint32[20] = drawObjIndex;
+            this.vertices_Uint32[27] = drawObjIndex;
+            this.vertices_Uint32[34] = drawObjIndex;
+            this.vertices_Uint32[41] = drawObjIndex;
+            
             let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set([this.w, this.h,        0.5, -0.5, 1, 0], off); // tr
-            queue.verticesStage.set([-this.w, -this.h,        -0.5, 0.5, 1, 0], off + 7); // bl
-            queue.verticesStage.set([-this.w, this.h,        -0.5, -0.5, 1, 0], off + 14); // tl
-            queue.verticesStage.set([-this.w, -this.h,      -0.5, 0.5, 1, 0], off + 21); // bl
-            queue.verticesStage.set([this.w, this.h,    0.5, -0.5, 1, 0], off + 28); // tr
-            queue.verticesStage.set([this.w, -this.h,    0.5, 0.5, 1, 0], off + 35); // br
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 13);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 20);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 27);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 34);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 41);
+            queue.verticesStage.set(this.vertices, off);
             queue.verticesCount += 6;
         }
     }

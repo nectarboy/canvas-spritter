@@ -1,5 +1,4 @@
 import MakeCircularPoolConstructor from './circular_pool.js';
-import Mat3 from './mat3.js';
 
 const MAX_DRAWOBJS = 10000;
 
@@ -7,7 +6,8 @@ const MAX_DRAWOBJS = 10000;
 class DrawObjHolder {
     constructor() {
         this.drawObj = null;
-        this.mat3 = new Mat3();
+        this.drawObjData = new Float32Array(64);
+        this.drawObjData_Uint32 = new Uint32Array(this.drawObjData.buffer);
         this.priority = 0;
         this.orderingThisFrame = 0;
     }
@@ -108,13 +108,18 @@ class DrawObjQueue {
             return;
         }
 
-        // this.opaqueN += !drawObj.transparent;
-        // this.transparentN += !!drawObj.transparent;
         let holder = drawObjHolderPool.Get();
         holder.drawObj = drawObj;
-        // holder.mat3.Set(drawObj.mat3);
+        drawObj.CopyDataTo(holder.drawObjData, holder.drawObjData_Uint32);
         holder.priority = priority;
         this.holders.push(holder);
+    }
+
+    BufferDrawObjData(data, ordering) {
+        let off = this.drawObjDataCount * this.drawObjDataEntrySize;
+        this.storageStage.set(data, off);
+        this.storageStage[off + 59] = ordering;
+        this.drawObjDataCount++;
     }
 
     PushDrawObjsToStageBuffers() {
@@ -133,7 +138,8 @@ class DrawObjQueue {
         // Opaque (Front to back)
         for (let i = 0; i < opaques.length; i++) {
             let holder = opaques[opaques.length - i - 1];
-            holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
+            this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
+            // holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
         }
         for (let i = 0; i < opaques.length; i++) {
             let holder = opaques[opaques.length - i - 1];
@@ -144,7 +150,8 @@ class DrawObjQueue {
         // Transparent (Back to front)
         for (let i = 0; i < transparents.length; i++) {
             let holder = transparents[i];
-            holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
+            this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
+            // holder.drawObj.BufferDataAt(this, holder, holder.orderingThisFrame);
         }
         for (let i = 0; i < transparents.length; i++) {
             let holder = transparents[i];
