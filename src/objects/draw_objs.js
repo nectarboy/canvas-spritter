@@ -1,4 +1,5 @@
 import Mat3 from '../mat3.js';
+import DataMat3 from '../data_mat3.js';
 import Vec2 from '../vec2.js';
 import Triangulator from '../triangulator.js';
 
@@ -21,40 +22,50 @@ const DrawObjFlag = {
     SecondaryTextureAddBlend: 0x8000    // Simply adds the second texture instead of proper alpha blending
 };
 
+const DATA_ARRAY = Float32Array; // Float32Array makes copying data to buffers MUCH faster than Float64Array
+const DATA_BYTES = DATA_ARRAY.BYTES_PER_ELEMENT;
+const WHITE = new DATA_ARRAY(4);
+WHITE.set([1, 1, 1, 1]);
+
 class DrawObj {
     constructor() {
-        this.mat3 = new Mat3().ToIdentity();
+        this.transparent = true;
+        this.flags = DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture;
+        this.posOffset = new Vec2(0, 0);
+
+        this.data = new DATA_ARRAY(64);
+
+        this.mat3 = new DataMat3(new DATA_ARRAY(this.data.buffer, 0 * DATA_BYTES, 12)).ToIdentity();
 
         // currently, these transforms can be thought of as a 'camera' with its own position, orientation, and scale, that 'captures' the texture.
         // example, scaling texMat3 up, makes the 'camera' 'bigger', effectively making the textures tiling look smaller, instead of what one would expect, that is making the textures look bigger.
         // this will probably be changed sometime when i figure out how...
-        this.texMat3 = new Mat3().ToIdentity();
-        this.tex2Mat3 = new Mat3().ToIdentity();
+        this.texMat3 = new DataMat3(new DATA_ARRAY(this.data.buffer, 12 * DATA_BYTES, 12)).ToIdentity();
+        this.tex2Mat3 = new DataMat3(new DATA_ARRAY(this.data.buffer, 24 * DATA_BYTES, 12)).ToIdentity();
 
-        this.flags = DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture;
-        this.transparent = true;
-
-        this.atlas = null;
-        this.atlasDimension = -1;
-        this.iAtlasDimension = -1;
-
-        this.texPos = new Vec2(0, 0);
-        this.texSize = new Vec2(0, 0);
-        this.texIsFullyOpaque = false;
-        this.tex2Pos = new Vec2(0, 0);
-        this.tex2Size = new Vec2(0, 0);
-        this.tex2IsFullyOpaque = false;
-
-        this.tintColor = { r: 1, g: 1, b: 1, a: 1 };
+        this.tintColor = new DATA_ARRAY(this.data.buffer, 36 * DATA_BYTES, 4);
+        this.tintColor.set(WHITE);
 
         // If a pixel's channel > channel of lower threshold and <= channel of upper threshold, the channel will be zeroed out.
-        this.thresholdLowerColor = { r: 1, g: 1, b: 1, a: 1 };
-        this.thresholdUpperColor = { r: 1, g: 1, b: 1, a: 1 };
+        this.thresholdLowerColor = new DATA_ARRAY(this.data.buffer, 40 * DATA_BYTES, 4);
+        this.thresholdUpperColor = new DATA_ARRAY(this.data.buffer, 44 * DATA_BYTES, 4);
+        this.thresholdLowerColor.set(WHITE);
+        this.thresholdLowerColor.set(WHITE);
+
+        this.texPos = new DATA_ARRAY(this.data.buffer, 48 * DATA_BYTES, 2);
+        this.texSize = new DATA_ARRAY(this.data.buffer, 50 * DATA_BYTES, 2);
+        this.texIsFullyOpaque = false;
+
+        this.tex2Pos = new DATA_ARRAY(this.data.buffer, 52 * DATA_BYTES, 2);
+        this.tex2Size = new DATA_ARRAY(this.data.buffer, 54 * DATA_BYTES, 2);
+        this.tex2IsFullyOpaque = false;
 
         // The opacity of tex2 being overlayed on top of tex1. If 0.0, only tex1 will show as normal.
-        this.tex2Alpha = 0;
+        this.tex2Alpha = new DATA_ARRAY(this.data.buffer, 56 * DATA_BYTES, 1);
 
-        this.posOffset = new Vec2(0, 0);
+        this.atlas = null;
+        this.atlasDimension = new DATA_ARRAY(this.data.buffer, 57 * DATA_BYTES, 1);
+        this.iAtlasDimension = new DATA_ARRAY(this.data.buffer, 58 * DATA_BYTES, 1);
     };
 
     IsFullyOpaque() {
@@ -87,8 +98,8 @@ class DrawObj {
 
     SetTextureAtlas(atlas) {
         this.atlas = atlas;
-        this.atlasDimension = atlas.dimension;
-        this.iAtlasDimension = atlas.iDimension;
+        this.atlasDimension[0] = atlas.dimension;
+        this.iAtlasDimension[0] = atlas.iDimension;
         this.ClearFlags(DrawObjFlag.UseTexture | DrawObj.UseSecondaryTexture);
     }
 
@@ -98,8 +109,10 @@ class DrawObj {
             this.UnsetTexture();
             return;
         }
-        this.texPos.SetXY(tex.bounds.x, tex.bounds.y);
-        this.texSize.SetXY(tex.bounds.w, tex.bounds.h);
+        this.texPos[0] = tex.bounds.x;
+        this.texPos[1] = tex.bounds.y;
+        this.texSize[0] = tex.bounds.w;
+        this.texSize[1] = tex.bounds.h;
         this.texIsFullyOpaque = tex.fullyOpaque;
         this.SetFlags(DrawObjFlag.UseTexture);
     }
@@ -110,8 +123,10 @@ class DrawObj {
             this.UnsetSecondaryTexture();
             return;
         }
-        this.tex2Pos.SetXY(tex.bounds.x, tex.bounds.y);
-        this.tex2Size.SetXY(tex.bounds.w, tex.bounds.h);
+        this.tex2Pos[0] = tex.bounds.x;
+        this.tex2Pos[1] = tex.bounds.y;
+        this.tex2Size[0] = tex.bounds.w;
+        this.tex2Size[1] = tex.bounds.h;
         this.tex2IsFullyOpaque = tex.fullyOpaque;
         this.SetFlags(DrawObjFlag.UseSecondaryTexture);
     }
@@ -122,7 +137,7 @@ class DrawObj {
 
     UnsetSecondaryTexture() {
         this.ClearFlags(DrawObjFlag.UseSecondaryTexture);
-        this.tex2Alpha = 0;
+        this.tex2Alpha[0] = 0;
     }
 
     SetMaskMode(enable) {
@@ -140,44 +155,10 @@ class DrawObj {
     }
 
     BufferDataAt(queue, holder, ordering) {
-        let now = new Date() / 1000;
-
-        const mat3 = holder.mat3;
-        const texMat3 = this.texMat3;
-        const tex2Mat3 = this.tex2Mat3;
-
         let off = queue.drawObjDataCount * queue.drawObjDataEntrySize;
-        queue.storageStage.set([
-            mat3.m[0], mat3.m[1], mat3.m[2], 0,
-            mat3.m[3], mat3.m[4], mat3.m[5], 0,
-            mat3.m[6], mat3.m[7], mat3.m[8], 0,
 
-            texMat3.m[0], texMat3.m[1], texMat3.m[2], 0,
-            texMat3.m[3], texMat3.m[4], texMat3.m[5], 0,
-            texMat3.m[6], texMat3.m[7], texMat3.m[8], 0,
-
-            tex2Mat3.m[0], tex2Mat3.m[1], tex2Mat3.m[2], 0,
-            tex2Mat3.m[3], tex2Mat3.m[4], tex2Mat3.m[5], 0,
-            tex2Mat3.m[6], tex2Mat3.m[7], tex2Mat3.m[8], 0,
-
-            this.tintColor.r, this.tintColor.g, this.tintColor.b, this.tintColor.a, 
-
-            this.thresholdLowerColor.r, this.thresholdLowerColor.g, this.thresholdLowerColor.b, this.thresholdLowerColor.a, 
-            this.thresholdUpperColor.r, this.thresholdUpperColor.g, this.thresholdUpperColor.b, this.thresholdUpperColor.a, 
-
-            this.texPos.x, this.texPos.y,
-            this.texSize.x, this.texSize.y,
-
-            this.tex2Pos.x, this.tex2Pos.y,
-            this.tex2Size.x, this.tex2Size.y,
-
-            this.tex2Alpha,
-
-            this.atlasDimension,
-            this.iAtlasDimension,
-
-            ordering
-        ], off);
+        queue.storageStage.set(this.data, off);
+        queue.storageStage[off + 59] = ordering;
         queue.storageStage_Uint32[off + 60] = this.flags;
 
         queue.drawObjDataCount++;
@@ -233,7 +214,7 @@ class DrawObjs {
             // if (queue.spritter.tick === 0) console.log(this.polyVerts);
         }
 
-        // points must be a Vec2 array
+        // points must be a Vec2 DATA_ARRAY
         SetPoints(points, pointScale) {
             this.polyVerts = Triangulator.TriangulatePolygon(points, pointScale);
         }

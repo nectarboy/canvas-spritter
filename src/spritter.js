@@ -211,79 +211,15 @@ class Spritter {
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('water');
         testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.FilterSecondaryTexture);
-        testSprite.tex2Alpha = 0;
-        testSprite.tintColor = {r: 1, g: 1, b: 1, a: 1};
+        testSprite.tex2Alpha[0] = 0;
+        testSprite.tintColor.set([1, 1, 1, 1]);
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
         // testSprite.SetDisplacementMode(true);
-        // testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
-        // testSprite.mat3.ScaleXY(1, 1);
-        // testSprite.mat3.Rotate(this.tick);
+        testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
+        testSprite.mat3.ScaleXY(1, 1);
+        testSprite.mat3.Rotate(this.tick);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
-
-        // let testPerspective = new DrawObjs.PerspectiveSprite();
-        // testPerspective.topLeft.SetXY(-100 * .5, 100 * .5);
-        // testPerspective.topRight.SetXY(100 * .5, 100);
-        // testPerspective.botRight.SetXY(100, -100);
-        // testPerspective.botLeft.SetXY(-100, -100);
-        // testPerspective.UpdatePerspectiveWeights();
-        // testPerspective.SetTextureAtlas(this.textureManager.textureAtlas);
-        // testPerspective.SetTexture('water');
-        // testPerspective.SetSecondaryTexture('water');
-        // testPerspective.tex2Alpha = 1;
-        // testPerspective.thresholdLowerColor.a = 0.25;
-        // testPerspective.thresholdUpperColor.a = 0.8;
-        // testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | DrawObjFlag.FilterTexture | DrawObjFlag.SecondaryTextureAddBlend);
-        // testPerspective.SetFlags(DrawObjFlag.PatternMode); // will not work correctly. to be honest, what would we even define this behavior as?
-        // testPerspective.mat3.ScaleXY(2, 2);
-        // this.drawObjQueue.BufferDrawobj(testPerspective, 3);
-
-        let testPoly = new DrawObjs.Poly([
-            new Vec2(-106, 38),
-            new Vec2(-8, 100),
-            new Vec2(17, -10),
-            new Vec2(71, 31),
-            new Vec2(100, -18),
-            new Vec2(70, -52),
-            new Vec2(-86, -16),
-            new Vec2(-24, 41)
-        ], 2);
-
-        if ((this.tick % 120) === 0) {
-            spikeballShape = new Array(64);
-            for (let i = 0; i < spikeballShape.length; i++) {
-                let ang = i / spikeballShape.length * 360;
-                // let size = (i & 1) ? 1 : 2;
-                // let size = 1;
-                let size = 1 + Math.random();
-                spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
-            }
-            testPoly.SetPoints(spikeballShape, 200);
-            // testPoly.TestDraw();
-            // console.log(spikeballShape);
-        }
-        else {
-            testPoly.SetPoints(spikeballShape, 200);
-        }
-
-        // testPoly.transparent = false;
-        testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
-        testPoly.SetTexture('terrain');
-        testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
-        testPoly.tex2Mat3.TranslateXY(-this.tick * 0.005 * 500, this.tick * 0.005 * 500);
-        testPoly.tex2Mat3.ScaleWithTranslation(0.245);
-        testPoly.texMat3.TranslateXY(this.tick * 0.0025 * 500, -this.tick * 0.002 * 500);
-        testPoly.texMat3.ScaleWithTranslation(0.2445);
-        // testPoly.mat3.ScaleXY(1, 1);
-        // testPoly.mat3.Rotate(this.tick);
-        testPoly.SetTexture('water');
-        testPoly.SetSecondaryTexture('water');
-        testPoly.tex2Alpha = 1;
-        // testPoly.thresholdLowerColor.a = 0.3;
-        // testPoly.thresholdUpperColor.a = 0.9;
-        // testPoly.SetMaskMode(true);
-        testPoly.SetFlags(DrawObjFlag.FilterSecondaryTexture | DrawObjFlag.FilterTexture | DrawObjFlag.SecondaryTextureAddBlend);
-        this.drawObjQueue.BufferDrawobj(testPoly, 2);
 
         // Stress tester
         for (let i = 0; i < 1000; i++) {

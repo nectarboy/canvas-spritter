@@ -112,7 +112,7 @@ class DrawObjQueue {
         // this.transparentN += !!drawObj.transparent;
         let holder = drawObjHolderPool.Get();
         holder.drawObj = drawObj;
-        holder.mat3.Set(drawObj.mat3);
+        // holder.mat3.Set(drawObj.mat3);
         holder.priority = priority;
         this.holders.push(holder);
     }
