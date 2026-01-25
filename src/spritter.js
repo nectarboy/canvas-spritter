@@ -6,11 +6,26 @@ import { DrawObjFlag, DrawObjs } from './objects/draw_objs.js';
 import GetSpritterImage from './spritter_image.js';
 
 async function fetchShader(path, dependencies) {
-    let wgsl = await (await fetch(path, { cache: 'no-store' })).text();
+    let requires = [];
+
+    let wgsl = (await (await fetch(path, { cache: 'no-store' })).text()).split("\n");
+
     for (let dependencyWgsl of dependencies) {
-        wgsl = dependencyWgsl + wgsl + "\n\n";
+        wgsl = dependencyWgsl.split("\n").concat(wgsl);
     }
-    return wgsl;
+
+    for (let i = 0; i < wgsl.length; i++) {
+        let line = wgsl[i];
+        if (line.startsWith("requires")) {
+            requires.push(line);
+            wgsl.splice(i, 1);
+            i--;
+        }
+    }
+
+    wgsl = requires.concat(wgsl);
+
+    return wgsl.join("\n");
 }
 
 const drawObjWgsl = await (await fetch('./src/wgsl/draw_obj.wgsl', { cache: 'no-store' })).text();
@@ -210,22 +225,25 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('water');
-        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.FilterSecondaryTexture);
+        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.SecondarySeeThroughMode | DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha[0] = 1;
         testSprite.tintColor.set([1, 1, 1, 1]);
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
-        // testSprite.SetDisplacementMode(true);
-        testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
-        testSprite.mat3.ScaleXY(1, 1);
-        // testSprite.mat3.Rotate(this.tick);
-        testSprite.texMat3.Set(testSprite.mat3);
+        testSprite.SetDisplacementMode(true);
+        testSprite.mat3.TranslateXY(Math.sin(now) * 100, Math.sin(now) * 50);
+        testSprite.mat3.ScaleXY((Math.sin(now) + 1) / 2 + 1, 2);
+        testSprite.mat3.Rotate(this.tick);
+
+        testSprite.texMat3.TranslateXY(this.tick / 3, this.tick / 3);
+        testSprite.texMat3.ScaleWithTranslationXY(0.33, 0.33);
         testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
         testSprite.tex2Mat3.ScaleWithTranslationXY(0.25, 0.25);
+        testSprite.tex2Mat3.Rotate(this.tick / 10);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         // Stress tester
-        for (let i = 0; i < 0; i++) {
+        for (let i = 0; i < 10000 - 100; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
