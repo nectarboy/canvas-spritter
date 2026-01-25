@@ -226,32 +226,32 @@ class Spritter {
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('water');
         testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.SecondarySeeThroughMode | DrawObjFlag.FilterSecondaryTexture);
-        testSprite.tex2Alpha[0] = 1;
-        testSprite.tintColor.set([1, 1, 1, 1]);
+        testSprite.tex2Alpha[0] = 0;
+        testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, Math.sin(now) * 50);
         testSprite.mat3.ScaleXY((Math.sin(now) + 1) / 2 + 1, 2);
-        testSprite.mat3.Rotate(this.tick);
+        // testSprite.mat3.Rotate(this.tick);
 
         testSprite.texMat3.TranslateXY(this.tick / 3, this.tick / 3);
         testSprite.texMat3.ScaleWithTranslationXY(0.33, 0.33);
-        testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
+        // testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
         testSprite.tex2Mat3.ScaleWithTranslationXY(0.25, 0.25);
-        testSprite.tex2Mat3.Rotate(this.tick / 10);
+        // testSprite.tex2Mat3.Rotate(this.tick / 10);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         // Stress tester
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 10000 - 100; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
             testSprite.tintColor[0] = Math.random();
             testSprite.tintColor[1] = Math.random();
             testSprite.tintColor[2] = Math.random();
-            // testSprite.mat3.Rotate(1);
-            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            testSprite.mat3.Rotate(1);
+            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }

@@ -24,6 +24,8 @@ fn main(
     @location(2) drawObjIndex : u32
 ) -> VertexOutput {
 
+    // TODO: calculate stuff that will be uniform across all a DrawObj's vertices in a seperate pass beforehand, to pass along here?
+
     const IDENTITY : mat3x3<f32> = mat3x3<f32>(
         1, 0, 0,
         0, 1, 0,
