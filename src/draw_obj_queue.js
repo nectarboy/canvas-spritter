@@ -2,7 +2,7 @@ import MakeCircularPoolConstructor from './circular_pool.js';
 
 const MAX_DRAWOBJS = 20000;
 
-// An entry in the buffer that holds a DrawObj and the Mat3 where it will be drawn
+// An entry in the buffer that holds a buffered DrawObj and the index to its buffered data
 class DrawObjHolder {
     constructor() {
         this.drawObj = null;

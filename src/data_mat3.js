@@ -11,8 +11,8 @@ IDENTITY.set([
 // A Float32 version of Mat3 that works with existing data, and has padding after every column for alignment.
 // Might replace Mat3 itself
 class DataMat3 {
-    constructor(view) {
-        this.m = view;
+    constructor(view = null) {
+        this.m = view === null ? new Float32Array(12) : view;
     }
 
     Copy() {
@@ -60,7 +60,7 @@ class DataMat3 {
         let m1 = this.m[1] * cos + this.m[5] * sin;
         let m5 = this.m[1] * -sin + this.m[5] * cos;
         let m2 = this.m[2] * cos + this.m[6] * sin;
-        let m6 = this.m[4] * -sin + this.m[6] * cos;
+        let m6 = this.m[2] * -sin + this.m[6] * cos;
         this.m[0] = m0;
         this.m[1] = m1;
         this.m[2] = m2;
@@ -77,7 +77,7 @@ class DataMat3 {
         let m1 = this.m[1] * cos + this.m[5] * sin;
         let m5 = this.m[1] * -sin + this.m[5] * cos;
         let m2 = this.m[2] * cos + this.m[6] * sin;
-        let m6 = this.m[4] * -sin + this.m[6] * cos;
+        let m6 = this.m[2] * -sin + this.m[6] * cos;
         let m8 = this.m[8] * cos - this.m[9] * sin;
         let m9 = this.m[8] * sin + this.m[9] * cos;
         this.m[0] = m0;
@@ -89,6 +89,10 @@ class DataMat3 {
         this.m[8] = m8;
         this.m[9] = m9;
         return this;
+    }
+    ReverseRotation() {
+        this.m[1] = -this.m[1];
+        this.m[4] = -this.m[4];
     }
 
     Scale(scale) {
@@ -119,6 +123,8 @@ class DataMat3 {
         return this;
     }
 
+
+
     TranslateXY(x, y) {
         this.m[8] += x;
         this.m[9] += y;
@@ -139,6 +145,14 @@ class DataMat3 {
     }
     GetY() {
         return this.m[9];
+    }
+    SetX(x) {
+        this.m[8] = x;
+        return this;
+    }
+    SetY(y) {
+        this.m[9] = y;
+        return this;
     }
 
     // Apply this, then mat3 (mat3 * this)

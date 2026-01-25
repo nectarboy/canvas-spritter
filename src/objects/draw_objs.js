@@ -15,11 +15,13 @@ const DrawObjFlag = {
     DisplacementTextureMode: 0x100,     // Use secondary texture as a displacement map
     PatternMode: 0x200,                 // Use texture's real size instead of DrawObj size
     SecondaryPatternMode: 0x400,        // Use secondary texture as pattern
-    FlipTextureX: 0x800,
-    FlipTextureY: 0x1000,
-    FlipSecondaryTextureX: 0x2000,
-    FlipSecondaryTextureY: 0x4000,
-    SecondaryTextureAddBlend: 0x8000    // Simply adds the second texture instead of proper alpha blending
+    SeeThroughMode: 0x800,              // Produces a see-through effect, only for use with pattern mode
+    SecondarySeeThroughMode: 0x1000,    // Produces a see-through effect, only for use with pattern mode
+    FlipTextureX: 0x200,
+    FlipTextureY: 0x4000,
+    FlipSecondaryTextureX: 0x8000,
+    FlipSecondaryTextureY: 0x10000,
+    SecondaryTextureAddBlend: 0x20000    // Simply adds the second texture instead of proper alpha blending
 };
 
 const DATA_ARRAY = Float32Array; // Float32Array makes copying data to buffers MUCH faster than Float64Array
@@ -171,6 +173,19 @@ class DrawObj {
             this.SetFlags(DrawObjFlag.DisplacementTextureMode);
         else
             this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
+    }
+
+    SetTextureToSeeThroughEffect() {
+        this.SetFlags(DrawObjFlag.PatternMode);
+        this.texMat3.Set(this.mat3);
+        this.texMat3.ReverseRotation();
+        this.texMat3.SetY(-this.texMat3.GetY());
+    }
+    SetSecondaryTextureToSeeThroughEffect() {
+        this.SetFlags(DrawObjFlag.SecondaryPatternMode);
+        this.tex2Mat3.Set(this.mat3);
+        this.tex2Mat3.ReverseRotation();
+        this.tex2Mat3.SetY(-this.tex2Mat3.GetY());
     }
 
     CopyDataTo(data, off) {

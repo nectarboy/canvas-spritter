@@ -24,6 +24,12 @@ fn main(
     @location(2) drawObjIndex : u32
 ) -> VertexOutput {
 
+    const IDENTITY : mat3x3<f32> = mat3x3<f32>(
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1
+    );
+
     const MAX_ORDERING = 1000000f;
 
     const screenW = 480f;
@@ -43,9 +49,20 @@ fn main(
         sqrt(drawObj.texMat3[1][0]*drawObj.texMat3[1][0] + drawObj.texMat3[1][1]*drawObj.texMat3[1][1])
     );
 
+    // matrix that produces a see-through effect for patterns
+    var seeThrough = drawObj.mat3;
+    seeThrough[0][1] = -seeThrough[0][1];
+    seeThrough[1][0] = -seeThrough[1][0];
+    seeThrough[2][1] = -seeThrough[2][1];
+
     if ((drawObj.flags & PatternMode) != 0) {
         out.displacementScale *= drawObj.texSize;
-        out.texUv = drawObj.texMat3 * vec3f(position.x, -position.y, uv.z);
+        let effect = mat3x3<f32>(
+            select(IDENTITY[0], seeThrough[0], (drawObj.flags & SeeThroughMode) != 0),
+            select(IDENTITY[1], seeThrough[1], (drawObj.flags & SeeThroughMode) != 0),
+            select(IDENTITY[2], seeThrough[2], (drawObj.flags & SeeThroughMode) != 0),
+        );
+        out.texUv = drawObj.texMat3 * effect * vec3f(position.x, -position.y, uv.z);
         out.texUv.x /= 2 * drawObj.texSize.x;
         out.texUv.y /= 2 * drawObj.texSize.y;
     }
@@ -56,7 +73,12 @@ fn main(
     out.texUv.y = select(out.texUv.y, -out.texUv.y, (drawObj.flags & FlipTextureY) != 0);
 
     if ((drawObj.flags & SecondaryPatternMode) != 0) {
-        out.tex2Uv = drawObj.tex2Mat3 * vec3f(position.x, -position.y, uv.z);
+        let effect = mat3x3<f32>(
+            select(IDENTITY[0], seeThrough[0], (drawObj.flags & SecondarySeeThroughMode) != 0),
+            select(IDENTITY[1], seeThrough[1], (drawObj.flags & SecondarySeeThroughMode) != 0),
+            select(IDENTITY[2], seeThrough[2], (drawObj.flags & SecondarySeeThroughMode) != 0),
+        );
+        out.tex2Uv = drawObj.tex2Mat3 * effect * vec3f(position.x, -position.y, uv.z);
         out.tex2Uv.x /= 2 * drawObj.tex2Size.x;
         out.tex2Uv.y /= 2 * drawObj.tex2Size.y;
     }
