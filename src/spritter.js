@@ -215,25 +215,26 @@ class Spritter {
         testSprite.tintColor.set([1, 1, 1, 1]);
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
-        testSprite.SetDisplacementMode(true);
+        // testSprite.SetDisplacementMode(true);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
         testSprite.mat3.ScaleXY(1, 1);
-        testSprite.mat3.Rotate(this.tick);
+        // testSprite.mat3.Rotate(this.tick);
+        testSprite.texMat3.Set(testSprite.mat3);
         testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
         testSprite.tex2Mat3.ScaleWithTranslationXY(0.25, 0.25);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
         // Stress tester
-        for (let i = 0; i < 10000 - 100; i++) {
+        for (let i = 0; i < 0; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
             testSprite.tintColor[0] = Math.random();
             testSprite.tintColor[1] = Math.random();
             testSprite.tintColor[2] = Math.random();
-            testSprite.mat3.Rotate(1);
+            // testSprite.mat3.Rotate(1);
             testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(testSprite, i);
+            this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
 
@@ -273,6 +274,7 @@ class Spritter {
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
         passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
+        passEncoder.setIndexBuffer(this.drawObjQueue.indexBuffer, 'uint32');
         passEncoder.setPipeline(this.opaquePipeline);
         passEncoder.draw(this.drawObjQueue.opaqueVertices);
         passEncoder.setPipeline(this.transparentPipeline);

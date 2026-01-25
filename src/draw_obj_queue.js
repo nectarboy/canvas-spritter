@@ -1,15 +1,13 @@
 import MakeCircularPoolConstructor from './circular_pool.js';
 
-const MAX_DRAWOBJS = 10000;
+const MAX_DRAWOBJS = 20000;
 
 // An entry in the buffer that holds a DrawObj and the Mat3 where it will be drawn
 class DrawObjHolder {
     constructor() {
         this.drawObj = null;
-        this.drawObjData = new Float32Array(64);
-        this.drawObjData_Uint32 = new Uint32Array(this.drawObjData.buffer);
+        this.drawObjDataIndex = 0;
         this.priority = 0;
-        this.orderingThisFrame = 0;
     }
 
     Reset() {
@@ -67,7 +65,6 @@ class DrawObjQueue {
             ]
         });
 
-
         // Vertex buffer
         this.vertexBufferSize = 4096 * 1024;
         this.verticesStage = new Float32Array(this.vertexBufferSize);
@@ -79,6 +76,14 @@ class DrawObjQueue {
         this.verticesCount = 0;
         this.vertexBufferEntrySize = 7;
         this.vertexBufferEntryByteSize = this.vertexBufferEntrySize * this.verticesStage.BYTES_PER_ELEMENT;
+
+        // Index buffer
+        this.indexBufferSize = 4096 * 1024;
+        this.indexStage = new Uint32Array(this.indexBufferSize);
+        this.indexBuffer = spritter.device.createBuffer({
+            size: this.indexStage.byteLength,
+            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+        });
 
         this.vertexBufferDescriptor = {
             arrayStride: this.vertexBufferEntryByteSize,
@@ -110,16 +115,18 @@ class DrawObjQueue {
 
         let holder = this.holderPool.Get();
         holder.drawObj = drawObj;
-        drawObj.CopyDataTo(holder.drawObjData, holder.drawObjData_Uint32);
+        holder.drawObjDataIndex = this.drawObjDataCount;
+        this.BufferDrawObjData(drawObj.data, 0);
         holder.priority = priority;
         this.holders.push(holder);
     }
 
     BufferDrawObjData(data, ordering) {
-        let off = this.drawObjDataCount * this.drawObjDataEntrySize;
-        data[59] = ordering;
-        this.storageStage.set(data, off);
-        this.drawObjDataCount++;
+        this.storageStage.set(data, this.drawObjDataCount++ * this.drawObjDataEntrySize);
+    }
+
+    PepperDrawObjDataWithOrdering(index, ordering) {
+        this.storageStage[index * this.drawObjDataEntrySize + 59] = ordering;
     }
 
     PushDrawObjsToStageBuffers() {
@@ -130,57 +137,25 @@ class DrawObjQueue {
         let transparents = [];
 
         for (let i = 0; i < this.holders.length; i++) {
-            this.holders[i].orderingThisFrame = i;
+            this.PepperDrawObjDataWithOrdering(this.holders[i].drawObjDataIndex, i);
 
             let isOpaque = (!this.holders[i].drawObj.transparent) | (this.holders[i].drawObj.IsFullyOpaque());
             (isOpaque ? opaques : transparents).push(this.holders[i]);
         }
 
-        // Opaque Data
+        // Opaque (Front to back)
         for (let i = 0; i < opaques.length; i++) {
             let holder = opaques[opaques.length - i - 1];
-            this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
-        }
-        // Transparent Data
-        for (let i = 0; i < transparents.length; i++) {
-            let holder = transparents[i];
-            holder.drawObj.BufferVerticesAt(this, holder, i + opaques.length);
-        }
-
-        // Opaque Vertices
-        for (let i = 0; i < opaques.length; i++) {
-            let holder = opaques[opaques.length - i - 1];
-            holder.drawObj.BufferVerticesAt(this, holder, i);
+            holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
         }
         this.opaqueVertices = this.verticesCount;
-        // Transparent Vertices
+
+        // Transparent (Back to front)
         for (let i = 0; i < transparents.length; i++) {
             let holder = transparents[i];
-            this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
+            holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
         }
         this.transparentVertices = this.verticesCount - this.opaqueVertices;
-
-        // // Opaque (Front to back)
-        // for (let i = 0; i < opaques.length; i++) {
-        //     let holder = opaques[opaques.length - i - 1];
-        //     this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
-        // }
-        // for (let i = 0; i < opaques.length; i++) {
-        //     let holder = opaques[opaques.length - i - 1];
-        //     holder.drawObj.BufferVerticesAt(this, holder, i);
-        // }
-        // this.opaqueVertices = this.verticesCount;
-
-        // // Transparent (Back to front)
-        // for (let i = 0; i < transparents.length; i++) {
-        //     let holder = transparents[i];
-        //     this.BufferDrawObjData(holder.drawObjData, holder.orderingThisFrame);
-        // }
-        // for (let i = 0; i < transparents.length; i++) {
-        //     let holder = transparents[i];
-        //     holder.drawObj.BufferVerticesAt(this, holder, i + opaques.length);
-        // }
-        // this.transparentVertices = this.verticesCount - this.opaqueVertices;
     }
 
     UploadStageBuffersToBuffers() {
@@ -191,6 +166,14 @@ class DrawObjQueue {
             this.verticesStage.byteOffset,
             this.verticesCount * this.vertexBufferEntryByteSize
         );
+
+        // this.spritter.device.queue.writeBuffer(
+        //     this.indexBuffer,
+        //     0,
+        //     this.indexStage.buffer,
+        //     this.indexStage.byteOffset,
+        //     this.verticesCount
+        // );
 
         this.spritter.device.queue.writeBuffer(
             this.storageBuffer,

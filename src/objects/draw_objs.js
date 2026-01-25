@@ -173,14 +173,12 @@ class DrawObj {
             this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
     }
 
-    CopyDataTo(data, dataU32) {
-        data.set(this.data);
-        if (DATA_BYTES !== 4) {
-            dataU32[60] = this.flags;
-        }
+    CopyDataTo(data, off) {
+        data.set(this.data, off);
     }
 
     BufferVerticesAt(queue, mat3, drawObjIndex) {}
+    GetVerticesCount() {}
 }
 
 class DrawObjs {
@@ -217,6 +215,10 @@ class DrawObjs {
             queue.verticesStage.set(this.vertices, off);
             queue.verticesCount += 6;
         }
+
+        GetVerticesCount() {
+            return 6;
+        }
     }
 
     static Poly = class Poly extends DrawObj {
@@ -237,6 +239,10 @@ class DrawObjs {
             queue.verticesCount += this.polyVerts.length;
 
             // if (queue.spritter.tick === 0) console.log(this.polyVerts);
+        }
+
+        GetVerticesCount() {
+            return this.polyVerts.length;
         }
 
         // points must be a Vec2 array
@@ -321,6 +327,10 @@ class DrawObjs {
             queue.verticesStage_Uint32.set([drawObjIndex], off + 34);
             queue.verticesStage_Uint32.set([drawObjIndex], off + 41);
             queue.verticesCount += 6;
+        }
+
+        GetVerticesCount() {
+            return 6;
         }
     }
 
