@@ -49,7 +49,7 @@ fn main(
     out.displacementScale = vec2f(
         sqrt(drawObj.texMat3[0][0]*drawObj.texMat3[0][0] + drawObj.texMat3[0][1]*drawObj.texMat3[0][1]),
         sqrt(drawObj.texMat3[1][0]*drawObj.texMat3[1][0] + drawObj.texMat3[1][1]*drawObj.texMat3[1][1])
-    );
+    ) * drawObj.displacementStrength;
 
     // matrix that produces a see-through effect for patterns
     var seeThrough = drawObj.mat3;
@@ -58,7 +58,8 @@ fn main(
     seeThrough[2][1] = -seeThrough[2][1];
 
     if ((drawObj.flags & PatternMode) != 0) {
-        out.displacementScale *= drawObj.texSize;
+        // out.displacementScale = vec2f(1);
+        // out.displacementScale /= drawObj.texSize;
         out.texUv = vec3f(position.x, -position.y, uv.z);
         if ((drawObj.flags & SeeThroughMode) != 0) {
             out.texUv = seeThrough * out.texUv;

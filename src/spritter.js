@@ -225,9 +225,10 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('test');
         testSprite.SetSecondaryTexture('water');
-        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.SecondarySeeThroughMode | DrawObjFlag.FilterSecondaryTexture);
+        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha[0] = 0;
-        testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);
+        testSprite.displacementStrength[0] = Math.sin(now);
+        // testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
         testSprite.SetDisplacementMode(true);
@@ -235,10 +236,10 @@ class Spritter {
         testSprite.mat3.ScaleXY((Math.sin(now) + 1) / 2 + 1, 2);
         // testSprite.mat3.Rotate(this.tick);
 
-        testSprite.texMat3.TranslateXY(this.tick / 3, this.tick / 3);
-        testSprite.texMat3.ScaleWithTranslationXY(0.33, 0.33);
+        // testSprite.texMat3.TranslateXY(this.tick / 3, this.tick / 3);
+        testSprite.texMat3.ScaleWithTranslation(4 / (this.tick*.05 + 1));
         // testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
-        testSprite.tex2Mat3.ScaleWithTranslationXY(0.25, 0.25);
+        // testSprite.tex2Mat3.ScaleWithTranslationXY(1, 0.25);
         // testSprite.tex2Mat3.Rotate(this.tick / 10);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 

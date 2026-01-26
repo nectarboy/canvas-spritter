@@ -126,7 +126,7 @@ class DrawObjQueue {
     }
 
     PepperDrawObjDataWithOrdering(index, ordering) {
-        this.storageStage[index * this.drawObjDataEntrySize + 59] = ordering;
+        this.storageStage[index * this.drawObjDataEntrySize + 60] = ordering;
     }
 
     PushDrawObjsToStageBuffers() {

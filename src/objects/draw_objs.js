@@ -68,10 +68,13 @@ class DrawObj {
         this.atlasDimension = new DATA_ARRAY(this.data.buffer, 57 * DATA_BYTES, 1);
         this.iAtlasDimension = new DATA_ARRAY(this.data.buffer, 58 * DATA_BYTES, 1);
 
-        // Set by the queue, do not use this value!
-        this.ordering = new DATA_ARRAY(this.data.buffer, 59 * DATA_BYTES, 1);
+        this.displacementStrength = new DATA_ARRAY(this.data.buffer, 59 * DATA_BYTES, 1);
+        this.displacementStrength[0] = 1;
 
-        this.flags = new Uint32Array(this.data.buffer, 60 * DATA_BYTES, 1);
+        // Set by the queue, do not use this value!
+        this.ordering = new DATA_ARRAY(this.data.buffer, 60 * DATA_BYTES, 1);
+
+        this.flags = new Uint32Array(this.data.buffer, 61 * DATA_BYTES, 1);
         this.SetFlags(DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture);
     };
 

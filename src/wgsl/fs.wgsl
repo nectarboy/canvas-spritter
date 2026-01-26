@@ -83,8 +83,8 @@ fn main(
             // }
             // TODO: test out this branchless version
             var displacement = vec2f(
-                (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureX) != 0),
-                (pix2.a - 0.5) * select(.25, -.25, (flags & FlipTextureY) != 0),
+                (pix2.a - 0.5) * select(1.0, -1.0, (flags & FlipTextureX) != 0),
+                (pix2.a - 0.5) * select(1.0, -1.0, (flags & FlipTextureY) != 0),
             );
             displacement *= displacementScale;
             uv += select(vec2f(0), displacement, (flags & DisplacementTextureMode) != 0);
