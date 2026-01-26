@@ -186,7 +186,8 @@ class Spritter {
             await GetSpritterImage('src/assets/mask.png', 'mask'),
             await GetSpritterImage('src/assets/mask2.png', 'mask2'),
             await GetSpritterImage('src/assets/background.png', 'background', true),
-            await GetSpritterImage('src/assets/water.png', 'water')
+            await GetSpritterImage('src/assets/water.png', 'water'),
+            await GetSpritterImage('src/assets/mariofire.png', 'mariofire')
         ];
 
         console.log('images:', images);
@@ -248,6 +249,14 @@ class Spritter {
         curtainSprite.texMat3.TranslateXY(0, -this.tick * 0.01);
         this.drawObjQueue.BufferDrawobj(curtainSprite, 1);
 
+        let fireMario = new DrawObjs.Sprite(32, 40);
+        fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
+        fireMario.SetTexture('mariofire');
+        fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
+        fireMario.mat3.Scale(3);
+        fireMario.SetFlags(DrawObjFlag.FlipTextureX * flip | DrawObjFlag.FlipTextureY * flop);
+        this.drawObjQueue.BufferDrawobj(fireMario, 1);
+
         let testLine = new DrawObjs.Sprite(1, 128);
         testLine.tintColor.set([0, 0, 0, 1]);
         testLine.mat3.Rotate(Math.round(this.tick / 15) * 15);
@@ -258,12 +267,16 @@ class Spritter {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
-            testSprite.tintColor[0] = Math.random();
-            testSprite.tintColor[1] = Math.random();
-            testSprite.tintColor[2] = Math.random();
-            testSprite.mat3.Rotate(1);
-            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
-            this.drawObjQueue.BufferDrawobj(testSprite, 0);
+            fireMario.mat3.Rotate(1);
+            fireMario.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(fireMario, 0);
+
+            // testSprite.tintColor[0] = Math.random();
+            // testSprite.tintColor[1] = Math.random();
+            // testSprite.tintColor[2] = Math.random();
+            // testSprite.mat3.Rotate(1);
+            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+            // this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
 

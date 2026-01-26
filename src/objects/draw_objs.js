@@ -53,10 +53,14 @@ class DrawObj {
         this.thresholdLowerColor.set(WHITE);
         this.thresholdLowerColor.set(WHITE);
 
+        this.texPosX = 0;
+        this.texPosY = 0;
         this.texPos = new DATA_ARRAY(this.data.buffer, 48 * DATA_BYTES, 2);
         this.texSize = new DATA_ARRAY(this.data.buffer, 50 * DATA_BYTES, 2);
         this.texIsFullyOpaque = false;
 
+        this.tex2PosX = 0;
+        this.tex2PosY = 0;
         this.tex2Pos = new DATA_ARRAY(this.data.buffer, 52 * DATA_BYTES, 2);
         this.tex2Size = new DATA_ARRAY(this.data.buffer, 54 * DATA_BYTES, 2);
         this.tex2IsFullyOpaque = false;
@@ -133,6 +137,8 @@ class DrawObj {
             this.UnsetTexture();
             return;
         }
+        this.texPosX = tex.bounds.x;
+        this.texPosY = tex.bounds.y;
         this.texPos[0] = tex.bounds.x;
         this.texPos[1] = tex.bounds.y;
         this.texSize[0] = tex.bounds.w;
@@ -147,12 +153,28 @@ class DrawObj {
             this.UnsetSecondaryTexture();
             return;
         }
+        this.texPosX = tex.bounds.x;
+        this.texPosY = tex.bounds.y;
         this.tex2Pos[0] = tex.bounds.x;
         this.tex2Pos[1] = tex.bounds.y;
         this.tex2Size[0] = tex.bounds.w;
         this.tex2Size[1] = tex.bounds.h;
         this.tex2IsFullyOpaque = tex.fullyOpaque;
         this.SetFlags(DrawObjFlag.UseSecondaryTexture);
+    }
+
+    SetSubTexture(x, y, w, h) {
+        this.texPos[0] = this.texPosX + x;
+        this.texPos[1] = this.texPosY + y;
+        this.texSize[0] = w;
+        this.texSize[1] = h;
+    }
+
+    SetSecondarySubTexture(x, y, w, h) {
+        this.tex2Pos[0] = this.tex2PosX + x;
+        this.tex2Pos[1] = this.tex2PosY + y;
+        this.tex2Size[0] = w;
+        this.tex2Size[1] = h;
     }
 
     UnsetTexture() {
