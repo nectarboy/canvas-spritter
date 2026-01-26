@@ -280,7 +280,7 @@ class DrawObjs {
         }
 
         BufferVerticesAt(queue, holder, drawObjIndex) {
-            for (let i = 0; i < this.vertices.length; i += 7) {
+            for (let i = 0; i < this.vertices.length; i += 42) { // TODO: i should really unhardcode the vertices count / format ...
                 this.vertices_Uint32[i + 6] = drawObjIndex;
                 this.vertices_Uint32[i + 13] = drawObjIndex;
                 this.vertices_Uint32[i + 20] = drawObjIndex;

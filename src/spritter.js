@@ -242,7 +242,7 @@ class Spritter {
         // testSprite.tex2Mat3.Rotate(this.tick / 10);
         // this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
-        let curtainSprite = new DrawObjs.CurtainSprite(128, 128, 10, 0.5);
+        let curtainSprite = new DrawObjs.CurtainSprite(128, 128, 20, 0.5);
         curtainSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         curtainSprite.SetTexture('test');
         curtainSprite.texMat3.TranslateXY(0, -this.tick * 0.01);
@@ -261,8 +261,8 @@ class Spritter {
             testSprite.tintColor[0] = Math.random();
             testSprite.tintColor[1] = Math.random();
             testSprite.tintColor[2] = Math.random();
-            // testSprite.mat3.Rotate(1);
-            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+            testSprite.mat3.Rotate(1);
+            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
             this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
