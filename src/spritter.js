@@ -223,7 +223,7 @@ class Spritter {
 
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
-        testSprite.SetTexture('test');
+        testSprite.SetTexture('atlas_test');
         testSprite.SetSecondaryTexture('water');
         testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture);
         testSprite.tex2Alpha[0] = 0;
