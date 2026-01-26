@@ -61,7 +61,6 @@ class Triangulator {
             }
         }
 
-
         let its = 0;
         let skips = 0;
         let angThreshold = 40;

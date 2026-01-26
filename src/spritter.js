@@ -6,11 +6,26 @@ import { DrawObjFlag, DrawObjs } from './objects/draw_objs.js';
 import GetSpritterImage from './spritter_image.js';
 
 async function fetchShader(path, dependencies) {
-    let wgsl = await (await fetch(path, { cache: 'no-store' })).text();
+    let requires = [];
+
+    let wgsl = (await (await fetch(path, { cache: 'no-store' })).text()).split("\n");
+
     for (let dependencyWgsl of dependencies) {
-        wgsl = dependencyWgsl + wgsl + "\n\n";
+        wgsl = dependencyWgsl.split("\n").concat(wgsl);
     }
-    return wgsl;
+
+    for (let i = 0; i < wgsl.length; i++) {
+        let line = wgsl[i];
+        if (line.startsWith("requires")) {
+            requires.push(line);
+            wgsl.splice(i, 1);
+            i--;
+        }
+    }
+
+    wgsl = requires.concat(wgsl);
+
+    return wgsl.join("\n");
 }
 
 const drawObjWgsl = await (await fetch('./src/wgsl/draw_obj.wgsl', { cache: 'no-store' })).text();
@@ -201,98 +216,44 @@ class Spritter {
         let flip = (this.tick % 60) >= 30;
         let flop = (this.tick % 120) >= 60;
 
-        let backgroundSprite = new DrawObjs.Sprite(480, 360);
+        let backgroundSprite = new DrawObjs.Sprite(this.canvas.width, this.canvas.height);
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
         let testSprite = new DrawObjs.Sprite(128, 128);
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
-        testSprite.SetTexture('test');
+        testSprite.SetTexture('atlas_test');
         testSprite.SetSecondaryTexture('water');
-        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode | DrawObjFlag.FilterSecondaryTexture);
-        testSprite.tex2Alpha = 0;
-        testSprite.tintColor = {r: 1, g: 1, b: 1, a: 1};
+        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip));
+        testSprite.tex2Alpha[0] = 0;
+        testSprite.displacementStrength[0] = Math.sin(now);
+        // testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
-        // testSprite.SetDisplacementMode(true);
-        // testSprite.mat3.TranslateXY(Math.sin(now) * 100, 0);
-        // testSprite.mat3.ScaleXY(1, 1);
+        testSprite.SetDisplacementMode(true);
+        testSprite.mat3.TranslateXY(Math.sin(now) * 100, Math.sin(now) * 50);
+        testSprite.mat3.ScaleXY((Math.sin(now) + 1) / 2 + 1, 2);
         // testSprite.mat3.Rotate(this.tick);
+
+        // testSprite.texMat3.TranslateXY(this.tick / 3, this.tick / 3);
+        testSprite.texMat3.ScaleWithTranslation(4 / (this.tick*.05 + 1));
+        // testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
+        // testSprite.tex2Mat3.ScaleWithTranslationXY(1, 0.25);
+        // testSprite.tex2Mat3.Rotate(this.tick / 10);
         this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
-        // let testPerspective = new DrawObjs.PerspectiveSprite();
-        // testPerspective.topLeft.SetXY(-100 * .5, 100 * .5);
-        // testPerspective.topRight.SetXY(100 * .5, 100);
-        // testPerspective.botRight.SetXY(100, -100);
-        // testPerspective.botLeft.SetXY(-100, -100);
-        // testPerspective.UpdatePerspectiveWeights();
-        // testPerspective.SetTextureAtlas(this.textureManager.textureAtlas);
-        // testPerspective.SetTexture('water');
-        // testPerspective.SetSecondaryTexture('water');
-        // testPerspective.tex2Alpha = 1;
-        // testPerspective.thresholdLowerColor.a = 0.25;
-        // testPerspective.thresholdUpperColor.a = 0.8;
-        // testPerspective.SetFlags(DrawObjFlag.FilterSecondaryTexture | DrawObjFlag.FilterTexture | DrawObjFlag.SecondaryTextureAddBlend);
-        // testPerspective.SetFlags(DrawObjFlag.PatternMode); // will not work correctly. to be honest, what would we even define this behavior as?
-        // testPerspective.mat3.ScaleXY(2, 2);
-        // this.drawObjQueue.BufferDrawobj(testPerspective, 3);
-
-        let testPoly = new DrawObjs.Poly([
-            new Vec2(-106, 38),
-            new Vec2(-8, 100),
-            new Vec2(17, -10),
-            new Vec2(71, 31),
-            new Vec2(100, -18),
-            new Vec2(70, -52),
-            new Vec2(-86, -16),
-            new Vec2(-24, 41)
-        ], 2);
-
-        if ((this.tick % 120) === 0) {
-            spikeballShape = new Array(64);
-            for (let i = 0; i < spikeballShape.length; i++) {
-                let ang = i / spikeballShape.length * 360;
-                // let size = (i & 1) ? 1 : 2;
-                // let size = 1;
-                let size = 1 + Math.random();
-                spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
-            }
-            testPoly.SetPoints(spikeballShape, 200);
-            // testPoly.TestDraw();
-            // console.log(spikeballShape);
-        }
-        else {
-            testPoly.SetPoints(spikeballShape, 200);
-        }
-
-        // testPoly.transparent = false;
-        testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
-        testPoly.SetTexture('terrain');
-        testPoly.mat3.TranslateXY(-Math.sin(now) * 100, 0);
-        testPoly.tex2Mat3.TranslateXY(-this.tick * 0.005 * 500, this.tick * 0.005 * 500);
-        testPoly.tex2Mat3.ScaleWithTranslation(0.245);
-        testPoly.texMat3.TranslateXY(this.tick * 0.0025 * 500, -this.tick * 0.002 * 500);
-        testPoly.texMat3.ScaleWithTranslation(0.2445);
-        // testPoly.mat3.ScaleXY(1, 1);
-        // testPoly.mat3.Rotate(this.tick);
-        testPoly.SetTexture('water');
-        testPoly.SetSecondaryTexture('water');
-        testPoly.tex2Alpha = 1;
-        // testPoly.thresholdLowerColor.a = 0.3;
-        // testPoly.thresholdUpperColor.a = 0.9;
-        // testPoly.SetMaskMode(true);
-        testPoly.SetFlags(DrawObjFlag.FilterSecondaryTexture | DrawObjFlag.FilterTexture | DrawObjFlag.SecondaryTextureAddBlend);
-        this.drawObjQueue.BufferDrawobj(testPoly, 2);
-
         // Stress tester
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 10000 - 100; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
-            // testSprite.mat3.Rotate(1);
-            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(testSprite, i);
+            testSprite.tintColor[0] = Math.random();
+            testSprite.tintColor[1] = Math.random();
+            testSprite.tintColor[2] = Math.random();
+            testSprite.mat3.Rotate(1);
+            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(testSprite, 0);
         }
     }
 
@@ -332,6 +293,7 @@ class Spritter {
         passEncoder.setBindGroup(0, this.textureManager.bindGroup);
         passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
         passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
+        passEncoder.setIndexBuffer(this.drawObjQueue.indexBuffer, 'uint32');
         passEncoder.setPipeline(this.opaquePipeline);
         passEncoder.draw(this.drawObjQueue.opaqueVertices);
         passEncoder.setPipeline(this.transparentPipeline);

@@ -24,6 +24,14 @@ fn main(
     @location(2) drawObjIndex : u32
 ) -> VertexOutput {
 
+    // TODO: calculate stuff that will be uniform across all a DrawObj's vertices in a seperate pass beforehand, to pass along here?
+
+    const IDENTITY : mat3x3<f32> = mat3x3<f32>(
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1
+    );
+
     const MAX_ORDERING = 1000000f;
 
     const screenW = 480f;
@@ -38,14 +46,30 @@ fn main(
     out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.ordering + 1) / MAX_ORDERING, 1.0);
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
-    out.displacementScale = vec2f(
-        sqrt(drawObj.texMat3[0][0]*drawObj.texMat3[0][0] + drawObj.texMat3[0][1]*drawObj.texMat3[0][1]),
-        sqrt(drawObj.texMat3[1][0]*drawObj.texMat3[1][0] + drawObj.texMat3[1][1]*drawObj.texMat3[1][1])
-    );
+    out.displacementScale = sqrt(vec2f(
+        drawObj.texMat3[0][0]*drawObj.texMat3[0][0] + drawObj.texMat3[0][1]*drawObj.texMat3[0][1],
+        drawObj.texMat3[1][0]*drawObj.texMat3[1][0] + drawObj.texMat3[1][1]*drawObj.texMat3[1][1]
+    ))
+    * vec2f(
+        select(1.0, -1.0, (drawObj.flags & FlipTextureX) != 0),
+        select(1.0, -1.0, (drawObj.flags & FlipTextureY) != 0)
+    )
+    * drawObj.displacementStrength;
+
+    // matrix that produces a see-through effect for patterns
+    var seeThrough = drawObj.mat3;
+    seeThrough[0][1] = -seeThrough[0][1];
+    seeThrough[1][0] = -seeThrough[1][0];
+    seeThrough[2][1] = -seeThrough[2][1];
 
     if ((drawObj.flags & PatternMode) != 0) {
-        out.displacementScale *= drawObj.texSize;
-        out.texUv = drawObj.texMat3 * vec3f(position.x, -position.y, uv.z);
+        // out.displacementScale = vec2f(1);
+        // out.displacementScale /= drawObj.texSize;
+        out.texUv = vec3f(position.x, -position.y, uv.z);
+        if ((drawObj.flags & SeeThroughMode) != 0) {
+            out.texUv = seeThrough * out.texUv;
+        }
+        out.texUv = drawObj.texMat3 * out.texUv;
         out.texUv.x /= 2 * drawObj.texSize.x;
         out.texUv.y /= 2 * drawObj.texSize.y;
     }
@@ -56,7 +80,12 @@ fn main(
     out.texUv.y = select(out.texUv.y, -out.texUv.y, (drawObj.flags & FlipTextureY) != 0);
 
     if ((drawObj.flags & SecondaryPatternMode) != 0) {
-        out.tex2Uv = drawObj.tex2Mat3 * vec3f(position.x, -position.y, uv.z);
+        //out.tex2Uv = drawObj.tex2Mat3 * effectArray[select(0, 1, (drawObj.flags & SecondarySeeThroughMode) != 0)] * vec3f(position.x, -position.y, uv.z);
+        out.tex2Uv = vec3f(position.x, -position.y, uv.z);
+        if ((drawObj.flags & SecondarySeeThroughMode) != 0) {
+            out.tex2Uv = seeThrough * out.tex2Uv;
+        }
+        out.tex2Uv = drawObj.tex2Mat3 * out.tex2Uv;
         out.tex2Uv.x /= 2 * drawObj.tex2Size.x;
         out.tex2Uv.y /= 2 * drawObj.tex2Size.y;
     }
