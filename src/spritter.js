@@ -225,7 +225,7 @@ class Spritter {
         testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         testSprite.SetTexture('atlas_test');
         testSprite.SetSecondaryTexture('water');
-        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture);
+        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip));
         testSprite.tex2Alpha[0] = 0;
         testSprite.displacementStrength[0] = Math.sin(now);
         // testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);

@@ -17,7 +17,7 @@ const DrawObjFlag = {
     SecondaryPatternMode: 0x400,        // Use secondary texture as pattern
     SeeThroughMode: 0x800,              // Produces a see-through effect, only for use with pattern mode
     SecondarySeeThroughMode: 0x1000,    // Produces a see-through effect, only for use with pattern mode
-    FlipTextureX: 0x200,
+    FlipTextureX: 0x2000,
     FlipTextureY: 0x4000,
     FlipSecondaryTextureX: 0x8000,
     FlipSecondaryTextureY: 0x10000,

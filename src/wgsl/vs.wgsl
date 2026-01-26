@@ -46,10 +46,15 @@ fn main(
     out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.ordering + 1) / MAX_ORDERING, 1.0);
     // if (VertexIndex == 0 || VertexIndex == 2 || VertexIndex == 4) { out.position.w = 3; }
 
-    out.displacementScale = vec2f(
-        sqrt(drawObj.texMat3[0][0]*drawObj.texMat3[0][0] + drawObj.texMat3[0][1]*drawObj.texMat3[0][1]),
-        sqrt(drawObj.texMat3[1][0]*drawObj.texMat3[1][0] + drawObj.texMat3[1][1]*drawObj.texMat3[1][1])
-    ) * drawObj.displacementStrength;
+    out.displacementScale = sqrt(vec2f(
+        drawObj.texMat3[0][0]*drawObj.texMat3[0][0] + drawObj.texMat3[0][1]*drawObj.texMat3[0][1],
+        drawObj.texMat3[1][0]*drawObj.texMat3[1][0] + drawObj.texMat3[1][1]*drawObj.texMat3[1][1]
+    ))
+    * vec2f(
+        select(1.0, -1.0, (drawObj.flags & FlipTextureX) != 0),
+        select(1.0, -1.0, (drawObj.flags & FlipTextureY) != 0)
+    )
+    * drawObj.displacementStrength;
 
     // matrix that produces a see-through effect for patterns
     var seeThrough = drawObj.mat3;
