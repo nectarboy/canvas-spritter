@@ -12,7 +12,7 @@ const DrawObjFlag = {
     FilterSecondaryTexture: 0x20,
     MaskTextureMode: 0x40,              // Use secondary texture as a soft-mask
     MaskTextureColorChannels: 0x80,     // (When Mask Mode enabled) mask texture color channels too
-    DisplacementTextureMode: 0x100,     // Use secondary texture as a displacement map
+    SignedDisplacementMode: 0x100,      // Make displacement signed (with center being a value of 0.5)
     PatternMode: 0x200,                 // Use texture's real size instead of DrawObj size
     SecondaryPatternMode: 0x400,        // Use secondary texture as pattern
     SeeThroughMode: 0x800,              // Produces a see-through effect, only for use with pattern mode
@@ -73,7 +73,7 @@ class DrawObj {
         this.iAtlasDimension = new DATA_ARRAY(this.data.buffer, 58 * DATA_BYTES, 1);
 
         this.displacementStrength = new DATA_ARRAY(this.data.buffer, 59 * DATA_BYTES, 1);
-        this.displacementStrength[0] = 1;
+        this.displacementStrength[0] = 0;
 
         // Set by the queue, do not use this value!
         this.ordering = new DATA_ARRAY(this.data.buffer, 60 * DATA_BYTES, 1);
@@ -193,11 +193,8 @@ class DrawObj {
             this.ClearFlags(DrawObjFlag.MaskTextureMode);
     }
 
-    SetDisplacementMode(enable) {
-        if (enable)
-            this.SetFlags(DrawObjFlag.DisplacementTextureMode);
-        else
-            this.ClearFlags(DrawObjFlag.DisplacementTextureMode);
+    SetDisplacement(displacementStrength) {
+        this.displacementStrength[0] = displacementStrength;
     }
 
     SetTextureToSeeThroughEffect() {

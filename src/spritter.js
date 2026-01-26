@@ -232,7 +232,7 @@ class Spritter {
         // testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);
         // testSprite.thresholdLowerColor.a = 0.95;
         // testSprite.SetMaskMode(true);
-        testSprite.SetDisplacementMode(true);
+        testSprite.SetDisplacement(1);
         testSprite.mat3.TranslateXY(Math.sin(now) * 100, Math.sin(now) * 50);
         testSprite.mat3.ScaleXY((Math.sin(now) + 1) / 2 + 1, 2);
         // testSprite.mat3.Rotate(this.tick);
@@ -247,14 +247,20 @@ class Spritter {
         curtainSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         curtainSprite.SetTexture('test');
         curtainSprite.texMat3.TranslateXY(0, -this.tick * 0.01);
+        // curtainSprite.SetFlags(DrawObjFlag.PatternMode);
         this.drawObjQueue.BufferDrawobj(curtainSprite, 1);
 
         let fireMario = new DrawObjs.Sprite(32, 40);
         fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         fireMario.SetTexture('mariofire');
         fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
+        fireMario.SetSecondaryTexture('water');
+        fireMario.SetDisplacement(1);
+        fireMario.displacementStrength[0] = this.tick / 100;
         fireMario.mat3.Scale(3);
-        fireMario.SetFlags(DrawObjFlag.FlipTextureX * flip | DrawObjFlag.FlipTextureY * flop);
+        fireMario.tex2Mat3.TranslateXY(this.tick, this.tick / 2);
+        fireMario.SetFlags(DrawObjFlag.SecondaryPatternMode | DrawObjFlag.FlipTextureX * flip | DrawObjFlag.FlipTextureY * flop);
+        fireMario.ClearFlags(DrawObjFlag.RepeatTexture);
         this.drawObjQueue.BufferDrawobj(fireMario, 1);
 
         let testLine = new DrawObjs.Sprite(1, 128);
