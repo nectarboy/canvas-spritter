@@ -239,6 +239,65 @@ class DrawObjs {
         }
     }
 
+    // A sprite that sort of drapes the texture along the dimension with n subdivisions.
+    static CurtainSprite = class CurtainSprite extends DrawObj {
+        constructor(w, h, subdivision, power) {
+            subdivision = 0|subdivision;
+            if (subdivision < 1)
+                subdivision = 1;
+
+            super();
+            this.w = w;
+            this.h = h;
+            this.subdivision = subdivision;
+            this.power = power;
+            this.verticesCount = 6 * subdivision;
+
+            this.vertices = new Float32Array(7 * 6 * this.subdivision);
+            this.vertices_Uint32 = new Uint32Array(this.vertices.buffer);
+            this.UpdateVertices();
+        }
+
+        UpdateVertices() {
+            const func = x => Math.pow(x, this.power);
+
+            let prevV = 0.5;
+            let prevY = -0.5 * this.h * 2;
+            for (let i = 0; i < this.subdivision; i++) {
+                let v = -(i + 1) / this.subdivision + 0.5;
+                let y = (func((i + 1) / this.subdivision) - 0.5) * this.h * 2;
+
+                let off = i * 7 * 6;
+                this.vertices.set([this.w, y,       0.5, v, 1, 0], off + 0); // tr
+                this.vertices.set([-this.w, prevY,  -0.5, prevV, 1, 0], off + 7); // bl
+                this.vertices.set([-this.w, y,      -0.5, v, 1, 0], off + 14); // tl
+                this.vertices.set([-this.w, prevY,  -0.5, prevV, 1, 0], off + 21); // bl
+                this.vertices.set([this.w, y,       0.5, v, 1, 0], off + 28); // tr
+                this.vertices.set([this.w, prevY,   0.5, prevV, 1, 0], off + 35); // br
+                prevY = y;
+                prevV = v;
+            }
+        }
+
+        BufferVerticesAt(queue, holder, drawObjIndex) {
+            for (let i = 0; i < this.vertices.length; i += 7) {
+                this.vertices_Uint32[i + 6] = drawObjIndex;
+                this.vertices_Uint32[i + 13] = drawObjIndex;
+                this.vertices_Uint32[i + 20] = drawObjIndex;
+                this.vertices_Uint32[i + 27] = drawObjIndex;
+                this.vertices_Uint32[i + 34] = drawObjIndex;
+                this.vertices_Uint32[i + 41] = drawObjIndex;
+            }
+            let off = queue.verticesCount * queue.vertexBufferEntrySize;
+            queue.verticesStage.set(this.vertices, off);
+            queue.verticesCount += this.verticesCount;
+        }
+
+        GetVerticesCount() {
+            return this.verticesCount;
+        }
+    }
+
     static Poly = class Poly extends DrawObj {
         constructor(points, pointScale) {
             super();
