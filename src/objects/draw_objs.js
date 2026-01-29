@@ -153,8 +153,8 @@ class DrawObj {
             this.UnsetSecondaryTexture();
             return;
         }
-        this.texPosX = tex.bounds.x;
-        this.texPosY = tex.bounds.y;
+        this.tex2PosX = tex.bounds.x;
+        this.tex2PosY = tex.bounds.y;
         this.tex2Pos[0] = tex.bounds.x;
         this.tex2Pos[1] = tex.bounds.y;
         this.tex2Size[0] = tex.bounds.w;

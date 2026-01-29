@@ -123,8 +123,6 @@ class DataMat3 {
         return this;
     }
 
-
-
     TranslateXY(x, y) {
         this.m[8] += x;
         this.m[9] += y;
