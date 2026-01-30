@@ -179,12 +179,22 @@ class DrawObjQueue {
         }
         this.maskPoints.push(new MaskPoint(priority, mask, isAnti, false));
     }
+
     UnmaskDrawobjsFromPriority(priority, mask) {
         if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
             console.warn("Invalid mask layer, cannot unapply mask.");
             return;
         }
         this.maskPoints.push(new MaskPoint(priority, mask, false, true));
+    }
+
+    MaskDrawobjsAcrossRange(priorityA, priorityB, mask, isAnti = false) {
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot apply mask.");
+            return;
+        }
+        this.maskPoints.push(new MaskPoint(priorityA, mask, isAnti, false));
+        this.maskPoints.push(new MaskPoint(priorityB, mask, false, true));
     }
 
     BufferDrawObjData(data) {
@@ -222,13 +232,9 @@ class DrawObjQueue {
         else {
             const maskPointComparer = (a, b) => {
                 let c1 = a.priority - b.priority;
-                return c1 === 0 ? b.clear - a.clear : c1;
+                return c1 === 0 ? b.clear - a.clear : c1; // clears come before sets
             }
             this.maskPoints.sort(maskPointComparer);
-
-            let start = 0;
-            let maskBits = 0;
-            let antiBits = 0;
 
             function PriorityLowerBound(holders, start, priority) {
                 let low = start;
@@ -246,15 +252,15 @@ class DrawObjQueue {
                 return high + 1;
             }
 
+            let start = 0;
+            let maskBits = 0;
+            let antiBits = 0;
             for (let i = 0; i < this.maskPoints.length; i++) {
                 let point = this.maskPoints[i];
                 let index = PriorityLowerBound(this.holders, start, point.priority);
                 if (index >= this.holders.length) {
                     break;
                 }
-                // else if (index < 0) {
-                //     index = 0;
-                // }
 
                 let oldMaskBits = maskBits;
                 let oldAntiBits = antiBits;
@@ -271,11 +277,12 @@ class DrawObjQueue {
                     if (index > start) {
                         this.passes.push(new Pass(start, index - 1, oldMaskBits, oldAntiBits));
                     }
-                    start = index;
+                    start = index < 0 ? 0 : index;
                 }
             }
 
-            this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits)); // top up the remaining pass
+            if (start !== this.holders.length - 1)
+                this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits)); // top up the remaining pass
         }
 
         // Buffer vertices of all passes
@@ -382,8 +389,8 @@ class DrawObjQueue {
                 this.maskLayers[i].holders.length = 0;
                 this.maskLayers[i].vertices = 0;
             }
+            this.usingMasks = false;
         }
-        this.usingMasks = false;
         this.maskPoints.length = 0;
         this.maskVertices = 0;
         this.passes.length = 0;
