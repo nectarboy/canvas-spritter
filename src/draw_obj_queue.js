@@ -150,6 +150,7 @@ class DrawObjQueue {
 
     BufferDrawobjAsMask(drawObj, mask) {
         if (mask === 0 || mask > this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot buffer drawobj.");
             return;
         }
 
@@ -168,8 +169,8 @@ class DrawObjQueue {
         this.maskLayers[mask - 1].holders.push(holder);
     }
 
-    MaskDrawobjsFromPriority(priority, mask) {
-        this.maskPoints.push(new MaskPoint(priority, mask)); // currently does not support overlapping
+    MaskDrawobjsFromPriority(priority, maskBits) {
+        this.maskPoints.push(new MaskPoint(priority, maskBits)); // TODO: overlapping in an intuitive stacking way
     }
 
     BufferDrawObjData(data) {
@@ -185,7 +186,7 @@ class DrawObjQueue {
 
         if (this.usingMasks) {
             for (let i = 0; i < this.maskLayers.length; i++) {
-                let verts = 0;
+                let verts = this.verticesCount;
                 for (let ii = 0; ii < this.maskLayers[i].holders.length; ii++) {
                     let holder = this.maskLayers[i].holders[ii];
                     holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
@@ -274,9 +275,8 @@ class DrawObjQueue {
         if (this.usingMasks) {
             for (let i = 0; i < this.maskLayers.length; i++) {
                 if (this.maskLayers[i].vertices === 0) continue;
-
                 let start = 0;
-                passEncoder.setStencilReference(1 << i);
+                passEncoder.setStencilReference(0xffffffff);
                 passEncoder.setPipeline(this.spritter.stencilSetPipelines[i]);
                 passEncoder.draw(this.maskLayers[i].vertices, 1, start);
                 start += this.maskLayers[i].vertices;
@@ -286,13 +286,15 @@ class DrawObjQueue {
         // Draw all drawobjs
         for (let i = 0; i < this.passes.length; i++) {
             let pass = this.passes[i];
-            if (this.spritter.tick === 0)
-                console.log(pass);
             passEncoder.setStencilReference(pass.maskBits);
-            passEncoder.setPipeline(this.spritter.opaquePipelines[pass.maskBits]);
-            passEncoder.draw(pass.opaqueVertices, 1, pass.opaqueVerticesStart);
-            passEncoder.setPipeline(this.spritter.transparentPipelines[pass.maskBits]);
-            passEncoder.draw(pass.transparentVertices, 1, pass.transparentVerticesStart);
+            if (pass.opaqueVertices !== 0) {
+                passEncoder.setPipeline(this.spritter.GetOpaquePipeline(pass.maskBits));
+                passEncoder.draw(pass.opaqueVertices, 1, pass.opaqueVerticesStart);
+            }
+            if (pass.transparentVertices !== 0) {
+                passEncoder.setPipeline(this.spritter.GetTransparentPipeline(pass.maskBits));
+                passEncoder.draw(pass.transparentVertices, 1, pass.transparentVerticesStart);
+            }
         }
         passEncoder.end();
     }
@@ -334,6 +336,7 @@ class DrawObjQueue {
                     this.maskLayers[i].holders[ii].Reset();
                 }
                 this.maskLayers[i].holders.length = 0;
+                this.maskLayers[i].vertices = 0;
             }
         }
         this.usingMasks = false;

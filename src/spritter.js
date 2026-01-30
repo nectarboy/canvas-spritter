@@ -71,8 +71,19 @@ class Spritter {
         });
 
         this.stencilSetPipelines = new Array(MAX_MASK_LAYERS);
-        this.opaquePipelines = new Array(MAX_MASK_LAYERS * MAX_MASK_LAYERS);
-        this.transparentPipelines = new Array(MAX_MASK_LAYERS * MAX_MASK_LAYERS);
+        this.opaquePipelines = new Array(1 << MAX_MASK_LAYERS);
+        this.transparentPipelines = new Array(1 << MAX_MASK_LAYERS);
+        this.opaquePipelines.fill(null);
+        this.transparentPipelines.fill(null);
+
+        this.vsModule = device.createShaderModule({
+            label: 'vs',
+            code: vsWgsl
+        });
+        this.fsModule = device.createShaderModule({
+            label: 'fs',
+            code: fsWgsl
+        }); 
 
         // Generate a stencil setter pipeline for each mask
         for (let i = 0; i < MAX_MASK_LAYERS; i++) {
@@ -80,19 +91,13 @@ class Spritter {
                 label: 'stencil set pipeline',
                 layout: this.pipelineLayout,
                 vertex: {
-                    module: device.createShaderModule({
-                        label: 'vs',
-                        code: vsWgsl
-                    }),
+                    module: this.vsModule,
                     buffers: [
                         this.drawObjQueue.vertexBufferDescriptor
                     ]
                 },
                 fragment: {
-                    module: device.createShaderModule({
-                        label: 'fs',
-                        code: fsWgsl
-                    }),
+                    module: this.fsModule,
                     targets: [
                         {
                             format: this.canvasFormat,
@@ -117,97 +122,12 @@ class Spritter {
             });
         }
 
-        // Generate opaque and transparent pipelines for all mask combinations
-        for (let i = 0; i < MAX_MASK_LAYERS * MAX_MASK_LAYERS; i++) {
-            this.opaquePipelines[i] = device.createRenderPipeline({
-                label: 'opaque pipeline',
-                layout: this.pipelineLayout,
-                vertex: {
-                    module: device.createShaderModule({
-                        label: 'vs',
-                        code: vsWgsl
-                    }),
-                    buffers: [
-                        this.drawObjQueue.vertexBufferDescriptor
-                    ]
-                },
-                fragment: {
-                    module: device.createShaderModule({
-                        label: 'fs',
-                        code: fsWgsl
-                    }),
-                    targets: [
-                        {
-                            format: this.canvasFormat
-                        }
-                    ]
-                },
-                depthStencil: {
-                    format: 'depth24plus-stencil8',
-                    depthWriteEnabled: true,
-                    depthCompare: 'greater',
-                    stencilFront: {
-                        passOp: 'keep',
-                        compare: 'equal'
-                    },
-                    stencilReadMask: i
-                },
-                primitive: {
-                    topology: 'triangle-list',
-                    frontFace: 'cw'
-                }
-            });
-
-            this.transparentPipelines[i] = device.createRenderPipeline({
-                label: 'transparent pipeline',
-                layout: this.pipelineLayout,
-                vertex: {
-                    module: device.createShaderModule({
-                        label: 'vs',
-                        code: vsWgsl
-                    }),
-                    buffers: [
-                        this.drawObjQueue.vertexBufferDescriptor
-                    ]
-                },
-                fragment: {
-                    module: device.createShaderModule({
-                        label: 'fs',
-                        code: fsWgsl
-                    }),
-                    targets: [
-                        {
-                            format: this.canvasFormat,
-                            blend: {
-                                color: {
-                                    operation: 'add',
-                                    srcFactor: 'src-alpha',
-                                    dstFactor: 'one-minus-src-alpha'
-                                },
-                                alpha: {
-                                    operation: 'add',
-                                    srcFactor: 'src-alpha',
-                                    dstFactor: 'one-minus-src-alpha'
-                                }
-                            }
-                        }
-                    ]
-                },
-                depthStencil: {
-                    format: 'depth24plus-stencil8',
-                    depthWriteEnabled: false,
-                    depthCompare: 'greater',
-                    stencilFront: {
-                        passOp: 'keep',
-                        compare: 'equal'
-                    },
-                    stencilReadMask: i
-                },
-                primitive: {
-                    topology: 'triangle-list',
-                    frontFace: 'cw'
-                }
-            });
+        // Generate opaque and transparent pipelines for most mask combinations.
+        // Because making a lot of pipelines incurs an ABYSMALLY BAD overhead up to 10 seconds,
+        // we make only a few of the combinations (lower layers are guaranteed, higher layers will need to be made on the fly.)
+        for (let i = 0; i < Math.min(16, 1 << MAX_MASK_LAYERS); i++) {
+            this.opaquePipelines[i] = this.CreateNormalPipeline(true, i);
+            this.transparentPipelines[i] = this.CreateNormalPipeline(false, i);
         }
 
         // performance measuring
@@ -226,6 +146,67 @@ class Spritter {
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         });
     };
+
+    CreateNormalPipeline(opaque, index) {
+        return this.device.createRenderPipeline({
+            label: (opaque ? 'opaque pipeline #' : 'transparent pipeline #') + index,
+            layout: this.pipelineLayout,
+            vertex: {
+                module: this.vsModule,
+                buffers: [
+                    this.drawObjQueue.vertexBufferDescriptor
+                ]
+            },
+            fragment: {
+                module: this.fsModule,
+                targets: [
+                    {
+                        format: this.canvasFormat,
+                        blend: (opaque ? (void 0) : {
+                            color: {
+                                operation: 'add',
+                                srcFactor: 'src-alpha',
+                                dstFactor: 'one-minus-src-alpha'
+                            },
+                            alpha: {
+                                operation: 'add',
+                                srcFactor: 'src-alpha',
+                                dstFactor: 'one-minus-src-alpha'
+                            }
+                        })
+                    }
+                ]
+            },
+            depthStencil: {
+                format: 'depth24plus-stencil8',
+                depthWriteEnabled: opaque,
+                depthCompare: 'greater',
+                stencilFront: {
+                    passOp: 'keep',
+                    compare: 'equal'
+                },
+                stencilReadMask: index
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'cw'
+            }
+        });
+    }
+
+    GetOpaquePipeline(index) {
+        if (this.opaquePipelines[index] === null) {
+            this.opaquePipelines[index] = this.CreateNormalPipeline(true, index);
+        }
+        return this.opaquePipelines[index];
+    }
+
+    GetTransparentPipeline(index) {
+        if (this.transparentPipelines[index] === null) {
+            this.transparentPipelines[index] = this.CreateNormalPipeline(false, index);
+        }
+        return this.transparentPipelines[index];
+    }
 
     async init() {
         let images = [
@@ -320,7 +301,6 @@ class Spritter {
         testMask.mat3.Rotate(this.tick / 2);
         this.drawObjQueue.BufferDrawobjAsMask(testMask, 1);
         this.drawObjQueue.MaskDrawobjsFromPriority(1, 1);
-        this.drawObjQueue.MaskDrawobjsFromPriority(2, 0);
 
 
         // Stress tester
