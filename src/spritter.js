@@ -299,13 +299,12 @@ class Spritter {
         testMask.tintColor.set([1, 1, 1, 0.25]);
         testMask.mat3.TranslateXY(-Math.sin(now) * 200, 0);
         testMask.mat3.Rotate(this.tick / 2);
-        this.drawObjQueue.BufferDrawobjAsMask(testMask, 1);
+        this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
         this.drawObjQueue.BufferDrawobj(testMask, 0);
         testMask.mat3.Rotate(90);
-        this.drawObjQueue.BufferDrawobjAsMask(testMask, 1);
+        this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
         this.drawObjQueue.BufferDrawobj(testMask, 0);
-        this.drawObjQueue.MaskDrawobjsFromPriority(0, 1, true);
-        this.drawObjQueue.UnmaskDrawobjsFromPriority(1, 1);
+        this.drawObjQueue.MaskDrawobjsFromPriority(1, 0, true);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {

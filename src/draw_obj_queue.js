@@ -152,7 +152,7 @@ class DrawObjQueue {
     }
 
     BufferDrawobjAsMask(drawObj, mask) {
-        if (mask === 0 || mask > this.spritter.maxMaskLayers) {
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
             console.warn("Invalid mask layer, cannot buffer drawobj.");
             return;
         }
@@ -169,14 +169,22 @@ class DrawObjQueue {
         holder.drawObjDataIndex = this.drawObjDataCount;
         this.BufferDrawObjData(drawObj.data);
         holder.priority = 0; // omit
-        this.maskLayers[mask - 1].holders.push(holder);
+        this.maskLayers[mask].holders.push(holder);
     }
 
     MaskDrawobjsFromPriority(priority, mask, isAnti = false) {
-        this.maskPoints.push(new MaskPoint(priority, mask - 1, isAnti, false));
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot apply mask.");
+            return;
+        }
+        this.maskPoints.push(new MaskPoint(priority, mask, isAnti, false));
     }
     UnmaskDrawobjsFromPriority(priority, mask) {
-        this.maskPoints.push(new MaskPoint(priority, mask - 1, false, true));
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot unapply mask.");
+            return;
+        }
+        this.maskPoints.push(new MaskPoint(priority, mask, false, true));
     }
 
     BufferDrawObjData(data) {
