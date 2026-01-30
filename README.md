@@ -29,12 +29,13 @@ Note: I am learning WebGPU alongside making this project, so any feedback on any
 - [x] optimize opaque overdraw
     - with alpha blending enabled, apparently this is a REALLY BAD gpu performance killer. even just 1000 sprites take *10ms* if they all overlap, even if they are completely opaque. adding just one simple opaque background also increases total time dramatically, due to blending technically having to occur everywhere across the clip space.
     - an opaque front-to-back pass + transparent back-to-front pass alongside a depth buffer is used. this boosts performance for overdrawn opaque sprites, but overdrawn transparent sprites must still blend (at least they are not drawn behind any opaque sprites)
-- [x] optimize buffering DrawObjs a bit
+- [x] sprite tinting
+- [x] optimize buffering DrawObjs a bit by 
+- [x] stencil-masking for seperate passes
+- [ ] different porter duff composite modes in seperate passes for more complex effects
 - [ ] implement all of the remaining DrawObj flags
-- [ ] switch to different porter duff composite modes in seperate passes for more complex scene-wise masking effects
 - [ ] basic built-in shaders like outlines
-- [ ] sprite tinting
-- [ ] circles / arcs
+- [ ] circles / arcs (?)
 - [ ] cleanup interface, make it good and easy to use
 - [ ] optimize / reduce data throughput
     - optimize vertex generation by cpu (its the main bottleneck, hurts when sprite count > 1000)
