@@ -16,17 +16,20 @@ class DrawObjHolder {
 }
 
 class MaskPoint {
-    constructor(priority, mask) {
+    constructor(priority, mask, isAnti, clear) {
         this.priority = priority;
         this.mask = mask;
+        this.isAnti = isAnti;
+        this.clear = clear;
     }
 }
 
 class Pass {
-    constructor(holderStart, holderEnd, maskBits) {
+    constructor(holderStart, holderEnd, maskBits, antiBits) {
         this.holderStart = holderStart;
         this.holderEnd = holderEnd;
         this.maskBits = maskBits;
+        this.antiBits = antiBits;
         this.opaqueVerticesStart = 0;
         this.opaqueVertices = 0;
         this.transparentVerticesStart = 0;
@@ -169,8 +172,11 @@ class DrawObjQueue {
         this.maskLayers[mask - 1].holders.push(holder);
     }
 
-    MaskDrawobjsFromPriority(priority, maskBits) {
-        this.maskPoints.push(new MaskPoint(priority, maskBits)); // TODO: overlapping in an intuitive stacking way
+    MaskDrawobjsFromPriority(priority, mask, isAnti = false) {
+        this.maskPoints.push(new MaskPoint(priority, mask - 1, isAnti, false));
+    }
+    UnmaskDrawobjsFromPriority(priority, mask) {
+        this.maskPoints.push(new MaskPoint(priority, mask - 1, false, true));
     }
 
     BufferDrawObjData(data) {
@@ -200,29 +206,41 @@ class DrawObjQueue {
         this.holders.sort(comparer);
 
         if (this.maskPoints.length === 0) {
-            this.passes.push(new Pass(0, this.holders.length - 1, 0));
+            this.passes.push(new Pass(0, this.holders.length - 1, 0, 0));
         }
         else {
             const maskPointComparer = (a, b) => a.priority - b.priority;
             this.maskPoints.sort(maskPointComparer);
 
             let start = 0;
-            let mask = 0;
+            let maskBits = 0;
+            let antiBits = 0;
             let pointI = 0;
             let point = this.maskPoints[0];
             for (let i = 0; i < this.holders.length; i++) {
                 let holder = this.holders[i];
                 if (holder.priority >= point.priority) {
-                    if (mask !== point.mask) {
+                    let oldMaskBits = maskBits;
+                    let oldAntiBits = antiBits;
+                    if (point.clear) {
+                        maskBits &= ~(1 << point.mask);
+                    }
+                    else {
+                        maskBits |= (1 << point.mask);
+                        antiBits &= ~(1 << point.mask);
+                        antiBits |= (point.isAnti << point.mask);
+                    }
+
+                    if (maskBits !== oldMaskBits || antiBits !== oldAntiBits) {
                         if (i > start) {
-                            this.passes.push(new Pass(start, i - 1, mask));
+                            this.passes.push(new Pass(start, i - 1, oldMaskBits, oldAntiBits));
                         }
-                        mask = point.mask;
                         start = i;
                     }
+
                     pointI++;
                     if (pointI === this.maskPoints.length) {
-                        this.passes.push(new Pass(start, this.holders.length - 1, mask));
+                        this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits));
                         break;
                     }
                     point = this.maskPoints[pointI];
@@ -230,7 +248,7 @@ class DrawObjQueue {
             }
 
             if (pointI !== this.maskPoints.length) 
-                this.passes.push(new Pass(start, this.holders.length - 1, mask));
+                this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits));
             else
                 this.passes[this.passes.length - 1].holderEnd = this.holders.length - 1;
         }
@@ -286,7 +304,8 @@ class DrawObjQueue {
         // Draw all drawobjs
         for (let i = 0; i < this.passes.length; i++) {
             let pass = this.passes[i];
-            passEncoder.setStencilReference(pass.maskBits);
+            console.log(pass);
+            passEncoder.setStencilReference(pass.maskBits ^ pass.antiBits);
             if (pass.opaqueVertices !== 0) {
                 passEncoder.setPipeline(this.spritter.GetOpaquePipeline(pass.maskBits));
                 passEncoder.draw(pass.opaqueVertices, 1, pass.opaqueVerticesStart);
