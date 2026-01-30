@@ -219,7 +219,6 @@ class DrawObjQueue {
             this.passes.push(new Pass(0, this.holders.length - 1, 0, 0));
         }
         // Seperate mask boundaries into seperate passes
-        // TODO: optimize ts
         else {
             const maskPointComparer = (a, b) => {
                 let c1 = a.priority - b.priority;
@@ -230,43 +229,53 @@ class DrawObjQueue {
             let start = 0;
             let maskBits = 0;
             let antiBits = 0;
-            let pointI = 0;
-            let point = this.maskPoints[0];
-            for (let i = 0; i < this.holders.length; i++) {
-                let holder = this.holders[i];
-                if (holder.priority >= point.priority) {
-                    let oldMaskBits = maskBits;
-                    let oldAntiBits = antiBits;
-                    if (point.clear) {
-                        maskBits &= ~(1 << point.mask);
-                    }
-                    else {
-                        maskBits |= (1 << point.mask);
-                        antiBits &= ~(1 << point.mask);
-                        antiBits |= (point.isAnti << point.mask);
-                    }
 
-                    if (maskBits !== oldMaskBits || antiBits !== oldAntiBits) {
-                        if (i > start) {
-                            this.passes.push(new Pass(start, i - 1, oldMaskBits, oldAntiBits));
-                        }
-                        start = i;
-                    }
+            function PriorityLowerBound(holders, start, priority) {
+                let low = start;
+                let high = holders.length;
 
-                    pointI++;
-                    if (pointI === this.maskPoints.length) {
-                        this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits));
-                        break;
+                while (low <= high) {
+                    let mid = (low + high) >> 1;
+
+                    if (holders[mid].priority >= priority)
+                        high = mid - 1;
+                    else
+                        low = mid + 1;
+                }
+
+                return high + 1;
+            }
+
+            for (let i = 0; i < this.maskPoints.length; i++) {
+                let point = this.maskPoints[i];
+                let index = PriorityLowerBound(this.holders, start, point.priority);
+                if (index >= this.holders.length) {
+                    break;
+                }
+                // else if (index < 0) {
+                //     index = 0;
+                // }
+
+                let oldMaskBits = maskBits;
+                let oldAntiBits = antiBits;
+                if (point.clear) {
+                    maskBits &= ~(1 << point.mask);
+                }
+                else {
+                    maskBits |= (1 << point.mask);
+                    antiBits &= ~(1 << point.mask);
+                    antiBits |= (point.isAnti << point.mask);
+                }
+
+                if (maskBits !== oldMaskBits || antiBits !== oldAntiBits) {
+                    if (index > start) {
+                        this.passes.push(new Pass(start, index - 1, oldMaskBits, oldAntiBits));
                     }
-                    point = this.maskPoints[pointI];
-                    i--;
+                    start = index;
                 }
             }
 
-            if (pointI !== this.maskPoints.length) 
-                this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits));
-            else
-                this.passes[this.passes.length - 1].holderEnd = this.holders.length - 1;
+            this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits)); // top up the remaining pass
         }
 
         // Buffer vertices of all passes
