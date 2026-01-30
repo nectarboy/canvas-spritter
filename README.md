@@ -7,10 +7,10 @@ While it does not aim to be as feature complete as Canvas2D, it aims to serve as
 
 Note: I am learning WebGPU alongside making this project, so any feedback on anything it could be doing better is fully welcome.
 
-![10k Seethrough Sprites](https://github.com/nectarboy/canvas-spritter/blob/main/docs/10k seethrough sprites.png?raw=true)
-![Polygons and Sprites](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot1.webp?raw=true)
-![Masking](https://github.com/nectarboy/canvas-spritter/blob/main/docs/masking.png?raw=true)
-![Fake Perspective Sprite](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot2.webp?raw=true)
+![10k Seethrough Sprites](<https://github.com/nectarboy/canvas-spritter/blob/main/docs/10k seethrough sprites.png?raw=true>)
+![Polygons and Sprites](<https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot1.webp?raw=true>)
+![Masking](<https://github.com/nectarboy/canvas-spritter/blob/main/docs/masking.png?raw=true>)
+![Fake Perspective Sprite](<https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot2.webp?raw=true>)
 
 ## Goals:
 
