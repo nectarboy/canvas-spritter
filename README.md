@@ -7,7 +7,9 @@ While it does not aim to be as feature complete as Canvas2D, it aims to serve as
 
 Note: I am learning WebGPU alongside making this project, so any feedback on anything it could be doing better is fully welcome.
 
+![10k Seethrough Sprites](https://github.com/nectarboy/canvas-spritter/blob/main/docs/10k seethrough sprites.png?raw=true)
 ![Polygons and Sprites](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot1.webp?raw=true)
+![Masking](https://github.com/nectarboy/canvas-spritter/blob/main/docs/masking.png?raw=true)
 ![Fake Perspective Sprite](https://github.com/nectarboy/canvas-spritter/blob/main/docs/screenshot2.webp?raw=true)
 
 ## Goals:
@@ -29,17 +31,20 @@ Note: I am learning WebGPU alongside making this project, so any feedback on any
 - [x] optimize opaque overdraw
     - with alpha blending enabled, apparently this is a REALLY BAD gpu performance killer. even just 1000 sprites take *10ms* if they all overlap, even if they are completely opaque. adding just one simple opaque background also increases total time dramatically, due to blending technically having to occur everywhere across the clip space.
     - an opaque front-to-back pass + transparent back-to-front pass alongside a depth buffer is used. this boosts performance for overdrawn opaque sprites, but overdrawn transparent sprites must still blend (at least they are not drawn behind any opaque sprites)
+- [x] sprite tinting
+- [x] optimize buffering DrawObjs a bit by 
+- [x] stencil-masking for seperate passes
+- [ ] different porter duff composite modes in seperate passes for more complex effects
 - [ ] implement all of the remaining DrawObj flags
-- [ ] switch to different porter duff composite modes in seperate passes for more complex scene-wise masking effects
 - [ ] basic built-in shaders like outlines
-- [ ] sprite tinting
-- [ ] circles / arcs
+- [ ] circles / arcs (?)
 - [ ] cleanup interface, make it good and easy to use
 - [ ] optimize / reduce data throughput
     - optimize vertex generation by cpu (its the main bottleneck, hurts when sprite count > 1000)
     - drawobjs using same vertex data? (maybe would be good for polygons with the same shape)
     - reduce data used / transported between shaders?
     - use a better bin packing algorithm as well as tesselation algorithm
+    - an idea i have: drawobjs on creation will allocate their data and vertices from a paged heap once, so that pushing that data to staging buffers is no longer needed (instead we update an index buffer), and uploading staging buffers to the gpu will only be needed when new drawobjs are created.
 - [ ] different draw calls for bigger amounts of data (multiple texture atlases) or smth
 
 ## What would be pretty cool to add later:

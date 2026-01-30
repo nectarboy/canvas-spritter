@@ -15,6 +15,28 @@ class DrawObjHolder {
     }
 }
 
+class MaskPoint {
+    constructor(priority, mask, isAnti, clear) {
+        this.priority = priority;
+        this.mask = mask;
+        this.isAnti = isAnti;
+        this.clear = clear;
+    }
+}
+
+class Pass {
+    constructor(holderStart, holderEnd, maskBits, antiBits) {
+        this.holderStart = holderStart;
+        this.holderEnd = holderEnd;
+        this.maskBits = maskBits;
+        this.antiBits = antiBits;
+        this.opaqueVerticesStart = 0;
+        this.opaqueVertices = 0;
+        this.transparentVerticesStart = 0;
+        this.transparentVertices = 0;
+    };
+}
+
 // Responsible for buffering 
 class DrawObjQueue {
     constructor(spritter) {
@@ -24,10 +46,18 @@ class DrawObjQueue {
         // MDN: "If the source array is a typed array, the two arrays may share the same underlying ArrayBuffer; the JavaScript engine will intelligently copy the source range of the buffer to the destination range."
 
         this.holderPool = new (MakeCircularPoolConstructor(DrawObjHolder, MAX_DRAWOBJS))();
-        console.log(this.holderPool);
+
+        this.usingMasks = false;
+        this.maskPoints = [];
+        this.maskLayers = [];
+        for (let i = 0; i < spritter.maxMaskLayers; i++) {
+            this.maskLayers.push({
+                holders: [],
+                vertices: 0
+            });
+        }
         this.holders = [];
-        this.opaqueVertices = 0;
-        this.transparentVertices = 0;
+        this.passes = [];
 
         // DrawObj storage buffer
         this.storageBufferSize = 4096 * 1024;
@@ -116,12 +146,58 @@ class DrawObjQueue {
         let holder = this.holderPool.Get();
         holder.drawObj = drawObj;
         holder.drawObjDataIndex = this.drawObjDataCount;
-        this.BufferDrawObjData(drawObj.data, 0);
+        this.BufferDrawObjData(drawObj.data);
         holder.priority = priority;
         this.holders.push(holder);
     }
 
-    BufferDrawObjData(data, ordering) {
+    BufferDrawobjAsMask(drawObj, mask) {
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot buffer drawobj.");
+            return;
+        }
+
+        if (this.holders.length === MAX_DRAWOBJS) {
+            console.warn("Drawobj queue full, cannot buffer drawobj.");
+            return;
+        }
+
+        this.usingMasks = true;
+
+        let holder = this.holderPool.Get();
+        holder.drawObj = drawObj;
+        holder.drawObjDataIndex = this.drawObjDataCount;
+        this.BufferDrawObjData(drawObj.data);
+        holder.priority = 0; // omit
+        this.maskLayers[mask].holders.push(holder);
+    }
+
+    MaskDrawobjsFromPriority(priority, mask, isAnti = false) {
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot apply mask.");
+            return;
+        }
+        this.maskPoints.push(new MaskPoint(priority, mask, isAnti, false));
+    }
+
+    UnmaskDrawobjsFromPriority(priority, mask) {
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot unapply mask.");
+            return;
+        }
+        this.maskPoints.push(new MaskPoint(priority, mask, false, true));
+    }
+
+    MaskDrawobjsAcrossRange(priorityA, priorityB, mask, isAnti = false) {
+        if (mask < 0 || mask >= this.spritter.maxMaskLayers) {
+            console.warn("Invalid mask layer, cannot apply mask.");
+            return;
+        }
+        this.maskPoints.push(new MaskPoint(priorityA, mask, isAnti, false));
+        this.maskPoints.push(new MaskPoint(priorityB, mask, false, true));
+    }
+
+    BufferDrawObjData(data) {
         this.storageStage.set(data, this.drawObjDataCount++ * this.drawObjDataEntrySize);
     }
 
@@ -130,32 +206,148 @@ class DrawObjQueue {
     }
 
     PushDrawObjsToStageBuffers() {
+        let ordering = 0;
+
+        // Buffer mask vertices
+        if (this.usingMasks) {
+            for (let i = 0; i < this.maskLayers.length; i++) {
+                let verts = this.verticesCount;
+                for (let ii = 0; ii < this.maskLayers[i].holders.length; ii++) {
+                    let holder = this.maskLayers[i].holders[ii];
+                    holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
+                }
+                verts = this.verticesCount - verts;
+                this.maskLayers[i].vertices = verts;
+            }
+        }
+
         const comparer = (a, b) => a.priority - b.priority;
         this.holders.sort(comparer);
 
-        let opaques = [];
-        let transparents = [];
+        // Define a default normal pass
+        if (this.maskPoints.length === 0) {
+            this.passes.push(new Pass(0, this.holders.length - 1, 0, 0));
+        }
+        // Seperate mask boundaries into seperate passes
+        else {
+            const maskPointComparer = (a, b) => {
+                let c1 = a.priority - b.priority;
+                return c1 === 0 ? b.clear - a.clear : c1; // clears come before sets
+            }
+            this.maskPoints.sort(maskPointComparer);
 
-        for (let i = 0; i < this.holders.length; i++) {
-            this.PepperDrawObjDataWithOrdering(this.holders[i].drawObjDataIndex, i);
+            function PriorityLowerBound(holders, start, priority) {
+                let low = start;
+                let high = holders.length;
 
-            let isOpaque = (!this.holders[i].drawObj.transparent) | (this.holders[i].drawObj.IsFullyOpaque());
-            (isOpaque ? opaques : transparents).push(this.holders[i]);
+                while (low <= high) {
+                    let mid = (low + high) >> 1;
+
+                    if (holders[mid].priority >= priority)
+                        high = mid - 1;
+                    else
+                        low = mid + 1;
+                }
+
+                return high + 1;
+            }
+
+            let start = 0;
+            let maskBits = 0;
+            let antiBits = 0;
+            for (let i = 0; i < this.maskPoints.length; i++) {
+                let point = this.maskPoints[i];
+                let index = PriorityLowerBound(this.holders, start, point.priority);
+                if (index >= this.holders.length) {
+                    break;
+                }
+
+                let oldMaskBits = maskBits;
+                let oldAntiBits = antiBits;
+                if (point.clear) {
+                    maskBits &= ~(1 << point.mask);
+                }
+                else {
+                    maskBits |= (1 << point.mask);
+                    antiBits &= ~(1 << point.mask);
+                    antiBits |= (point.isAnti << point.mask);
+                }
+
+                if (maskBits !== oldMaskBits || antiBits !== oldAntiBits) {
+                    if (index > start) {
+                        this.passes.push(new Pass(start, index - 1, oldMaskBits, oldAntiBits));
+                    }
+                    start = index < 0 ? 0 : index;
+                }
+            }
+
+            if (start < this.holders.length - 1)
+                this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits)); // top up the remaining pass
         }
 
-        // Opaque (Front to back)
-        for (let i = 0; i < opaques.length; i++) {
-            let holder = opaques[opaques.length - i - 1];
-            holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
-        }
-        this.opaqueVertices = this.verticesCount;
+        // Buffer vertices of all passes
+        for (let i = 0; i < this.passes.length; i++) {
+            let pass = this.passes[i];
 
-        // Transparent (Back to front)
-        for (let i = 0; i < transparents.length; i++) {
-            let holder = transparents[i];
-            holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
+            let opaques = [];
+            let transparents = [];
+
+            for (let i = pass.holderStart; i <= pass.holderEnd; i++) {
+                this.PepperDrawObjDataWithOrdering(this.holders[i].drawObjDataIndex, ordering++);
+
+                let isOpaque = (!this.holders[i].drawObj.transparent) | (this.holders[i].drawObj.IsFullyOpaque());
+                (isOpaque ? opaques : transparents).push(this.holders[i]);
+            }
+
+            // Opaque (Front to back)
+            pass.opaqueVerticesStart = this.verticesCount;
+            for (let i = 0; i < opaques.length; i++) {
+                let holder = opaques[opaques.length - i - 1];
+                holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
+            }
+            pass.opaqueVertices = this.verticesCount - pass.opaqueVerticesStart;
+
+            // Transparent (Back to front)
+            pass.transparentVerticesStart = this.verticesCount;
+            for (let i = 0; i < transparents.length; i++) {
+                let holder = transparents[i];
+                holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
+            }
+            pass.transparentVertices = this.verticesCount - pass.transparentVerticesStart;
         }
-        this.transparentVertices = this.verticesCount - this.opaqueVertices;
+    }
+
+    EncodeRenderPassCommands(passEncoder) {
+        passEncoder.setBindGroup(0, this.spritter.textureManager.bindGroup);
+        passEncoder.setBindGroup(1, this.storageBindGroup);
+        passEncoder.setVertexBuffer(0, this.vertexBuffer);
+
+        // Draw mask drawobjs
+        if (this.usingMasks) {
+            let start = 0;
+            for (let i = 0; i < this.maskLayers.length; i++) {
+                if (this.maskLayers[i].vertices === 0) continue;
+                passEncoder.setStencilReference(0xffffffff);
+                passEncoder.setPipeline(this.spritter.stencilSetPipelines[i]);
+                passEncoder.draw(this.maskLayers[i].vertices, 1, start);
+                start += this.maskLayers[i].vertices;
+            }
+        }
+
+        // Draw all drawobjs
+        for (let i = 0; i < this.passes.length; i++) {
+            let pass = this.passes[i];
+            passEncoder.setStencilReference(pass.maskBits ^ pass.antiBits);
+            if (pass.opaqueVertices !== 0) {
+                passEncoder.setPipeline(this.spritter.GetOpaquePipeline(pass.maskBits));
+                passEncoder.draw(pass.opaqueVertices, 1, pass.opaqueVerticesStart);
+            }
+            if (pass.transparentVertices !== 0) {
+                passEncoder.setPipeline(this.spritter.GetTransparentPipeline(pass.maskBits));
+                passEncoder.draw(pass.transparentVertices, 1, pass.transparentVerticesStart);
+            }
+        }
+        passEncoder.end();
     }
 
     UploadStageBuffersToBuffers() {
@@ -189,8 +381,19 @@ class DrawObjQueue {
             this.holders[i].Reset();
         }
         this.holders.length = 0;
-        this.opaqueVertices = 0;
-        this.transparentVertices = 0;
+        if (this.usingMasks) {
+            for (let i = 0; i < this.maskLayers.length; i++) {
+                for (let ii = 0; ii < this.maskLayers[i].holders; ii++) {
+                    this.maskLayers[i].holders[ii].Reset();
+                }
+                this.maskLayers[i].holders.length = 0;
+                this.maskLayers[i].vertices = 0;
+            }
+            this.usingMasks = false;
+        }
+        this.maskPoints.length = 0;
+        this.maskVertices = 0;
+        this.passes.length = 0;
         this.verticesCount = 0;
         this.drawObjDataCount = 0;
     }

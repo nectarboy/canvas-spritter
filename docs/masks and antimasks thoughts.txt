@@ -1,0 +1,16 @@
+mask 0 enabled: stencil & 0001 must = 0001
+"anything inside the mask is drawn"
+
+antimask 0 enabled: aka stencil & 0001 must = 0
+"anything outside the mask is drawn"
+
+mask 0 mask 1 enabled: stencil & 0011 must equal 0011
+"anything inside both masks is drawn"
+
+antimask 0 enabled antimask 1 enabled: stencil & 0011 must equal 0000
+"anything outside both masks is drawn"
+
+antimask 0 enabled mask 1 enabled: stencil & 0011 must equal 0010
+"anything outside mask 0 and inside mask 1 is drawn"
+
+mask x must either be normal or an antimask, not both

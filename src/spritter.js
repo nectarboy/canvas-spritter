@@ -32,6 +32,7 @@ const drawObjWgsl = await (await fetch('./src/wgsl/draw_obj.wgsl', { cache: 'no-
 const drawObjFlagsWgsl = await (await fetch('./src/wgsl/draw_obj_flags.wgsl', { cache: 'no-store' })).text();
 const vsWgsl = await fetchShader('./src/wgsl/vs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
 const fsWgsl = await fetchShader('./src/wgsl/fs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
+const opaqueCuttingFragWgsl = await fetchShader('./src/wgsl/opaque_cutting.frag.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
 
 let spikeballShape;
 
@@ -53,12 +54,15 @@ class Spritter {
         this.device = device;
         this.encoder = device.createCommandEncoder();
 
+        const MAX_MASK_LAYERS = 8;
+        this.maxMaskLayers = MAX_MASK_LAYERS;
+
         this.textureManager = new TextureManager(this);
         this.drawObjQueue = new DrawObjQueue(this);
 
         this.depthStencilTexture = this.device.createTexture({
             size: [canvas.width, canvas.height],
-            format: "depth24plus",
+            format: "depth24plus-stencil8",
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
 
@@ -67,97 +71,69 @@ class Spritter {
             bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.storageBindGroupLayout]
         });
 
-        this.opaquePipeline = device.createRenderPipeline({
-            label: 'opaque pipeline',
-            layout: this.pipelineLayout,
-            vertex: {
-                module: device.createShaderModule({
-                    label: 'vs',
-                    code: vsWgsl
-                }),
-                buffers: [
-                    this.drawObjQueue.vertexBufferDescriptor
-                ]
-            },
-            fragment: {
-                module: device.createShaderModule({
-                    label: 'fs',
-                    code: fsWgsl
-                }),
-                targets: [
-                    {
-                        format: this.canvasFormat,
-                        // blend: {
-                        //     color: {
-                        //         operation: 'add',
-                        //         srcFactor: 'src-alpha',
-                        //         dstFactor: 'one-minus-src-alpha'
-                        //     },
-                        //     alpha: {
-                        //         operation: 'add',
-                        //         srcFactor: 'src-alpha',
-                        //         dstFactor: 'one-minus-src-alpha'
-                        //     }
-                        // }
-                    }
-                ]
-            },
-            depthStencil: {
-                format: 'depth24plus',
-                depthWriteEnabled: true,
-                depthCompare: 'greater'
-            },
-            primitive: {
-                topology: 'triangle-list',
-                frontFace: 'cw'
-            }
-        });
+        this.stencilSetPipelines = new Array(MAX_MASK_LAYERS);
+        this.opaquePipelines = new Array(1 << MAX_MASK_LAYERS);
+        this.transparentPipelines = new Array(1 << MAX_MASK_LAYERS);
+        this.opaquePipelines.fill(null);
+        this.transparentPipelines.fill(null);
 
-        this.transparentPipeline = device.createRenderPipeline({
-            label: 'transparent pipeline',
-            layout: this.pipelineLayout,
-            vertex: {
-                module: device.createShaderModule({
-                    label: 'vs',
-                    code: vsWgsl
-                }),
-                buffers: [
-                    this.drawObjQueue.vertexBufferDescriptor
-                ]
-            },
-            fragment: {
-                module: device.createShaderModule({
-                    label: 'fs',
-                    code: fsWgsl
-                }),
-                targets: [
-                    {
-                        format: this.canvasFormat,
-                        blend: {
-                            color: {
-                                operation: 'add',
-                                srcFactor: 'src-alpha',
-                                dstFactor: 'one-minus-src-alpha'
-                            },
-                            alpha: {
-                                operation: 'add',
-                                srcFactor: 'src-alpha',
-                                dstFactor: 'one-minus-src-alpha'
-                            }
-                        }
-                    }
-                ]
-            },
-            depthStencil: {
-                format: 'depth24plus',
-                depthWriteEnabled: false,
-                depthCompare: 'greater'
-            },
-            primitive: {
-                topology: 'triangle-list',
-                frontFace: 'cw'
-            }
+        this.vsModule = device.createShaderModule({
+            label: 'vs',
+            code: vsWgsl
         });
+        this.fsModule = device.createShaderModule({
+            label: 'fs',
+            code: fsWgsl
+        }); 
+        this.opaqueCuttingFragModule = device.createShaderModule({
+            label: 'opaque cutting frag',
+            code: opaqueCuttingFragWgsl
+        }); 
+
+        // Generate a stencil setter pipeline for each mask
+        for (let i = 0; i < MAX_MASK_LAYERS; i++) {
+            this.stencilSetPipelines[i] = device.createRenderPipeline({
+                label: 'stencil set pipeline #' + i,
+                layout: this.pipelineLayout,
+                vertex: {
+                    module: this.vsModule,
+                    buffers: [
+                        this.drawObjQueue.vertexBufferDescriptor
+                    ]
+                },
+                fragment: {
+                    module: this.opaqueCuttingFragModule,
+                    targets: [
+                        {
+                            format: this.canvasFormat,
+                            writeMask: 0
+                        }
+                    ]
+                },
+                depthStencil: {
+                    format: 'depth24plus-stencil8',
+                    depthWriteEnabled: false,
+                    depthCompare: 'always',
+                    stencilFront: {
+                        passOp: 'replace',
+                        compare: 'always'
+                    },
+                    stencilWriteMask: (1 << i)
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    frontFace: 'cw'
+                }
+            });
+        }
+
+        // Generate opaque and transparent pipelines for most mask combinations.
+        // Because making a lot of pipelines incurs an ABYSMALLY BAD overhead up to 10 seconds,
+        // we make only a few of the combinations (lower layers are guaranteed, higher layers will need to be made on the fly.)
+        for (let i = 0; i < Math.min(16, 1 << MAX_MASK_LAYERS); i++) {
+            this.opaquePipelines[i] = this.CreateNormalPipeline(true, i);
+            this.transparentPipelines[i] = this.CreateNormalPipeline(false, i);
+        }
 
         // performance measuring
         this.gpuMicroS = -1;
@@ -175,6 +151,67 @@ class Spritter {
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         });
     };
+
+    CreateNormalPipeline(opaque, index) {
+        return this.device.createRenderPipeline({
+            label: (opaque ? 'opaque pipeline #' : 'transparent pipeline #') + index,
+            layout: this.pipelineLayout,
+            vertex: {
+                module: this.vsModule,
+                buffers: [
+                    this.drawObjQueue.vertexBufferDescriptor
+                ]
+            },
+            fragment: {
+                module: this.fsModule,
+                targets: [
+                    {
+                        format: this.canvasFormat,
+                        blend: (opaque ? (void 0) : {
+                            color: {
+                                operation: 'add',
+                                srcFactor: 'src-alpha',
+                                dstFactor: 'one-minus-src-alpha'
+                            },
+                            alpha: {
+                                operation: 'add',
+                                srcFactor: 'src-alpha',
+                                dstFactor: 'one-minus-src-alpha'
+                            }
+                        })
+                    }
+                ]
+            },
+            depthStencil: {
+                format: 'depth24plus-stencil8',
+                depthWriteEnabled: opaque,
+                depthCompare: 'greater',
+                stencilFront: {
+                    passOp: 'keep',
+                    compare: 'equal'
+                },
+                stencilReadMask: index
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'cw'
+            }
+        });
+    }
+
+    GetOpaquePipeline(index) {
+        if (this.opaquePipelines[index] === null) {
+            this.opaquePipelines[index] = this.CreateNormalPipeline(true, index);
+        }
+        return this.opaquePipelines[index];
+    }
+
+    GetTransparentPipeline(index) {
+        if (this.transparentPipelines[index] === null) {
+            this.transparentPipelines[index] = this.CreateNormalPipeline(false, index);
+        }
+        return this.transparentPipelines[index];
+    }
 
     async init() {
         let images = [
@@ -254,13 +291,8 @@ class Spritter {
         fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         fireMario.SetTexture('mariofire');
         fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
-        fireMario.SetSecondaryTexture('water');
-        fireMario.SetDisplacement(1);
-        fireMario.displacementStrength[0] = this.tick / 100;
         fireMario.mat3.Scale(3);
-        fireMario.tex2Mat3.TranslateXY(this.tick, this.tick / 2);
-        fireMario.SetFlags(DrawObjFlag.SecondaryPatternMode | DrawObjFlag.FlipTextureX * flip | DrawObjFlag.FlipTextureY * flop);
-        fireMario.ClearFlags(DrawObjFlag.RepeatTexture);
+        fireMario.SetFlags(DrawObjFlag.FlipTextureX * flip | DrawObjFlag.FlipTextureY * flop);
         this.drawObjQueue.BufferDrawobj(fireMario, 1);
 
         let testLine = new DrawObjs.Sprite(1, 128);
@@ -268,21 +300,41 @@ class Spritter {
         testLine.mat3.Rotate(Math.round(this.tick / 15) * 15);
         this.drawObjQueue.BufferDrawobj(testLine, 1);
 
+        let testMask = new DrawObjs.Sprite(64, 256);
+        testMask.tintColor.set([1, 1, 1, 0.025]);
+        testMask.mat3.TranslateXY(-Math.sin(now) * 200, 0);
+        testMask.mat3.Rotate(this.tick / 2);
+        this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
+        this.drawObjQueue.BufferDrawobj(testMask, 0);
+        testMask.mat3.Rotate(90);
+        this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
+        this.drawObjQueue.BufferDrawobj(testMask, 0);
+        this.drawObjQueue.MaskDrawobjsFromPriority(1, 0, true);
+
+        let testMask2 = new DrawObjs.Sprite(512, 512);
+        testMask2.SetTextureAtlas(this.textureManager.textureAtlas);
+        testMask2.SetTexture('mariofire');
+        testMask2.tintColor.set([1, 1, 1, 0.025]);
+        testMask2.mat3.ScaleXY(Math.abs(Math.sin(now)), 1);
+        this.drawObjQueue.BufferDrawobjAsMask(testMask2, 1);
+        this.drawObjQueue.BufferDrawobj(testMask2, 0);  
+        this.drawObjQueue.MaskDrawobjsFromPriority(1, 1, false);
+
         // Stress tester
         for (let i = 0; i < 0; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
-            fireMario.mat3.Rotate(1);
-            fireMario.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(fireMario, 0);
+            // fireMario.mat3.Rotate(1);
+            // fireMario.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // this.drawObjQueue.BufferDrawobj(fireMario, 0);
 
-            // testSprite.tintColor[0] = Math.random();
-            // testSprite.tintColor[1] = Math.random();
-            // testSprite.tintColor[2] = Math.random();
-            // testSprite.mat3.Rotate(1);
-            // testSprite.mat3.TranslateXY((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
-            // this.drawObjQueue.BufferDrawobj(testSprite, 0);
+            testSprite.tintColor[0] = Math.random();
+            testSprite.tintColor[1] = Math.random();
+            testSprite.tintColor[2] = Math.random();
+            testSprite.mat3.Rotate(1);
+            testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(testSprite, 1);
         }
     }
 
@@ -306,10 +358,12 @@ class Spritter {
             ],
             depthStencilAttachment: {
                 view: this.depthStencilTexture.createView(),
-                depthLoadOp: 'clear',
                 depthClearValue: 0,
                 depthLoadOp: 'clear',
-                depthStoreOp: 'store'
+                depthStoreOp: 'store',
+                stencilClearValue: 0,
+                stencilLoadOp: 'clear',
+                stencilStoreOp: 'store'
             },
             timestampWrites: {
                 querySet: this.perfQuerySet,
@@ -319,15 +373,7 @@ class Spritter {
         };
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-        passEncoder.setBindGroup(0, this.textureManager.bindGroup);
-        passEncoder.setBindGroup(1, this.drawObjQueue.storageBindGroup);
-        passEncoder.setVertexBuffer(0, this.drawObjQueue.vertexBuffer);
-        passEncoder.setIndexBuffer(this.drawObjQueue.indexBuffer, 'uint32');
-        passEncoder.setPipeline(this.opaquePipeline);
-        passEncoder.draw(this.drawObjQueue.opaqueVertices);
-        passEncoder.setPipeline(this.transparentPipeline);
-        passEncoder.draw(this.drawObjQueue.transparentVertices, 1, this.drawObjQueue.opaqueVertices);
-        passEncoder.end();
+        this.drawObjQueue.EncodeRenderPassCommands(passEncoder);
 
         commandEncoder.resolveQuerySet(this.perfQuerySet, 0, this.perfQuerySet.count, this.perfResolveBuffer, 0);
         if (this.perfResultBuffer.mapState === 'unmapped') {

@@ -1,0 +1,18 @@
+Setup time:
+
+Draw whatever
+
+Draw whatever to mask #x (x != 0) 
+
+Specify masking for drawobjs with priority a to b
+
+
+Draw time:
+
+Assuming stencil is cleared, draw masking drawobjs (order doesn't matter) with stencil ref = x (always replace)
+
+Draw drawobjs from 0 to a-1 normally
+
+Draw drawobjs (opaques and transparents) from a to b with stencil ref = x (only draws if stencil value = x)
+
+Draw drawobjs from a+1 to N normally
