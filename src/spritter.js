@@ -32,6 +32,7 @@ const drawObjWgsl = await (await fetch('./src/wgsl/draw_obj.wgsl', { cache: 'no-
 const drawObjFlagsWgsl = await (await fetch('./src/wgsl/draw_obj_flags.wgsl', { cache: 'no-store' })).text();
 const vsWgsl = await fetchShader('./src/wgsl/vs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
 const fsWgsl = await fetchShader('./src/wgsl/fs.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
+const opaqueCuttingFragWgsl = await fetchShader('./src/wgsl/opaque_cutting.frag.wgsl', [drawObjWgsl, drawObjFlagsWgsl]);
 
 let spikeballShape;
 
@@ -84,6 +85,10 @@ class Spritter {
             label: 'fs',
             code: fsWgsl
         }); 
+        this.opaqueCuttingFragModule = device.createShaderModule({
+            label: 'opaque cutting frag',
+            code: opaqueCuttingFragWgsl
+        }); 
 
         // Generate a stencil setter pipeline for each mask
         for (let i = 0; i < MAX_MASK_LAYERS; i++) {
@@ -97,7 +102,7 @@ class Spritter {
                     ]
                 },
                 fragment: {
-                    module: this.fsModule,
+                    module: this.opaqueCuttingFragModule,
                     targets: [
                         {
                             format: this.canvasFormat,
@@ -307,6 +312,8 @@ class Spritter {
         this.drawObjQueue.MaskDrawobjsFromPriority(1, 0, true);
 
         let testMask2 = new DrawObjs.Sprite(512, 512);
+        testMask2.SetTextureAtlas(this.textureManager.textureAtlas);
+        testMask2.SetTexture('mariofire');
         testMask2.tintColor.set([1, 1, 1, 0.025]);
         testMask2.mat3.ScaleXY(Math.abs(Math.sin(now)), 1);
         this.drawObjQueue.BufferDrawobjAsMask(testMask2, 1);

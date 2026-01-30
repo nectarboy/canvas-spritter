@@ -281,7 +281,7 @@ class DrawObjQueue {
                 }
             }
 
-            if (start !== this.holders.length - 1)
+            if (start < this.holders.length - 1)
                 this.passes.push(new Pass(start, this.holders.length - 1, maskBits, antiBits)); // top up the remaining pass
         }
 
