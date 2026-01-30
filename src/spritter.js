@@ -296,7 +296,7 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(testLine, 1);
 
         let testMask = new DrawObjs.Sprite(64, 256);
-        testMask.tintColor.set([1, 1, 1, 0.25]);
+        testMask.tintColor.set([1, 1, 1, 0.025]);
         testMask.mat3.TranslateXY(-Math.sin(now) * 200, 0);
         testMask.mat3.Rotate(this.tick / 2);
         this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
@@ -304,7 +304,14 @@ class Spritter {
         testMask.mat3.Rotate(90);
         this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
         this.drawObjQueue.BufferDrawobj(testMask, 0);
-        this.drawObjQueue.MaskDrawobjsFromPriority(1, 0, true);
+        this.drawObjQueue.MaskDrawobjsFromPriority(1, 0, false);
+
+        let testMask2 = new DrawObjs.Sprite(512, 512);
+        testMask2.tintColor.set([1, 1, 1, 0.025]);
+        testMask2.mat3.ScaleXY(Math.abs(Math.sin(this.tick / 60)), 1);
+        this.drawObjQueue.BufferDrawobjAsMask(testMask2, 1);
+        this.drawObjQueue.BufferDrawobj(testMask2, 0);  
+        this.drawObjQueue.MaskDrawobjsFromPriority(1, 1, false);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {
@@ -320,7 +327,7 @@ class Spritter {
             testSprite.tintColor[2] = Math.random();
             testSprite.mat3.Rotate(1);
             testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(testSprite, 0);
+            this.drawObjQueue.BufferDrawobj(testSprite, 1);
         }
     }
 

@@ -198,6 +198,7 @@ class DrawObjQueue {
     PushDrawObjsToStageBuffers() {
         let ordering = 0;
 
+        // Buffer mask vertices
         if (this.usingMasks) {
             for (let i = 0; i < this.maskLayers.length; i++) {
                 let verts = this.verticesCount;
@@ -213,11 +214,17 @@ class DrawObjQueue {
         const comparer = (a, b) => a.priority - b.priority;
         this.holders.sort(comparer);
 
+        // Define a default normal pass
         if (this.maskPoints.length === 0) {
             this.passes.push(new Pass(0, this.holders.length - 1, 0, 0));
         }
+        // Seperate mask boundaries into seperate passes
+        // TODO: optimize ts
         else {
-            const maskPointComparer = (a, b) => a.priority - b.priority;
+            const maskPointComparer = (a, b) => {
+                let c1 = a.priority - b.priority;
+                return c1 === 0 ? b.clear - a.clear : c1;
+            }
             this.maskPoints.sort(maskPointComparer);
 
             let start = 0;
@@ -252,6 +259,7 @@ class DrawObjQueue {
                         break;
                     }
                     point = this.maskPoints[pointI];
+                    i--;
                 }
             }
 
@@ -261,6 +269,7 @@ class DrawObjQueue {
                 this.passes[this.passes.length - 1].holderEnd = this.holders.length - 1;
         }
 
+        // Buffer vertices of all passes
         for (let i = 0; i < this.passes.length; i++) {
             let pass = this.passes[i];
 
@@ -299,9 +308,9 @@ class DrawObjQueue {
 
         // Draw mask drawobjs
         if (this.usingMasks) {
+            let start = 0;
             for (let i = 0; i < this.maskLayers.length; i++) {
                 if (this.maskLayers[i].vertices === 0) continue;
-                let start = 0;
                 passEncoder.setStencilReference(0xffffffff);
                 passEncoder.setPipeline(this.spritter.stencilSetPipelines[i]);
                 passEncoder.draw(this.maskLayers[i].vertices, 1, start);
@@ -312,7 +321,6 @@ class DrawObjQueue {
         // Draw all drawobjs
         for (let i = 0; i < this.passes.length; i++) {
             let pass = this.passes[i];
-            console.log(pass);
             passEncoder.setStencilReference(pass.maskBits ^ pass.antiBits);
             if (pass.opaqueVertices !== 0) {
                 passEncoder.setPipeline(this.spritter.GetOpaquePipeline(pass.maskBits));
