@@ -88,7 +88,7 @@ class Spritter {
         // Generate a stencil setter pipeline for each mask
         for (let i = 0; i < MAX_MASK_LAYERS; i++) {
             this.stencilSetPipelines[i] = device.createRenderPipeline({
-                label: 'stencil set pipeline',
+                label: 'stencil set pipeline #' + i,
                 layout: this.pipelineLayout,
                 vertex: {
                     module: this.vsModule,
@@ -314,7 +314,7 @@ class Spritter {
         this.drawObjQueue.MaskDrawobjsFromPriority(1, 1, false);
 
         // Stress tester
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 0; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
