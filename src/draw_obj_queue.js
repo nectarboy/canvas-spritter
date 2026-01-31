@@ -71,6 +71,7 @@ class DrawObjQueue {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
         this.drawObjDataCount = 0;
+        this.drawObjDataWordCount = 0;
         this.drawObjDataEntrySize = 64;
         this.drawObjDataEntryByteSize = this.drawObjDataEntrySize * this.storageStage.BYTES_PER_ELEMENT;
 
@@ -97,6 +98,7 @@ class DrawObjQueue {
         this.pullerEntrySize = 2;
         this.pullerEntryByteSize = this.pullerEntrySize * this.pullerStage.BYTES_PER_ELEMENT;
         this.pullerCount = 0;
+
 
         // Bind groups and descriptors
         this.bindGroupLayout = spritter.device.createBindGroupLayout({
@@ -183,10 +185,13 @@ class DrawObjQueue {
             return;
         }
 
+        this.storageStage.set(drawObj.data, this.drawObjDataWordCount);
+        this.drawObjDataWordCount += this.drawObjDataEntrySize;
+
         let holder = this.holderPool.Get();
         holder.drawObj = drawObj;
-        holder.drawObjDataIndex = this.drawObjDataCount;
-        this.BufferDrawObjData(drawObj.data);
+        holder.drawObjDataIndex = this.drawObjDataCount++;
+        // this.BufferDrawObjData(drawObj.data);
         holder.priority = priority;
         this.holders.push(holder);
     }
@@ -204,10 +209,13 @@ class DrawObjQueue {
 
         this.usingMasks = true;
 
+        this.storageStage.set(drawObj.data, this.drawObjDataWordCount);
+        this.drawObjDataWordCount += this.drawObjDataEntrySize;
+
         let holder = this.holderPool.Get();
         holder.drawObj = drawObj;
-        holder.drawObjDataIndex = this.drawObjDataCount;
-        this.BufferDrawObjData(drawObj.data);
+        holder.drawObjDataIndex = this.drawObjDataCount++;
+        // this.BufferDrawObjData(drawObj.data);
         holder.priority = 0; // omit
         this.maskLayers[mask].holders.push(holder);
     }
@@ -238,13 +246,17 @@ class DrawObjQueue {
     }
 
     BufferDrawObjData(data) {
-        this.storageStage.set(data, this.drawObjDataCount++ * this.drawObjDataEntrySize);
+        this.storageStage.set(data, this.drawObjDataWordCount);
+        this.drawObjDataWordCount += this.drawObjDataEntrySize;
     }
 
-    BufferDrawObjPullers(holder) {
-        holder.drawObj.PepperPullersWithDrawObjIndex(holder.drawObjDataIndex);
-        this.pullerStage.set(holder.drawObj.pullers, this.pullerCount * this.pullerEntrySize);
-        this.pullerCount += holder.drawObj.pullers.length / this.pullerEntrySize;
+    BufferDrawObjPullers(drawObj, drawObjDataIndex) {
+        let off = this.pullerCount * this.pullerEntrySize;
+        this.pullerCount += drawObj.pullerCount;
+        this.pullerStage.set(drawObj.pullers, off);
+        for (let i = off + 1; i < off + 1 + drawObj.pullerCount * this.pullerEntrySize; i += 2) {
+            this.pullerStage[i] = drawObjDataIndex;
+        }
     }
 
     PepperDrawObjDataWithOrdering(index, ordering) {
@@ -260,7 +272,7 @@ class DrawObjQueue {
                 let pullerCount = this.pullerCount;
                 for (let ii = 0; ii < this.maskLayers[i].holders.length; ii++) {
                     let holder = this.maskLayers[i].holders[ii];
-                    this.BufferDrawObjPullers(holder);
+                    this.BufferDrawObjPullers(holder.drawObj, holder.drawObjDataIndex);
                 }
                 pullerCount = this.pullerCount - pullerCount;
                 this.maskLayers[i].pullerCount = pullerCount;
@@ -349,7 +361,7 @@ class DrawObjQueue {
             pass.opaquePullerStart = this.pullerCount;
             for (let i = 0; i < opaques.length; i++) {
                 let holder = opaques[opaques.length - i - 1];
-                this.BufferDrawObjPullers(holder);
+                this.BufferDrawObjPullers(holder.drawObj, holder.drawObjDataIndex);
             }
             pass.opaquePullerCount = this.pullerCount - pass.opaquePullerStart;
 
@@ -357,7 +369,7 @@ class DrawObjQueue {
             pass.transparentPullerStart = this.pullerCount;
             for (let i = 0; i < transparents.length; i++) {
                 let holder = transparents[i];
-                this.BufferDrawObjPullers(holder);
+                this.BufferDrawObjPullers(holder.drawObj, holder.drawObjDataIndex);
             }
             pass.transparentPullerCount = this.pullerCount - pass.transparentPullerStart;
         }
@@ -452,6 +464,7 @@ class DrawObjQueue {
         this.passes.length = 0;
 
         this.drawObjDataCount = 0;
+        this.drawObjDataWordCount = 0;
         this.pullerCount = 0;
         this.CleanUpReleasedDrawObjs();
         this.dirtyVertices.length = 0;

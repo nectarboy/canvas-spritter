@@ -37,6 +37,7 @@ class DrawObj {
         this.data = new DATA_ARRAY(64);
         this.vertices = null;
         this.pullers = new Uint32Array(0);
+        this.pullerCount = 0;
 
         this.mat3 = new DataMat3(new DATA_ARRAY(this.data.buffer, 0 * DATA_BYTES, 12)).ToIdentity();
 
@@ -210,12 +211,6 @@ class DrawObj {
         this.displacementStrength[0] = displacementStrength;
     }
 
-    PepperPullersWithDrawObjIndex(index) {
-        for (let i = 0; i < this.pullers.length; i += 2) {
-            this.pullers[i + 1] = index;
-        }
-    }
-
     GetVertexStart(vertex) {
         return vertex.byteOffset / this.spritter.drawObjQueue.vertexEntryByteSize;
     }
@@ -228,7 +223,8 @@ class Sprite extends DrawObj {
         this.h = h;
 
         this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
-        this.pullers = new Uint32Array(6 * this.spritter.drawObjQueue.pullerEntrySize);
+        this.pullerCount = 6;
+        this.pullers = new Uint32Array(this.pullerCount * this.spritter.drawObjQueue.pullerEntrySize);
         this.UpdateVertices();
     };
 

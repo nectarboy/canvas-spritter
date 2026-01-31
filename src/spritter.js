@@ -325,7 +325,7 @@ class Spritter {
         // this.drawObjQueue.MaskDrawobjsFromPriority(1, 1, false);
 
         // Stress tester
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 19000; i++) {
             // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(testPoly, i);
 
