@@ -60,6 +60,7 @@ class DrawObjQueue {
         this.holders = [];
         this.passes = [];
         this.releasedDrawObjQueue = [];
+        this.dirtyVertices = [];
 
         // DrawObj storage buffer
         this.storageBufferSize = 4096 * 1024;
@@ -166,6 +167,16 @@ class DrawObjQueue {
         this.releasedDrawObjQueue.length = 0;
     }
 
+    MarkDirtyVertices(vertices) {
+        for (let i = 0; i < vertices.length; i++) {
+            let vertex = vertices[i];
+            this.dirtyVertices.push({
+                byteOffset: vertex.byteOffset,
+                byteLength: vertex.byteLength
+            });
+        }
+    }
+
     BufferDrawobj(drawObj, priority) {
         if (this.holders.length === MAX_DRAWOBJS) {
             console.warn("Drawobj queue full, cannot buffer drawobj.");
@@ -234,8 +245,6 @@ class DrawObjQueue {
         holder.drawObj.PepperPullersWithDrawObjIndex(holder.drawObjDataIndex);
         this.pullerStage.set(holder.drawObj.pullers, this.pullerCount * this.pullerEntrySize);
         this.pullerCount += holder.drawObj.pullers.length / this.pullerEntrySize;
-        if (this.spritter.tick === 0)
-            console.log(holder.drawObj.pullers);
     }
 
     PepperDrawObjDataWithOrdering(index, ordering) {
@@ -389,13 +398,23 @@ class DrawObjQueue {
     }
 
     UploadStageBuffersToBuffers() {
-        this.spritter.device.queue.writeBuffer(
-            this.vertexBuffer,
-            0,
-            this.vertexStage.buffer,
-            this.vertexStage.byteOffset,
-            this.vertexStage.byteLength // TODO: intelligent writing
-        );
+        for (let i = 0; i < this.dirtyVertices.length; i++) {
+            let vertex = this.dirtyVertices[i];
+            this.spritter.device.queue.writeBuffer(
+                this.vertexBuffer,
+                vertex.byteOffset,
+                this.vertexStage.buffer,
+                vertex.byteOffset,
+                vertex.byteLength
+            );
+        }
+        // this.spritter.device.queue.writeBuffer(
+        //     this.vertexBuffer,
+        //     0,
+        //     this.vertexStage.buffer,
+        //     this.vertexStage.byteOffset,
+        //     this.vertexStage.byteLength // TODO: intelligent writing
+        // );
 
         this.spritter.device.queue.writeBuffer(
             this.pullerBuffer,
@@ -435,6 +454,7 @@ class DrawObjQueue {
         this.drawObjDataCount = 0;
         this.pullerCount = 0;
         this.CleanUpReleasedDrawObjs();
+        this.dirtyVertices.length = 0;
     }
 }
 

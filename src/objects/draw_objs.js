@@ -237,6 +237,8 @@ class Sprite extends DrawObj {
         this.vertices[1].set([0.5, 0.5, 1, 0,   this.w, -this.h]); // br
         this.vertices[2].set([-0.5, 0.5, 1, 0,  -this.w, -this.h]); // bl
         this.vertices[3].set([-0.5, -0.5, 1, 0, -this.w, this.h]); // tl
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
+
         this.pullers.set([
             this.GetVertexStart(this.vertices[0]), 0,
             this.GetVertexStart(this.vertices[1]), 0,
