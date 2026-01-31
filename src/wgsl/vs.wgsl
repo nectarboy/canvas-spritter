@@ -1,4 +1,10 @@
 @group(1) @binding(0) var<storage, read> drawObjs : array<DrawObj>;
+@group(1) @binding(1) var<storage, read> vertices : array<VertexInput>;
+
+struct VertexInput {
+    @location(0) uv : vec3f,
+    @location(1) position : vec2f,
+};
 
 struct VertexOutput {
     @builtin(position) position : vec4f,
@@ -18,10 +24,9 @@ struct VertexOutput {
 
 @vertex
 fn main(
-    @builtin(vertex_index) VertexIndex : u32,
-    @location(0) position : vec2f,
-    @location(1) uv : vec3f,
-    @location(2) drawObjIndex : u32
+    @builtin(vertex_index) pullerIndex : u32,
+    @location(0) vertexIndex : u32,
+    @location(1) drawObjIndex : u32
 ) -> VertexOutput {
 
     // TODO: calculate stuff that will be uniform across all a DrawObj's vertices in a seperate pass beforehand, to pass along here?
@@ -37,10 +42,11 @@ fn main(
     const screenW = 480f;
     const screenH = 360f;
 
+    var vertex : VertexInput = vertices[vertexIndex];
     var drawObj : DrawObj = drawObjs[drawObjIndex];
     var out : VertexOutput;
 
-    var transformedPosition : vec3f = drawObj.mat3 * vec3f(position, 1);
+    var transformedPosition : vec3f = drawObj.mat3 * vec3f(vertex.position, 1);
     transformedPosition.x /= screenW;
     transformedPosition.y /= screenH;
     out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.ordering + 1) / MAX_ORDERING, 1.0);
@@ -65,7 +71,7 @@ fn main(
     if ((drawObj.flags & PatternMode) != 0) {
         // out.displacementScale = vec2f(1);
         // out.displacementScale /= drawObj.texSize;
-        out.texUv = vec3f(position.x, -position.y, uv.z);
+        out.texUv = vec3f(vertex.position.x, -vertex.position.y, vertex.uv.z);
         if ((drawObj.flags & SeeThroughMode) != 0) {
             out.texUv = seeThrough * out.texUv;
         }
@@ -74,14 +80,14 @@ fn main(
         out.texUv.y /= 2 * drawObj.texSize.y;
     }
     else {
-        out.texUv = drawObj.texMat3 * uv;
+        out.texUv = drawObj.texMat3 * vertex.uv;
     }
     out.texUv.x = select(out.texUv.x, -out.texUv.x, (drawObj.flags & FlipTextureX) != 0);
     out.texUv.y = select(out.texUv.y, -out.texUv.y, (drawObj.flags & FlipTextureY) != 0);
 
     if ((drawObj.flags & SecondaryPatternMode) != 0) {
         //out.tex2Uv = drawObj.tex2Mat3 * effectArray[select(0, 1, (drawObj.flags & SecondarySeeThroughMode) != 0)] * vec3f(position.x, -position.y, uv.z);
-        out.tex2Uv = vec3f(position.x, -position.y, uv.z);
+        out.tex2Uv = vec3f(vertex.position.x, -vertex.position.y, vertex.uv.z);
         if ((drawObj.flags & SecondarySeeThroughMode) != 0) {
             out.tex2Uv = seeThrough * out.tex2Uv;
         }
@@ -90,7 +96,7 @@ fn main(
         out.tex2Uv.y /= 2 * drawObj.tex2Size.y;
     }
     else {
-        out.tex2Uv = drawObj.tex2Mat3 * uv;
+        out.tex2Uv = drawObj.tex2Mat3 * vertex.uv;
     }
     out.tex2Uv.x = select(out.tex2Uv.x, -out.tex2Uv.x, (drawObj.flags & FlipSecondaryTextureX) != 0);
     out.tex2Uv.y = select(out.tex2Uv.y, -out.tex2Uv.y, (drawObj.flags & FlipSecondaryTextureY) != 0);

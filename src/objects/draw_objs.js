@@ -30,11 +30,13 @@ const WHITE = new DATA_ARRAY(4);
 WHITE.set([1, 1, 1, 1]);
 
 class DrawObj {
-    constructor() {
-        this.transparent = true;
-        this.posOffset = new Vec2(0, 0);
+    constructor(spritter) {
+        this.spritter = spritter;
 
+        this.released = false;
         this.data = new DATA_ARRAY(64);
+        this.vertices = null;
+        this.pullers = new Uint32Array(0);
 
         this.mat3 = new DataMat3(new DATA_ARRAY(this.data.buffer, 0 * DATA_BYTES, 12)).ToIdentity();
 
@@ -80,7 +82,18 @@ class DrawObj {
 
         this.flags = new Uint32Array(this.data.buffer, 61 * DATA_BYTES, 1);
         this.SetFlags(DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture);
+
+        this.transparent = true;
+        this.posOffset = new Vec2(0, 0);
     };
+
+    Release() {
+        if (this.released)
+            return;
+
+        this.released = true;
+        this.spritter.drawObjQueue.QueueReleasedDrawObj(this);
+    }
 
     IsFullyOpaque() {
         const flags = this.flags[0];
@@ -197,65 +210,56 @@ class DrawObj {
         this.displacementStrength[0] = displacementStrength;
     }
 
-    SetTextureToSeeThroughEffect() {
-        this.SetFlags(DrawObjFlag.PatternMode);
-        this.texMat3.Set(this.mat3);
-        this.texMat3.ReverseRotation();
-        this.texMat3.SetY(-this.texMat3.GetY());
-    }
-    SetSecondaryTextureToSeeThroughEffect() {
-        this.SetFlags(DrawObjFlag.SecondaryPatternMode);
-        this.tex2Mat3.Set(this.mat3);
-        this.tex2Mat3.ReverseRotation();
-        this.tex2Mat3.SetY(-this.tex2Mat3.GetY());
+    PepperPullersWithDrawObjIndex(index) {
+        for (let i = 0; i < this.pullers.length; i += 2) {
+            this.pullers[i + 1] = index;
+        }
     }
 
-    CopyDataTo(data, off) {
-        data.set(this.data, off);
+    GetVertexStart(vertex) {
+        return vertex.byteOffset / this.spritter.drawObjQueue.vertexEntryByteSize;
+    }
+}
+
+class Sprite extends DrawObj {
+    constructor(spritter, w, h) {
+        super(spritter);
+        this.w = w;
+        this.h = h;
+
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
+        this.pullers = new Uint32Array(6 * this.spritter.drawObjQueue.pullerEntrySize);
+        this.UpdateVertices();
+    };
+
+    UpdateVertices() {
+        this.vertices[0].set([0.5, -0.5, 1, 0,  this.w, this.h]); // tr
+        this.vertices[1].set([0.5, 0.5, 1, 0,   this.w, -this.h]); // br
+        this.vertices[2].set([-0.5, 0.5, 1, 0,  -this.w, -this.h]); // bl
+        this.vertices[3].set([-0.5, -0.5, 1, 0, -this.w, this.h]); // tl
+        this.pullers.set([
+            this.GetVertexStart(this.vertices[0]), 0,
+            this.GetVertexStart(this.vertices[1]), 0,
+            this.GetVertexStart(this.vertices[2]), 0,
+            this.GetVertexStart(this.vertices[0]), 0,
+            this.GetVertexStart(this.vertices[2]), 0,
+            this.GetVertexStart(this.vertices[3]), 0,
+        ]);
     }
 
-    BufferVerticesAt(queue, mat3, drawObjIndex) {}
-    GetVerticesCount() {}
+    GetVerticesCount() {
+        return 6;
+    }
 }
 
 class DrawObjs {
 
-    static Sprite = class Sprite extends DrawObj {
-        constructor(w, h) {
-            super();
-            this.w = w;
-            this.h = h;
+    constructor(spritter) {
+        this.spritter = spritter;
+    };
 
-            this.vertices = new Float32Array(42);
-            this.vertices_Uint32 = new Uint32Array(this.vertices.buffer);
-            this.UpdateVertices();
-        };
-
-        UpdateVertices() {
-            this.vertices.set([this.w, this.h,        0.5, -0.5, 1, 0], 0); // tr
-            this.vertices.set([-this.w, -this.h,        -0.5, 0.5, 1, 0], 7); // bl
-            this.vertices.set([-this.w, this.h,        -0.5, -0.5, 1, 0], 14); // tl
-            this.vertices.set([-this.w, -this.h,      -0.5, 0.5, 1, 0], 21); // bl
-            this.vertices.set([this.w, this.h,    0.5, -0.5, 1, 0], 28); // tr
-            this.vertices.set([this.w, -this.h,    0.5, 0.5, 1, 0], 35); // br
-        }
-
-        BufferVerticesAt(queue, holder, drawObjIndex) {
-            this.vertices_Uint32[6] = drawObjIndex;
-            this.vertices_Uint32[13] = drawObjIndex;
-            this.vertices_Uint32[20] = drawObjIndex;
-            this.vertices_Uint32[27] = drawObjIndex;
-            this.vertices_Uint32[34] = drawObjIndex;
-            this.vertices_Uint32[41] = drawObjIndex;
-
-            let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set(this.vertices, off);
-            queue.verticesCount += 6;
-        }
-
-        GetVerticesCount() {
-            return 6;
-        }
+    CreateSprite(w, h) {
+        return new Sprite(this.spritter, w, h);
     }
 
     // A sprite that sort of drapes the texture along the dimension with n subdivisions.

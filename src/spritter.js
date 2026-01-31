@@ -59,6 +59,7 @@ class Spritter {
 
         this.textureManager = new TextureManager(this);
         this.drawObjQueue = new DrawObjQueue(this);
+        this.drawObjs = new DrawObjs(this);
 
         this.depthStencilTexture = this.device.createTexture({
             size: [canvas.width, canvas.height],
@@ -68,7 +69,7 @@ class Spritter {
 
         this.pipelineLayout = device.createPipelineLayout({
             label: 'pipeline layout',
-            bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.storageBindGroupLayout]
+            bindGroupLayouts: [this.textureManager.bindGroupLayout, this.drawObjQueue.bindGroupLayout]
         });
 
         this.stencilSetPipelines = new Array(MAX_MASK_LAYERS);
@@ -98,7 +99,7 @@ class Spritter {
                 vertex: {
                     module: this.vsModule,
                     buffers: [
-                        this.drawObjQueue.vertexBufferDescriptor
+                        this.drawObjQueue.pullerBufferDescriptor
                     ]
                 },
                 fragment: {
@@ -159,7 +160,7 @@ class Spritter {
             vertex: {
                 module: this.vsModule,
                 buffers: [
-                    this.drawObjQueue.vertexBufferDescriptor
+                    this.drawObjQueue.pullerBufferDescriptor
                 ]
             },
             fragment: {
@@ -254,40 +255,43 @@ class Spritter {
         let flip = (this.tick % 60) >= 30;
         let flop = (this.tick % 120) >= 60;
 
-        let backgroundSprite = new DrawObjs.Sprite(this.canvas.width, this.canvas.height);
+        let backgroundSprite = this.drawObjs.CreateSprite(this.canvas.width, this.canvas.height);
         backgroundSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         backgroundSprite.SetTexture('background');
         this.drawObjQueue.BufferDrawobj(backgroundSprite, 0);
 
-        let testSprite = new DrawObjs.Sprite(128, 128);
-        testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
-        testSprite.SetTexture('atlas_test');
-        testSprite.SetSecondaryTexture('water');
-        testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip));
-        testSprite.tex2Alpha[0] = 0;
-        testSprite.displacementStrength[0] = Math.sin(now);
-        // testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);
-        // testSprite.thresholdLowerColor.a = 0.95;
-        // testSprite.SetMaskMode(true);
-        testSprite.SetDisplacement(1);
-        testSprite.mat3.TranslateXY(Math.sin(now) * 100, Math.sin(now) * 50);
-        testSprite.mat3.ScaleXY((Math.sin(now) + 1) / 2 + 1, 2);
-        // testSprite.mat3.Rotate(this.tick);
-        // testSprite.texMat3.TranslateXY(this.tick / 3, this.tick / 3);
-        testSprite.texMat3.ScaleWithTranslation(4 / (this.tick*.05 + 1));
-        // testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
-        // testSprite.tex2Mat3.ScaleWithTranslationXY(1, 0.25);
-        // testSprite.tex2Mat3.Rotate(this.tick / 10);
-        // this.drawObjQueue.BufferDrawobj(testSprite, 1);
+        // if (this.tick === 0)
+            // console.log(backgroundSprite.pullers);
 
-        let curtainSprite = new DrawObjs.CurtainSprite(128, 128, 20, 0.5);
-        curtainSprite.SetTextureAtlas(this.textureManager.textureAtlas);
-        curtainSprite.SetTexture('test');
-        curtainSprite.texMat3.TranslateXY(0, -this.tick * 0.01);
-        // curtainSprite.SetFlags(DrawObjFlag.PatternMode);
-        this.drawObjQueue.BufferDrawobj(curtainSprite, 1);
+        // let testSprite = this.drawObjs.CreateSprite(128, 128);
+        // testSprite.SetTextureAtlas(this.textureManager.textureAtlas);
+        // testSprite.SetTexture('atlas_test');
+        // testSprite.SetSecondaryTexture('water');
+        // testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip));
+        // testSprite.tex2Alpha[0] = 0;
+        // testSprite.displacementStrength[0] = Math.sin(now);
+        // // testSprite.tintColor.set([0.5, 0.5, 0.5, 1]);
+        // // testSprite.thresholdLowerColor.a = 0.95;
+        // // testSprite.SetMaskMode(true);
+        // testSprite.SetDisplacement(1);
+        // testSprite.mat3.TranslateXY(Math.sin(now) * 100, Math.sin(now) * 50);
+        // testSprite.mat3.ScaleXY((Math.sin(now) + 1) / 2 + 1, 2);
+        // // testSprite.mat3.Rotate(this.tick);
+        // // testSprite.texMat3.TranslateXY(this.tick / 3, this.tick / 3);
+        // testSprite.texMat3.ScaleWithTranslation(4 / (this.tick*.05 + 1));
+        // // testSprite.tex2Mat3.TranslateXY(this.tick, this.tick);
+        // // testSprite.tex2Mat3.ScaleWithTranslationXY(1, 0.25);
+        // // testSprite.tex2Mat3.Rotate(this.tick / 10);
+        // // this.drawObjQueue.BufferDrawobj(testSprite, 1);
 
-        let fireMario = new DrawObjs.Sprite(32, 40);
+        // let curtainSprite = new DrawObjs.CurtainSprite(128, 128, 20, 0.5);
+        // curtainSprite.SetTextureAtlas(this.textureManager.textureAtlas);
+        // curtainSprite.SetTexture('test');
+        // curtainSprite.texMat3.TranslateXY(0, -this.tick * 0.01);
+        // // curtainSprite.SetFlags(DrawObjFlag.PatternMode);
+        // this.drawObjQueue.BufferDrawobj(curtainSprite, 1);
+
+        let fireMario = this.drawObjs.CreateSprite(32, 40);
         fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         fireMario.SetTexture('mariofire');
         fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
@@ -295,30 +299,30 @@ class Spritter {
         fireMario.SetFlags(DrawObjFlag.FlipTextureX * flip | DrawObjFlag.FlipTextureY * flop);
         this.drawObjQueue.BufferDrawobj(fireMario, 1);
 
-        let testLine = new DrawObjs.Sprite(1, 128);
-        testLine.tintColor.set([0, 0, 0, 1]);
-        testLine.mat3.Rotate(Math.round(this.tick / 15) * 15);
-        this.drawObjQueue.BufferDrawobj(testLine, 1);
+        // let testLine = this.drawObjs.CreateSprite(1, 128);
+        // testLine.tintColor.set([0, 0, 0, 1]);
+        // testLine.mat3.Rotate(Math.round(this.tick / 15) * 15);
+        // this.drawObjQueue.BufferDrawobj(testLine, 1);
 
-        let testMask = new DrawObjs.Sprite(64, 256);
-        testMask.tintColor.set([1, 1, 1, 0.025]);
-        testMask.mat3.TranslateXY(-Math.sin(now) * 200, 0);
-        testMask.mat3.Rotate(this.tick / 2);
-        this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
-        this.drawObjQueue.BufferDrawobj(testMask, 0);
-        testMask.mat3.Rotate(90);
-        this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
-        this.drawObjQueue.BufferDrawobj(testMask, 0);
-        this.drawObjQueue.MaskDrawobjsFromPriority(1, 0, true);
+        // let testMask = this.drawObjs.CreateSprite(64, 256);
+        // testMask.tintColor.set([1, 1, 1, 0.025]);
+        // testMask.mat3.TranslateXY(-Math.sin(now) * 200, 0);
+        // testMask.mat3.Rotate(this.tick / 2);
+        // this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
+        // this.drawObjQueue.BufferDrawobj(testMask, 0);
+        // testMask.mat3.Rotate(90);
+        // this.drawObjQueue.BufferDrawobjAsMask(testMask, 0);
+        // this.drawObjQueue.BufferDrawobj(testMask, 0);
+        // this.drawObjQueue.MaskDrawobjsFromPriority(1, 0, true);
 
-        let testMask2 = new DrawObjs.Sprite(512, 512);
-        testMask2.SetTextureAtlas(this.textureManager.textureAtlas);
-        testMask2.SetTexture('mariofire');
-        testMask2.tintColor.set([1, 1, 1, 0.025]);
-        testMask2.mat3.ScaleXY(Math.abs(Math.sin(now)), 1);
-        this.drawObjQueue.BufferDrawobjAsMask(testMask2, 1);
-        this.drawObjQueue.BufferDrawobj(testMask2, 0);  
-        this.drawObjQueue.MaskDrawobjsFromPriority(1, 1, false);
+        // let testMask2 = this.drawObjs.CreateSprite(512, 512);
+        // testMask2.SetTextureAtlas(this.textureManager.textureAtlas);
+        // testMask2.SetTexture('mariofire');
+        // testMask2.tintColor.set([1, 1, 1, 0.025]);
+        // testMask2.mat3.ScaleXY(Math.abs(Math.sin(now)), 1);
+        // this.drawObjQueue.BufferDrawobjAsMask(testMask2, 1);
+        // this.drawObjQueue.BufferDrawobj(testMask2, 0);  
+        // this.drawObjQueue.MaskDrawobjsFromPriority(1, 1, false);
 
         // Stress tester
         for (let i = 0; i < 0; i++) {
@@ -336,6 +340,9 @@ class Spritter {
             testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             this.drawObjQueue.BufferDrawobj(testSprite, 1);
         }
+
+        backgroundSprite.Release();
+        fireMario.Release();
     }
 
     async draw() {

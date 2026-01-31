@@ -1,4 +1,5 @@
 import MakeCircularPoolConstructor from './circular_pool.js';
+import { BlockAllocator } from './block_allocators.js';
 
 const MAX_DRAWOBJS = 20000;
 
@@ -30,10 +31,10 @@ class Pass {
         this.holderEnd = holderEnd;
         this.maskBits = maskBits;
         this.antiBits = antiBits;
-        this.opaqueVerticesStart = 0;
-        this.opaqueVertices = 0;
-        this.transparentVerticesStart = 0;
-        this.transparentVertices = 0;
+        this.opaquePullerStart = 0;
+        this.opaquePullerCount = 0;
+        this.transparentPullerStart = 0;
+        this.transparentPullerCount = 0;
     };
 }
 
@@ -53,11 +54,12 @@ class DrawObjQueue {
         for (let i = 0; i < spritter.maxMaskLayers; i++) {
             this.maskLayers.push({
                 holders: [],
-                vertices: 0
+                pullerCount: 0
             });
         }
         this.holders = [];
         this.passes = [];
+        this.releasedDrawObjQueue = [];
 
         // DrawObj storage buffer
         this.storageBufferSize = 4096 * 1024;
@@ -71,8 +73,33 @@ class DrawObjQueue {
         this.drawObjDataEntrySize = 64;
         this.drawObjDataEntryByteSize = this.drawObjDataEntrySize * this.storageStage.BYTES_PER_ELEMENT;
 
-        this.storageBindGroupLayout = spritter.device.createBindGroupLayout({
-            label: 'draw_obj_queue bind group layout',
+        // Vertex storage buffer
+        this.vertexBufferSize = 4096 * 1024;
+        this.vertexStage = new Float32Array(this.vertexBufferSize);
+        this.vertexBuffer = spritter.device.createBuffer({
+            label: 'vertex buffer',
+            size: this.vertexStage.byteLength,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+        this.vertexEntrySize = 8;
+        this.vertexEntryByteSize = this.vertexEntrySize * this.vertexStage.BYTES_PER_ELEMENT;
+        this.vertexBlockAllocator = new BlockAllocator(this.vertexStage, this.vertexEntrySize);
+
+        // Puller buffer
+        this.pullerBufferSize = 4096 * 1024;
+        this.pullerStage = new Uint32Array(this.pullerBufferSize);
+        this.pullerBuffer = spritter.device.createBuffer({
+            label: 'puller buffer',
+            size: this.pullerStage.byteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        });
+        this.pullerEntrySize = 2;
+        this.pullerEntryByteSize = this.pullerEntrySize * this.pullerStage.BYTES_PER_ELEMENT;
+        this.pullerCount = 0;
+
+        // Bind groups and descriptors
+        this.bindGroupLayout = spritter.device.createBindGroupLayout({
+            label: 'DrawObjQueue bind group layout',
             entries: [
                 {
                     binding: 0,
@@ -81,60 +108,62 @@ class DrawObjQueue {
                         type: 'read-only-storage',
                         minBindingSize: this.storageStage.byteLength,
                     },
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {
+                        type: 'read-only-storage',
+                        minBindingSize: this.vertexStage.byteLength
+                    }
                 }
             ]
         });
-        this.storageBindGroup = spritter.device.createBindGroup({
-            label: 'draw_obj_queue bind group',
-            layout: this.storageBindGroupLayout,
+        this.bindGroup = spritter.device.createBindGroup({
+            label: 'DrawObjQueue bind group',
+            layout: this.bindGroupLayout,
             entries: [
                 {
                     binding: 0,
                     resource: { buffer: this.storageBuffer }
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.vertexBuffer }
                 }
             ]
         });
 
-        // Vertex buffer
-        this.vertexBufferSize = 4096 * 1024;
-        this.verticesStage = new Float32Array(this.vertexBufferSize);
-        this.verticesStage_Uint32 = new Uint32Array(this.verticesStage.buffer);
-        this.vertexBuffer = spritter.device.createBuffer({
-            size: this.verticesStage.byteLength,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-        });
-        this.verticesCount = 0;
-        this.vertexBufferEntrySize = 7;
-        this.vertexBufferEntryByteSize = this.vertexBufferEntrySize * this.verticesStage.BYTES_PER_ELEMENT;
-
-        // Index buffer
-        this.indexBufferSize = 4096 * 1024;
-        this.indexStage = new Uint32Array(this.indexBufferSize);
-        this.indexBuffer = spritter.device.createBuffer({
-            size: this.indexStage.byteLength,
-            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-        });
-
-        this.vertexBufferDescriptor = {
-            arrayStride: this.vertexBufferEntryByteSize,
+        this.pullerBufferDescriptor = {
+            arrayStride: this.pullerEntryByteSize,
             attributes: [
+                // Vertex index
                 {
                     shaderLocation: 0,
-                    offset: 0,
-                    format: 'float32x2'
-                },
-                {
-                    shaderLocation: 1,
-                    offset: 4 * 2,
-                    format: 'float32x4'
-                },
-                {
-                    shaderLocation: 2,
-                    offset: 4 * 6,
+                    offset: 4 * 0,
                     format: 'uint32'
                 },
+                // DrawObj index
+                {
+                    shaderLocation: 1,
+                    offset: 4 * 1,
+                    format: 'uint32'
+                }
             ]
         };
+    }
+
+    QueueReleasedDrawObj(drawObj) {
+        this.releasedDrawObjQueue.push(drawObj);
+    }
+
+    CleanUpReleasedDrawObjs() {
+        for (let i = 0; i < this.releasedDrawObjQueue.length; i++) {
+            let drawObj = this.releasedDrawObjQueue[i];
+            this.vertexBlockAllocator.Free(drawObj.vertices);
+            drawObj.vertices = null;
+        }
+        this.releasedDrawObjQueue.length = 0;
     }
 
     BufferDrawobj(drawObj, priority) {
@@ -201,6 +230,14 @@ class DrawObjQueue {
         this.storageStage.set(data, this.drawObjDataCount++ * this.drawObjDataEntrySize);
     }
 
+    BufferDrawObjPullers(holder) {
+        holder.drawObj.PepperPullersWithDrawObjIndex(holder.drawObjDataIndex);
+        this.pullerStage.set(holder.drawObj.pullers, this.pullerCount * this.pullerEntrySize);
+        this.pullerCount += holder.drawObj.pullers.length / this.pullerEntrySize;
+        if (this.spritter.tick === 0)
+            console.log(holder.drawObj.pullers);
+    }
+
     PepperDrawObjDataWithOrdering(index, ordering) {
         this.storageStage[index * this.drawObjDataEntrySize + 60] = ordering;
     }
@@ -211,13 +248,13 @@ class DrawObjQueue {
         // Buffer mask vertices
         if (this.usingMasks) {
             for (let i = 0; i < this.maskLayers.length; i++) {
-                let verts = this.verticesCount;
+                let pullerCount = this.pullerCount;
                 for (let ii = 0; ii < this.maskLayers[i].holders.length; ii++) {
                     let holder = this.maskLayers[i].holders[ii];
-                    holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
+                    this.BufferDrawObjPullers(holder);
                 }
-                verts = this.verticesCount - verts;
-                this.maskLayers[i].vertices = verts;
+                pullerCount = this.pullerCount - pullerCount;
+                this.maskLayers[i].pullerCount = pullerCount;
             }
         }
 
@@ -300,51 +337,52 @@ class DrawObjQueue {
             }
 
             // Opaque (Front to back)
-            pass.opaqueVerticesStart = this.verticesCount;
+            pass.opaquePullerStart = this.pullerCount;
             for (let i = 0; i < opaques.length; i++) {
                 let holder = opaques[opaques.length - i - 1];
-                holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
+                this.BufferDrawObjPullers(holder);
             }
-            pass.opaqueVertices = this.verticesCount - pass.opaqueVerticesStart;
+            pass.opaquePullerCount = this.pullerCount - pass.opaquePullerStart;
 
             // Transparent (Back to front)
-            pass.transparentVerticesStart = this.verticesCount;
+            pass.transparentPullerStart = this.pullerCount;
             for (let i = 0; i < transparents.length; i++) {
                 let holder = transparents[i];
-                holder.drawObj.BufferVerticesAt(this, holder, holder.drawObjDataIndex);
+                this.BufferDrawObjPullers(holder);
             }
-            pass.transparentVertices = this.verticesCount - pass.transparentVerticesStart;
+            pass.transparentPullerCount = this.pullerCount - pass.transparentPullerStart;
         }
     }
 
     EncodeRenderPassCommands(passEncoder) {
         passEncoder.setBindGroup(0, this.spritter.textureManager.bindGroup);
-        passEncoder.setBindGroup(1, this.storageBindGroup);
-        passEncoder.setVertexBuffer(0, this.vertexBuffer);
+        passEncoder.setBindGroup(1, this.bindGroup);
+        passEncoder.setVertexBuffer(0, this.pullerBuffer);
 
         // Draw mask drawobjs
         if (this.usingMasks) {
             let start = 0;
             for (let i = 0; i < this.maskLayers.length; i++) {
-                if (this.maskLayers[i].vertices === 0) continue;
+                if (this.maskLayers[i].pullerCount === 0) continue;
                 passEncoder.setStencilReference(0xffffffff);
                 passEncoder.setPipeline(this.spritter.stencilSetPipelines[i]);
-                passEncoder.draw(this.maskLayers[i].vertices, 1, start);
-                start += this.maskLayers[i].vertices;
+                passEncoder.draw(this.maskLayers[i].pullerCount, 1, start);
+                start += this.maskLayers[i].pullerCount;
             }
         }
 
         // Draw all drawobjs
         for (let i = 0; i < this.passes.length; i++) {
             let pass = this.passes[i];
+            // console.log(pass);
             passEncoder.setStencilReference(pass.maskBits ^ pass.antiBits);
-            if (pass.opaqueVertices !== 0) {
+            if (pass.opaquePullerCount !== 0) {
                 passEncoder.setPipeline(this.spritter.GetOpaquePipeline(pass.maskBits));
-                passEncoder.draw(pass.opaqueVertices, 1, pass.opaqueVerticesStart);
+                passEncoder.draw(pass.opaquePullerCount, 1, pass.opaquePullerStart);
             }
-            if (pass.transparentVertices !== 0) {
+            if (pass.transparentPullerCount !== 0) {
                 passEncoder.setPipeline(this.spritter.GetTransparentPipeline(pass.maskBits));
-                passEncoder.draw(pass.transparentVertices, 1, pass.transparentVerticesStart);
+                passEncoder.draw(pass.transparentPullerCount, 1, pass.transparentPullerStart);
             }
         }
         passEncoder.end();
@@ -354,18 +392,18 @@ class DrawObjQueue {
         this.spritter.device.queue.writeBuffer(
             this.vertexBuffer,
             0,
-            this.verticesStage.buffer,
-            this.verticesStage.byteOffset,
-            this.verticesCount * this.vertexBufferEntryByteSize
+            this.vertexStage.buffer,
+            this.vertexStage.byteOffset,
+            this.vertexStage.byteLength // TODO: intelligent writing
         );
 
-        // this.spritter.device.queue.writeBuffer(
-        //     this.indexBuffer,
-        //     0,
-        //     this.indexStage.buffer,
-        //     this.indexStage.byteOffset,
-        //     this.verticesCount
-        // );
+        this.spritter.device.queue.writeBuffer(
+            this.pullerBuffer,
+            0,
+            this.pullerStage.buffer,
+            this.pullerStage.byteOffset,
+            this.pullerCount * this.pullerEntryByteSize
+        );
 
         this.spritter.device.queue.writeBuffer(
             this.storageBuffer,
@@ -392,10 +430,11 @@ class DrawObjQueue {
             this.usingMasks = false;
         }
         this.maskPoints.length = 0;
-        this.maskVertices = 0;
         this.passes.length = 0;
-        this.verticesCount = 0;
+
         this.drawObjDataCount = 0;
+        this.pullerCount = 0;
+        this.CleanUpReleasedDrawObjs();
     }
 }
 
