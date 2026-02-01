@@ -2,10 +2,10 @@ import Vec2 from './vec2.js';
 
 // TODO: The output of the triangulation
 class TriangulatedPolygon {
-    constructor(vertices) {
+    constructor(vertices, scale) {
         this.vertices = [];
         for (let i = 0; i < vertices.length; i++) {
-            this.vertices.push(vertices[i].Copy());
+            this.vertices.push(vertices[i].Copy().Scale(scale));
         }
         this.indices = [];
     };
@@ -48,7 +48,7 @@ class Triangulator {
     static TriangulatePolygon(polygon, scale = 1) {
         // console.time('TriangulatePolygon');
 
-        let polyVerts = [];
+        let triangulated = new TriangulatedPolygon(polygon, scale);
         let remainingN = polygon.length;
 
         // construct circular DLL of vertices
@@ -101,9 +101,9 @@ class Triangulator {
             skips = 0;
 
             // Vertices can be triangulated, push triangle and remove the center point
-            polyVerts.push(prev.val.Copy().Scale(scale));
-            polyVerts.push(p.val.Copy().Scale(scale));
-            polyVerts.push(next.val.Copy().Scale(scale));
+            triangulated.indices.push(prev.index);
+            triangulated.indices.push(p.index);
+            triangulated.indices.push(next.index);
             
             p.Remove();
             remainingN--;
@@ -112,7 +112,7 @@ class Triangulator {
 
         // console.timeEnd('TriangulatePolygon');
         // console.log('its:', its);
-        return polyVerts;
+        return triangulated;
     }
 
 }

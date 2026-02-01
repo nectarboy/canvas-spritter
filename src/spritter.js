@@ -251,6 +251,26 @@ class Spritter {
         this.fireMario = this.drawObjs.CreateSprite(32, 40);
         this.fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         this.fireMario.SetTexture('mariofire');
+
+        spikeballShape = new Array(25);
+        for (let i = 0; i < spikeballShape.length; i++) {
+            let ang = i / spikeballShape.length * 360;
+            // let size = (i & 1) ? 1 : 2;
+            // let size = 1;
+            let size = 2 //+ Math.random();
+            spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
+        }
+
+        this.testPoly = this.drawObjs.CreatePoly(spikeballShape, 100);
+        this.testPoly.SetPoints([
+            new Vec2(-1, 1),
+            new Vec2(1, 1),
+            new Vec2(1, -1),
+            new Vec2(-1, -1)
+        ], 100);
+        this.testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
+        this.testPoly.SetTexture('terrain');
+        this.testPoly.TestDraw();
     }
 
     doStuff() {        
@@ -273,6 +293,9 @@ class Spritter {
         // curtainSprite.texMat3.TranslateXY(0, -this.tick * 0.01);
         // // curtainSprite.SetFlags(DrawObjFlag.PatternMode);
         // this.drawObjQueue.BufferDrawobj(curtainSprite, 1);
+
+        this.testPoly.mat3.ToIdentity();
+        this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
 
         this.fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
         this.fireMario.mat3.ToIdentity().Scale(3);
@@ -307,19 +330,19 @@ class Spritter {
 
         // Stress tester
         for (let i = 0; i < 1000; i++) {
-            // testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            // this.drawObjQueue.BufferDrawobj(testPoly, i);
+            this.testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(this.testPoly, i);
 
             // fireMario.mat3.Rotate(1);
             // fireMario.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(fireMario, 0);
 
-            this.testSprite.tintColor[0] = Math.random();
-            this.testSprite.tintColor[1] = Math.random();
-            this.testSprite.tintColor[2] = Math.random();
-            this.testSprite.mat3.Rotate(1);
-            this.testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(this.testSprite, -(i & 7));
+            // this.testSprite.tintColor[0] = Math.random();
+            // this.testSprite.tintColor[1] = Math.random();
+            // this.testSprite.tintColor[2] = Math.random();
+            // this.testSprite.mat3.Rotate(1);
+            // this.testSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // this.drawObjQueue.BufferDrawobj(this.testSprite, -(i & 7));
         }
     }
 

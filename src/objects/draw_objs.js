@@ -26,6 +26,7 @@ const DrawObjFlag = {
 
 const DATA_ARRAY = Float32Array; // Float32Array makes copying data to buffers MUCH faster than Float64Array
 const DATA_BYTES = DATA_ARRAY.BYTES_PER_ELEMENT;
+const INDICES_ARRAY = Uint32Array;
 const WHITE = new DATA_ARRAY(4);
 WHITE.set([1, 1, 1, 1]);
 
@@ -36,7 +37,7 @@ class DrawObj {
         this.released = false;
         this.data = new DATA_ARRAY(64);
         this.vertices = null;
-        this.indices = new Uint32Array(0);
+        this.indices = new INDICES_ARRAY(0);
         this.indicesCount = 0;
 
         this.mat3 = new DataMat3(new DATA_ARRAY(this.data.buffer, 0 * DATA_BYTES, 12)).ToIdentity();
@@ -226,20 +227,19 @@ class Sprite extends DrawObj {
         super(spritter);
         this.w = w;
         this.h = h;
-
-        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
-        this.indicesCount = 6;
-        this.indices = new Uint32Array(this.indicesCount);
         this.UpdateVertices();
     };
 
     UpdateVertices() {
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
         this.vertices[0].set([0.5, -0.5, 1, 0,  this.w, this.h]); // tr
         this.vertices[1].set([0.5, 0.5, 1, 0,   this.w, -this.h]); // br
         this.vertices[2].set([-0.5, 0.5, 1, 0,  -this.w, -this.h]); // bl
         this.vertices[3].set([-0.5, -0.5, 1, 0, -this.w, this.h]); // tl
         this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
 
+        this.indicesCount = 6;
+        this.indices = new INDICES_ARRAY(this.indicesCount);
         this.indices.set([
             this.GetVertexStart(this.vertices[0]),
             this.GetVertexStart(this.vertices[1]),
@@ -258,21 +258,26 @@ class Poly extends DrawObj {
         this.SetPoints(points, pointScale);
     }
 
-    GetVerticesCount() {
-        return this.polyVerts.length;
-    }
-
-    // points must be a Vec2 array
     SetPoints(points, pointScale) {
-        let polyVerts = Triangulator.TriangulatePolygon(points, pointScale);
-        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(polyVerts.length);
-        this.pullerCount = this.vertices.length;
-        this.pullers = new Uint32Array(this.pullerCount * this.spritter.drawObjQueue.pullerEntrySize);
-        this.UpdateVertices();
+        this.spritter.drawObjQueue.vertexBlockAllocator.Free(this.vertices);
+        let triangulated = Triangulator.TriangulatePolygon(points, pointScale);
+        this.UpdateVertices(triangulated);
     }
 
-    UpdateVertices() {
+    UpdateVertices(triangulated) {
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(triangulated.vertices.length);
+        for (let i = 0; i < triangulated.vertices.length; i++) {
+            let vertex = triangulated.vertices[i];
+            this.vertices[i].set([vertex.x, -vertex.y, 1, 0,  vertex.x, vertex.y]);
+        }
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
 
+        // TODO: optimize
+        this.indicesCount = triangulated.indices.length;
+        this.indices = new INDICES_ARRAY(this.indicesCount);
+        for (let i = 0; i < this.indices.length; i++) {
+            this.indices[i] = this.GetVertexStart(this.vertices[triangulated.indices[i]]);
+        }
     }
 
     TestDraw() {
@@ -288,16 +293,22 @@ class Poly extends DrawObj {
         let s = 2;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (let i = 0; i < this.polyVerts.length; i++) {
+        for (let i = 0; i < this.indices.length; i++) {
+            // abysmal but it works
+            let vertexX = new Float32Array(this.vertices[0].buffer)[this.indices[i] * this.spritter.drawObjQueue.vertexEntrySize + 4];
+            let vertexY = new Float32Array(this.vertices[0].buffer)[this.indices[i] * this.spritter.drawObjQueue.vertexEntrySize + 5];
+            let nextVertexX = new Float32Array(this.vertices[0].buffer)[this.indices[Math.floor(i / 3)*3 + ((i + 1) % 3)] * this.spritter.drawObjQueue.vertexEntrySize + 4];
+            let nextVertexY = new Float32Array(this.vertices[0].buffer)[this.indices[Math.floor(i / 3)*3 + ((i + 1) % 3)] * this.spritter.drawObjQueue.vertexEntrySize + 5];
+
             if ((i % 3) === 0) {
                 ctx.stroke();
                 ctx.closePath();
                 ctx.beginPath();
-                ctx.moveTo(cx + s*this.polyVerts[i].x, cy - s*this.polyVerts[i].y);
+                ctx.moveTo(cx + s*vertexX, cy - s*vertexY);
             }
-            let nextP = this.polyVerts[Math.floor(i / 3)*3 + ((i + 1) % 3)];
-            ctx.lineTo(cx + s*nextP.x, cy - s*nextP.y);
-            ctx.fillRect(cx + s*nextP.x, cy - s*nextP.y, 10, 10);
+            
+            ctx.lineTo(cx + s*nextVertexX, cy - s*nextVertexY);
+            ctx.fillRect(cx + s*nextVertexX, cy - s*nextVertexY, 10, 10);
         }
         ctx.stroke();
         ctx.closePath();
@@ -314,6 +325,10 @@ class DrawObjs {
     CreateSprite(w, h) {
         return new Sprite(this.spritter, w, h);
     }
+
+    CreatePoly(points, scale) {
+        return new Poly(this.spritter, points, scale); // points must be a Vec2 array
+    } 
 
     // A sprite that sort of drapes the texture along the dimension with n subdivisions.
     static CurtainSprite = class CurtainSprite extends DrawObj {
