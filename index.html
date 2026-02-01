@@ -57,7 +57,8 @@
         await spritter.init();
 
         async function loop() {
-            await spritter.draw();
+            spritter.draw();
+            await spritter.DisplayPerformanceStats();
             requestAnimationFrame(loop);
         }
 

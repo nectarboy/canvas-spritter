@@ -140,6 +140,12 @@ class DrawObjQueue {
         this.pullerBufferDescriptor = {
             arrayStride: this.pullerEntryByteSize,
             attributes: [
+                // // Vertex and DrawObj index packed into one
+                // {
+                //     shaderLocation: 0,
+                //     offset: 4 * 0,
+                //     format: 'uint32'
+                // }
                 // Vertex index
                 {
                     shaderLocation: 0,
@@ -185,13 +191,13 @@ class DrawObjQueue {
             return;
         }
 
-        this.storageStage.set(drawObj.data, this.drawObjDataWordCount);
-        this.drawObjDataWordCount += this.drawObjDataEntrySize;
+        // this.storageStage.set(drawObj.data, this.drawObjDataWordCount);
+        // this.drawObjDataWordCount += this.drawObjDataEntrySize;
 
         let holder = this.holderPool.Get();
         holder.drawObj = drawObj;
         holder.drawObjDataIndex = this.drawObjDataCount++;
-        // this.BufferDrawObjData(drawObj.data);
+        this.BufferDrawObjData(drawObj.data);
         holder.priority = priority;
         this.holders.push(holder);
     }
@@ -209,13 +215,13 @@ class DrawObjQueue {
 
         this.usingMasks = true;
 
-        this.storageStage.set(drawObj.data, this.drawObjDataWordCount);
-        this.drawObjDataWordCount += this.drawObjDataEntrySize;
+        // this.storageStage.set(drawObj.data, this.drawObjDataWordCount);
+        // this.drawObjDataWordCount += this.drawObjDataEntrySize;
 
         let holder = this.holderPool.Get();
         holder.drawObj = drawObj;
         holder.drawObjDataIndex = this.drawObjDataCount++;
-        // this.BufferDrawObjData(drawObj.data);
+        this.BufferDrawObjData(drawObj.data);
         holder.priority = 0; // omit
         this.maskLayers[mask].holders.push(holder);
     }
@@ -252,10 +258,14 @@ class DrawObjQueue {
 
     BufferDrawObjPullers(drawObj, drawObjDataIndex) {
         let off = this.pullerCount * this.pullerEntrySize;
-        this.pullerCount += drawObj.pullerCount;
-        this.pullerStage.set(drawObj.pullers, off);
-        for (let i = off + 1; i < off + 1 + drawObj.pullerCount * this.pullerEntrySize; i += 2) {
-            this.pullerStage[i] = drawObjDataIndex;
+        this.pullerCount += drawObj.indicesCount;
+        // for (let i = 0; i < drawObj.indicesCount; i++) {
+        //     this.pullerStage[i + off] = (drawObj.indices[i]) + ((drawObjDataIndex) << 17);
+        // }
+
+        for (let i = off, j = 0; i < off + drawObj.indicesCount * this.pullerEntrySize; i += this.pullerEntrySize, j++) {
+            this.pullerStage[i]     = drawObj.indices[j];
+            this.pullerStage[i + 1] = drawObjDataIndex;
         }
     }
 

@@ -36,8 +36,8 @@ class DrawObj {
         this.released = false;
         this.data = new DATA_ARRAY(64);
         this.vertices = null;
-        this.pullers = new Uint32Array(0);
-        this.pullerCount = 0;
+        this.indices = new Uint32Array(0);
+        this.indicesCount = 0;
 
         this.mat3 = new DataMat3(new DATA_ARRAY(this.data.buffer, 0 * DATA_BYTES, 12)).ToIdentity();
 
@@ -82,7 +82,7 @@ class DrawObj {
         this.ordering = new DATA_ARRAY(this.data.buffer, 60 * DATA_BYTES, 1);
 
         this.flags = new Uint32Array(this.data.buffer, 61 * DATA_BYTES, 1);
-        this.SetFlags(DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture);
+        this.ResetFlags();
 
         this.transparent = true;
         this.posOffset = new Vec2(0, 0);
@@ -136,6 +136,11 @@ class DrawObj {
 
     ClearFlags(flags) {
         this.flags[0] &= ~flags;
+    }
+
+    ResetFlags() {
+        this.flags[0] &= DrawObjFlag.UseTexture | DrawObjFlag.UseSecondaryTexture; // Keep
+        this.flags[0] |= DrawObjFlag.RepeatTexture | DrawObjFlag.RepeatSecondaryTexture; // Default
     }
 
     SetTextureAtlas(atlas) {
@@ -223,8 +228,8 @@ class Sprite extends DrawObj {
         this.h = h;
 
         this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
-        this.pullerCount = 6;
-        this.pullers = new Uint32Array(this.pullerCount * this.spritter.drawObjQueue.pullerEntrySize);
+        this.indicesCount = 6;
+        this.indices = new Uint32Array(this.indicesCount);
         this.UpdateVertices();
     };
 
@@ -235,18 +240,68 @@ class Sprite extends DrawObj {
         this.vertices[3].set([-0.5, -0.5, 1, 0, -this.w, this.h]); // tl
         this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
 
-        this.pullers.set([
-            this.GetVertexStart(this.vertices[0]), 0,
-            this.GetVertexStart(this.vertices[1]), 0,
-            this.GetVertexStart(this.vertices[2]), 0,
-            this.GetVertexStart(this.vertices[0]), 0,
-            this.GetVertexStart(this.vertices[2]), 0,
-            this.GetVertexStart(this.vertices[3]), 0,
+        this.indices.set([
+            this.GetVertexStart(this.vertices[0]),
+            this.GetVertexStart(this.vertices[1]),
+            this.GetVertexStart(this.vertices[2]),
+            this.GetVertexStart(this.vertices[0]),
+            this.GetVertexStart(this.vertices[2]),
+            this.GetVertexStart(this.vertices[3]),
         ]);
+    }
+}
+
+class Poly extends DrawObj {
+    constructor(spritter, points, pointScale) {
+        super(spritter);
+        this.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode);
+        this.SetPoints(points, pointScale);
     }
 
     GetVerticesCount() {
-        return 6;
+        return this.polyVerts.length;
+    }
+
+    // points must be a Vec2 array
+    SetPoints(points, pointScale) {
+        let polyVerts = Triangulator.TriangulatePolygon(points, pointScale);
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(polyVerts.length);
+        this.pullerCount = this.vertices.length;
+        this.pullers = new Uint32Array(this.pullerCount * this.spritter.drawObjQueue.pullerEntrySize);
+        this.UpdateVertices();
+    }
+
+    UpdateVertices() {
+
+    }
+
+    TestDraw() {
+        let canvas = document.getElementById('binpackcanvas');
+        let ctx = canvas.getContext('2d');
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'black'
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        let cx = canvas.width/2;
+        let cy = canvas.height/2;
+        let s = 2;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < this.polyVerts.length; i++) {
+            if ((i % 3) === 0) {
+                ctx.stroke();
+                ctx.closePath();
+                ctx.beginPath();
+                ctx.moveTo(cx + s*this.polyVerts[i].x, cy - s*this.polyVerts[i].y);
+            }
+            let nextP = this.polyVerts[Math.floor(i / 3)*3 + ((i + 1) % 3)];
+            ctx.lineTo(cx + s*nextP.x, cy - s*nextP.y);
+            ctx.fillRect(cx + s*nextP.x, cy - s*nextP.y, 10, 10);
+        }
+        ctx.stroke();
+        ctx.closePath();
+
     }
 }
 
@@ -316,65 +371,6 @@ class DrawObjs {
 
         GetVerticesCount() {
             return this.verticesCount;
-        }
-    }
-
-    static Poly = class Poly extends DrawObj {
-        constructor(points, pointScale) {
-            super();
-            this.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode);
-            this.polyVerts = [];
-            this.SetPoints(points, pointScale);
-        }
-
-        BufferVerticesAt(queue, holder, drawObjIndex) {
-            let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            for (let i = 0; i < this.polyVerts.length; i++, off += 7) {
-                let vert = this.polyVerts[i];
-                queue.verticesStage.set([vert.x, vert.y,     vert.x, -vert.y, 1, 0], off);
-                queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
-            }
-            queue.verticesCount += this.polyVerts.length;
-
-            // if (queue.spritter.tick === 0) console.log(this.polyVerts);
-        }
-
-        GetVerticesCount() {
-            return this.polyVerts.length;
-        }
-
-        // points must be a Vec2 array
-        SetPoints(points, pointScale) {
-            this.polyVerts = Triangulator.TriangulatePolygon(points, pointScale);
-        }
-
-        TestDraw() {
-            let canvas = document.getElementById('binpackcanvas');
-            let ctx = canvas.getContext('2d');
-            ctx.strokeStyle = 'black';
-            ctx.fillStyle = 'black'
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-
-            let cx = canvas.width/2;
-            let cy = canvas.height/2;
-            let s = 2;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let i = 0; i < this.polyVerts.length; i++) {
-                if ((i % 3) === 0) {
-                    ctx.stroke();
-                    ctx.closePath();
-                    ctx.beginPath();
-                    ctx.moveTo(cx + s*this.polyVerts[i].x, cy - s*this.polyVerts[i].y);
-                }
-                let nextP = this.polyVerts[Math.floor(i / 3)*3 + ((i + 1) % 3)];
-                ctx.lineTo(cx + s*nextP.x, cy - s*nextP.y);
-                ctx.fillRect(cx + s*nextP.x, cy - s*nextP.y, 10, 10);
-            }
-            ctx.stroke();
-            ctx.closePath();
-
         }
     }
 

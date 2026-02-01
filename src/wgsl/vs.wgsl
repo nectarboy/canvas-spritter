@@ -25,6 +25,7 @@ struct VertexOutput {
 @vertex
 fn main(
     @builtin(vertex_index) pullerIndex : u32,
+    // @location(0) packedIndices : u32
     @location(0) vertexIndex : u32,
     @location(1) drawObjIndex : u32
 ) -> VertexOutput {
@@ -41,6 +42,9 @@ fn main(
 
     const screenW = 480f;
     const screenH = 360f;
+
+    // let vertexIndex : u32 = packedIndices & 0x1ffff;
+    // let drawObjIndex : u32 = packedIndices >> 17;
 
     var vertex : VertexInput = vertices[vertexIndex];
     var drawObj : DrawObj = drawObjs[drawObjIndex];
