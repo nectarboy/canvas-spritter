@@ -264,6 +264,15 @@ class Poly extends DrawObj {
         this.UpdateVertices(triangulated);
     }
 
+    UsePointsOfPoly(poly) {
+        if (poly === null || this.vertices === poly.vertices)
+            return;
+
+        this.spritter.drawObjQueue.vertexBlockAllocator.Free(this.vertices);
+        this.vertices = poly.vertices;
+        this.indices = poly.vertices;
+    }
+
     UpdateVertices(triangulated) {
         this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(triangulated.vertices.length);
         for (let i = 0; i < triangulated.vertices.length; i++) {
