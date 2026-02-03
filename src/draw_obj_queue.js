@@ -420,6 +420,7 @@ class DrawObjQueue {
     }
 
     UploadStageBuffersToBuffers() {
+        // TODO: if this becomes a bottleneck which i doubt it will, detect contiguous blocks and merge em
         for (let i = 0; i < this.dirtyVertices.length; i++) {
             let vertex = this.dirtyVertices[i];
             this.spritter.device.queue.writeBuffer(
@@ -430,13 +431,6 @@ class DrawObjQueue {
                 vertex.byteLength
             );
         }
-        // this.spritter.device.queue.writeBuffer(
-        //     this.vertexBuffer,
-        //     0,
-        //     this.vertexStage.buffer,
-        //     this.vertexStage.byteOffset,
-        //     this.vertexStage.byteLength // TODO: intelligent writing
-        // );
 
         this.spritter.device.queue.writeBuffer(
             this.pullerBuffer,

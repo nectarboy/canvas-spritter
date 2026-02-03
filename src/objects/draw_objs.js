@@ -98,8 +98,6 @@ class DrawObj {
     }
 
     IsFullyOpaque() {
-        const flags = this.flags[0];
-
         // Is opaque if all of the following are true
         return (
             // Is not transparent and doesn't use threshold cutting
@@ -111,24 +109,6 @@ class DrawObj {
             // Not using secondary texture or not using secondary texture as a mask
             (((this.flags[0] & DrawObjFlag.UseSecondaryTexture) === 0) | ((this.flags[0] & DrawObjFlag.MaskTextureMode) === 0))
         );
-
-        // if ((this.tintColor[3] < 1) | (this.thresholdLowerColor[3] < 1)) {
-        //     return false;
-        // }
-
-        // if ((flags & DrawObjFlag.RepeatTexture) === 0) {
-        //     return false;
-        // }
-
-        // if (((flags & DrawObjFlag.UseTexture) !== 0) & (!this.texIsFullyOpaque)) {
-        //     return false;
-        // }
-
-        // if ((flags & (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) === (DrawObjFlag.UseSecondaryTexture | DrawObjFlag.MaskTextureMode)) {
-        //     return false;
-        // }
-
-        // return true;
     }
 
     SetFlags(flags) {
@@ -325,6 +305,55 @@ class Poly extends DrawObj {
     }
 }
 
+// A sprite that sort of drapes the texture along the dimension with n subdivisions.
+class CurtainSprite extends DrawObj {
+    constructor(spritter, w, h, subdivision, power) {
+        subdivision = 0|subdivision;
+        if (subdivision < 1)
+            subdivision = 1;
+
+        super(spritter);
+        this.w = w;
+        this.h = h;
+        this.subdivision = subdivision;
+        this.power = power;
+        this.UpdateVertices();
+    }
+
+    UpdateVertices() {
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4 * this.subdivision);
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
+        this.indicesCount = 6 * this.subdivision;
+        this.indices = new INDICES_ARRAY(this.indicesCount);
+
+        const func = x => Math.pow(x, this.power);
+
+        let prevV = 0.5;
+        let prevY = -0.5 * this.h * 2;
+        for (let i = 0; i < this.subdivision; i++) {
+            let v = -(i + 1) / this.subdivision + 0.5;
+            let y = (func((i + 1) / this.subdivision) - 0.5) * this.h * 2;
+
+            this.vertices[i*4 + 0].set([0.5, v, 1, 0,       this.w, y]); // tr
+            this.vertices[i*4 + 1].set([0.5, prevV, 1, 0,   this.w, prevY]); // br
+            this.vertices[i*4 + 2].set([-0.5, prevV, 1, 0,  -this.w, prevY]); // bl
+            this.vertices[i*4 + 3].set([-0.5, v, 1, 0,      -this.w, y]); // tl
+
+            let trStart = this.GetVertexStart(this.vertices[i*4 + 0]);
+            let brStart = this.GetVertexStart(this.vertices[i*4 + 1]);
+            let blStart = this.GetVertexStart(this.vertices[i*4 + 2]);
+            let tlStart = this.GetVertexStart(this.vertices[i*4 + 3]);
+            this.indices.set([
+                trStart, brStart, blStart,
+                trStart, blStart, tlStart,
+            ], i * 6);
+
+            prevY = y;
+            prevV = v;
+        }
+    }
+}
+
 class DrawObjs {
 
     constructor(spritter) {
@@ -337,65 +366,10 @@ class DrawObjs {
 
     CreatePoly(points, scale) {
         return new Poly(this.spritter, points, scale); // points must be a Vec2 array
-    } 
+    }
 
-    // A sprite that sort of drapes the texture along the dimension with n subdivisions.
-    static CurtainSprite = class CurtainSprite extends DrawObj {
-        constructor(w, h, subdivision, power) {
-            subdivision = 0|subdivision;
-            if (subdivision < 1)
-                subdivision = 1;
-
-            super();
-            this.w = w;
-            this.h = h;
-            this.subdivision = subdivision;
-            this.power = power;
-            this.verticesCount = 6 * subdivision;
-
-            this.vertices = new Float32Array(7 * 6 * this.subdivision);
-            this.vertices_Uint32 = new Uint32Array(this.vertices.buffer);
-            this.UpdateVertices();
-        }
-
-        UpdateVertices() {
-            const func = x => Math.pow(x, this.power);
-
-            let prevV = 0.5;
-            let prevY = -0.5 * this.h * 2;
-            for (let i = 0; i < this.subdivision; i++) {
-                let v = -(i + 1) / this.subdivision + 0.5;
-                let y = (func((i + 1) / this.subdivision) - 0.5) * this.h * 2;
-
-                let off = i * 7 * 6;
-                this.vertices.set([this.w, y,       0.5, v, 1, 0], off + 0); // tr
-                this.vertices.set([-this.w, prevY,  -0.5, prevV, 1, 0], off + 7); // bl
-                this.vertices.set([-this.w, y,      -0.5, v, 1, 0], off + 14); // tl
-                this.vertices.set([-this.w, prevY,  -0.5, prevV, 1, 0], off + 21); // bl
-                this.vertices.set([this.w, y,       0.5, v, 1, 0], off + 28); // tr
-                this.vertices.set([this.w, prevY,   0.5, prevV, 1, 0], off + 35); // br
-                prevY = y;
-                prevV = v;
-            }
-        }
-
-        BufferVerticesAt(queue, holder, drawObjIndex) {
-            for (let i = 0; i < this.vertices.length; i += 42) { // TODO: i should really unhardcode the vertices count / format ...
-                this.vertices_Uint32[i + 6] = drawObjIndex;
-                this.vertices_Uint32[i + 13] = drawObjIndex;
-                this.vertices_Uint32[i + 20] = drawObjIndex;
-                this.vertices_Uint32[i + 27] = drawObjIndex;
-                this.vertices_Uint32[i + 34] = drawObjIndex;
-                this.vertices_Uint32[i + 41] = drawObjIndex;
-            }
-            let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set(this.vertices, off);
-            queue.verticesCount += this.verticesCount;
-        }
-
-        GetVerticesCount() {
-            return this.verticesCount;
-        }
+    CreateCurtainSprite(w, h, subdivision, power) {
+        return new CurtainSprite(this.spritter, w, h, subdivision, power);
     }
 
     // Choose arbitrary points for your quad and it will appear perspective correct with this nifty DrawObj.

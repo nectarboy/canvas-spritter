@@ -271,6 +271,11 @@ class Spritter {
         this.testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         this.testPoly.SetTexture('terrain');
         this.testPoly.TestDraw();
+
+        this.curtainSprite = this.drawObjs.CreateCurtainSprite(128, 128, 20, 0.5);
+        this.curtainSprite.transparent = false;
+        this.curtainSprite.SetTextureAtlas(this.textureManager.textureAtlas);
+        this.curtainSprite.SetTexture('test');
     }
 
     doStuff() {        
@@ -287,15 +292,12 @@ class Spritter {
         this.testSprite.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SeeThroughMode | DrawObjFlag.FilterSecondaryTexture | (DrawObjFlag.FlipTextureX * flip));
         this.testSprite.displacementStrength[0] = Math.sin(now);
 
-        // let curtainSprite = new DrawObjs.CurtainSprite(128, 128, 20, 0.5);
-        // curtainSprite.SetTextureAtlas(this.textureManager.textureAtlas);
-        // curtainSprite.SetTexture('test');
-        // curtainSprite.texMat3.TranslateXY(0, -this.tick * 0.01);
-        // // curtainSprite.SetFlags(DrawObjFlag.PatternMode);
-        // this.drawObjQueue.BufferDrawobj(curtainSprite, 1);
+        this.curtainSprite.mat3.ToIdentity();
+        this.curtainSprite.texMat3.ToIdentity().TranslateXY(0, -this.tick * 0.01);
+        this.drawObjQueue.BufferDrawobj(this.curtainSprite, 1);
 
         this.testPoly.mat3.ToIdentity();
-        this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
+        // this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
 
         this.fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
         this.fireMario.mat3.ToIdentity().Scale(3);
@@ -329,9 +331,9 @@ class Spritter {
         // this.drawObjQueue.MaskDrawobjsFromPriority(1, 1, false);
 
         // Stress tester
-        for (let i = 0; i < 1000; i++) {
-            this.testPoly.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(this.testPoly, i);
+        for (let i = 0; i < 0; i++) {
+            // this.curtainSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            // this.drawObjQueue.BufferDrawobj(this.curtainSprite, i);
 
             // fireMario.mat3.Rotate(1);
             // fireMario.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
