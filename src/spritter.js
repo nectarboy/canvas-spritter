@@ -276,6 +276,15 @@ class Spritter {
         this.curtainSprite.transparent = false;
         this.curtainSprite.SetTextureAtlas(this.textureManager.textureAtlas);
         this.curtainSprite.SetTexture('test');
+
+        this.perspectiveSprite = this.drawObjs.CreatePerspectiveSprite(128, 128);
+        this.perspectiveSprite.SetTextureAtlas(this.textureManager.textureAtlas);
+        this.perspectiveSprite.SetTexture('atlas_test');
+        this.perspectiveSprite.topLeft[0] /= 2;
+        // this.perspectiveSprite.topRight[0] *= 3;
+        this.perspectiveSprite.topLeft[1] /= 2;
+        this.perspectiveSprite.botRight[1] *= 2;
+        this.perspectiveSprite.UpdatePerspectiveWeights();
     }
 
     doStuff() {        
@@ -297,6 +306,7 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(this.curtainSprite, 1);
 
         this.testPoly.mat3.ToIdentity();
+        this.testPoly.texMat3.ToIdentity().TranslateXY()
         // this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
 
         this.fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
@@ -309,6 +319,9 @@ class Spritter {
         // testLine.tintColor.set([0, 0, 0, 1]);
         // testLine.mat3.Rotate(Math.round(this.tick / 15) * 15);
         // this.drawObjQueue.BufferDrawobj(testLine, 1);
+
+        this.perspectiveSprite.mat3.ToIdentity();
+        this.drawObjQueue.BufferDrawobj(this.perspectiveSprite, 1);
 
         // let testMask = this.drawObjs.CreateSprite(64, 256);
         // testMask.tintColor.set([1, 1, 1, 0.025]);
@@ -335,9 +348,9 @@ class Spritter {
             // this.curtainSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(this.curtainSprite, i);
 
-            // fireMario.mat3.Rotate(1);
-            // fireMario.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            // this.drawObjQueue.BufferDrawobj(fireMario, 0);
+            this.perspectiveSprite.mat3.Rotate(1);
+            this.perspectiveSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(this.perspectiveSprite, 0);
 
             // this.testSprite.tintColor[0] = Math.random();
             // this.testSprite.tintColor[1] = Math.random();

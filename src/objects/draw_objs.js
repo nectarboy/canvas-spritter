@@ -354,6 +354,80 @@ class CurtainSprite extends DrawObj {
     }
 }
 
+// Choose arbitrary points for your quad and it will appear perspective correct with this nifty DrawObj.
+class PerspectiveSprite extends DrawObj {
+    constructor(spritter, w, h) {
+        super(spritter);
+        this.topRight = null;
+        this.botRight = null;
+        this.botLeft = null;
+        this.topLeft = null;
+        this.UpdateVertices(w, h);
+    }
+
+    UpdateVertices(w, h) {
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
+        this.vertices[0].set([0.5, -0.5, 1, 0,  w, h]); // tr
+        this.vertices[1].set([0.5, 0.5, 1, 0,   w, -h]); // br
+        this.vertices[2].set([-0.5, 0.5, 1, 0,  -w, -h]); // bl
+        this.vertices[3].set([-0.5, -0.5, 1, 0, -w, h]); // tl
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
+
+        this.topRight = new DATA_ARRAY(this.vertices[0].buffer, this.vertices[0].byteOffset + 4 * DATA_BYTES, 2);
+        this.botRight = new DATA_ARRAY(this.vertices[1].buffer, this.vertices[1].byteOffset + 4 * DATA_BYTES, 2);
+        this.botLeft = new DATA_ARRAY(this.vertices[2].buffer, this.vertices[2].byteOffset + 4 * DATA_BYTES, 2);
+        this.topLeft = new DATA_ARRAY(this.vertices[3].buffer, this.vertices[3].byteOffset + 4 * DATA_BYTES, 2);
+
+        this.indicesCount = 6;
+        this.indices = new INDICES_ARRAY(this.indicesCount);
+        this.indices.set([
+            this.GetVertexStart(this.vertices[0]),
+            this.GetVertexStart(this.vertices[1]),
+            this.GetVertexStart(this.vertices[2]),
+            this.GetVertexStart(this.vertices[0]),
+            this.GetVertexStart(this.vertices[2]),
+            this.GetVertexStart(this.vertices[3]),
+        ]);
+    }
+
+    UpdatePerspectiveWeights() {
+        let intersection = IntersectionOfLines(
+            this.topLeft[0],this.topLeft[1], this.botRight[0],this.botRight[1],
+            this.topRight[0],this.topRight[1], this.botLeft[0],this.botLeft[1]
+        );
+
+        let trQ, brQ, blQ, tlQ;
+
+        if (intersection === null) {
+            trQ = brQ = blQ = tlQ = 1;
+        }
+        else {
+            let topRightD = new Vec2(this.topRight[0], this.topRight[1]).Dist(intersection);
+            let botRightD = new Vec2(this.botRight[0], this.botRight[1]).Dist(intersection);
+            let botLeftD = new Vec2(this.botLeft[0], this.botLeft[1]).Dist(intersection);
+            let topLeftD = new Vec2(this.topLeft[0], this.topLeft[1]).Dist(intersection);
+            trQ = topRightD / botLeftD + 1; 
+            brQ = botRightD / topLeftD + 1;
+            blQ = botLeftD / topRightD + 1;
+            tlQ = topLeftD / botRightD + 1;
+        }
+
+        this.vertices[0][0] = 0.5 * trQ;
+        this.vertices[0][1] = -0.5 * trQ;
+        this.vertices[0][2] = trQ;
+        this.vertices[1][0] = 0.5 * brQ;
+        this.vertices[1][1] = 0.5 * brQ;
+        this.vertices[1][2] = brQ;
+        this.vertices[2][0] = -0.5 * blQ;
+        this.vertices[2][1] = 0.5 * blQ;
+        this.vertices[2][2] = blQ;
+        this.vertices[3][0] = -0.5 * tlQ;
+        this.vertices[3][1] = -0.5 * tlQ;
+        this.vertices[3][2] = tlQ;
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
+    }
+}
+
 class DrawObjs {
 
     constructor(spritter) {
@@ -372,70 +446,20 @@ class DrawObjs {
         return new CurtainSprite(this.spritter, w, h, subdivision, power);
     }
 
-    // Choose arbitrary points for your quad and it will appear perspective correct with this nifty DrawObj.
-    static PerspectiveSprite = class PerspectiveSprite extends DrawObj {
-        constructor() {
-            super();
-            this.topLeft = new Vec2(-1, 1);
-            this.topRight = new Vec2(1, 1);
-            this.botRight = new Vec2(1, -1);
-            this.botLeft = new Vec2(-1, -1);
-            this.tlQ = 1;
-            this.trQ = 1;
-            this.brQ = 1;
-            this.blQ = 1;
-            this.UpdatePerspectiveWeights();
-        }
-
-        UpdatePerspectiveWeights() {
-            let intersection = IntersectionOfLines(this.topLeft, this.botRight, this.topRight, this.botLeft);
-            if (intersection === null) {
-                this.tlQ = this.trQ = this.brQ = this.blQ = 1;
-            }
-            else {
-                let topLeftD = this.topLeft.Dist(intersection);
-                let topRightD = this.topRight.Dist(intersection);
-                let botRightD = this.botRight.Dist(intersection);
-                let botLeftD = this.botLeft.Dist(intersection);
-                this.tlQ = topLeftD / botRightD + 1;
-                this.trQ = topRightD / botLeftD + 1; 
-                this.brQ = botRightD / topLeftD + 1;
-                this.blQ = botLeftD / topRightD + 1;
-            }
-        }
-
-        BufferVerticesAt(queue, holder, drawObjIndex) {
-            let off = queue.verticesCount * queue.vertexBufferEntrySize;
-            queue.verticesStage.set([this.topRight.x, this.topRight.y,     0.5 * this.trQ, -0.5 * this.trQ, this.trQ, 0], off);
-            queue.verticesStage.set([this.botLeft.x, this.botLeft.y,       -0.5 * this.blQ, 0.5 * this.blQ, this.blQ, 0], off + 7);
-            queue.verticesStage.set([this.topLeft.x, this.topLeft.y,       -0.5 * this.tlQ, -0.5 * this.tlQ, this.tlQ, 0], off + 14);
-            queue.verticesStage.set([this.botLeft.x, this.botLeft.y,       -0.5 * this.blQ, 0.5 * this.blQ, this.blQ, 0], off + 21);
-            queue.verticesStage.set([this.topRight.x, this.topRight.y,     0.5 * this.trQ, -0.5 * this.trQ, this.trQ, 0], off + 28);
-            queue.verticesStage.set([this.botRight.x, this.botRight.y,     0.5 * this.brQ, 0.5 * this.brQ, this.brQ, 0], off + 35);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 6);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 13);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 20);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 27);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 34);
-            queue.verticesStage_Uint32.set([drawObjIndex], off + 41);
-            queue.verticesCount += 6;
-        }
-
-        GetVerticesCount() {
-            return 6;
-        }
+    CreatePerspectiveSprite(w, h) {
+        return new PerspectiveSprite(this.spritter, w, h);
     }
 
 }
 
-function IntersectionOfLines(a1, a2, b1, b2) {
-    let aA = a2.y - a1.y;
-    let aB = a1.x - a2.x;
-    let aC = a1.y * a2.x - a1.x * a2.y;
+function IntersectionOfLines(a1x, a1y, a2x, a2y, b1x, b1y, b2x, b2y) {
+    let aA = a2y - a1y;
+    let aB = a1x - a2x;
+    let aC = a1y * a2x - a1x * a2y;
 
-    let bA = b2.y - b1.y;
-    let bB = b1.x - b2.x;
-    let bC = b1.y * b2.x - b1.x * b2.y;
+    let bA = b2y - b1y;
+    let bB = b1x - b2x;
+    let bC = b1y * b2x - b1x * b2y;
 
     let denom = aA * bB - bA * aB;
     if (Math.abs(denom) < 1e-12)
@@ -449,8 +473,8 @@ function IntersectionOfLines(a1, a2, b1, b2) {
 
 function UnitTest() {
     let test1 = IntersectionOfLines(
-        new Vec2(0, 1), new Vec2(2, 0),
-        new Vec2(0, 0), new Vec2(2, 1),
+        0,1, 2,0,
+        0,0, 2,1,
     );
     if (!test1.EqualsXY(1, 0.5))
         throw new Error('failed 1 ' + test1.ToString());
