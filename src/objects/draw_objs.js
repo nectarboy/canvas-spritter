@@ -353,7 +353,7 @@ class Outline extends DrawObj {
             let lineNormal = next.val.Copy().Sub(point.val).Normalize().RotateFromUnitCCW(vec90);
             let dist = point.val.Dist(next.val);
 
-            // Get corners
+            // Calculate corners
             let dot0 = lineNormal.Dot(normal);
             let dot1 = lineNormal.Dot(nextNormal);
             let tl = point.val.Copy().AddScaled(normal, outerD / dot0);

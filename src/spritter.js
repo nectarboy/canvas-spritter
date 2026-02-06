@@ -227,7 +227,12 @@ class Spritter {
             await GetSpritterImage('src/assets/background.png', 'background', true),
             await GetSpritterImage('src/assets/water.png', 'water'),
             await GetSpritterImage('src/assets/mariofire.png', 'mariofire'),
-            await GetSpritterImage('src/assets/grass.png', 'grass')
+            await GetSpritterImage('src/assets/grass.png', 'grass'),
+            await GetSpritterImage('src/assets/grass2.png', 'grass2'),
+            await GetSpritterImage('src/assets/soil.png', 'soil'),
+            await GetSpritterImage('src/assets/soil2.png', 'soil2'),
+            await GetSpritterImage('src/assets/brick.png', 'brick'),
+            await GetSpritterImage('src/assets/brick2.png', 'brick2'),
         ];
 
         console.log('images:', images);
@@ -270,7 +275,7 @@ class Spritter {
 
         this.testOutline = this.drawObjs.CreateOutline([], 32, 100);
         this.testOutline.SetTextureAtlas(this.textureManager.textureAtlas);
-        this.testOutline.SetTexture('grass');
+        this.testOutline.SetTexture('grass2');
         this.testOutline.SetOutline(spikeballShape, 64, 64);
         this.testOutline.TestDraw();
 
@@ -311,7 +316,7 @@ class Spritter {
         this.testPoly.texMat3.ToIdentity().Scale(1/32);
         this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
 
-        this.testOutline.mat3.ToIdentity();
+        this.testOutline.mat3.Set(this.testPoly.mat3);
         // this.testOutline.texMat3.TranslateXY(0.01, 0);
         this.drawObjQueue.BufferDrawobj(this.testOutline, 1);
 
