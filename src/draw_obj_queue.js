@@ -168,9 +168,7 @@ class DrawObjQueue {
 
     CleanUpReleasedDrawObjs() {
         for (let i = 0; i < this.releasedDrawObjQueue.length; i++) {
-            let drawObj = this.releasedDrawObjQueue[i];
-            this.vertexBlockAllocator.Free(drawObj.vertices);
-            drawObj.vertices = null;
+            this.releasedDrawObjQueue[i]._CleanUp();
         }
         this.releasedDrawObjQueue.length = 0;
     }

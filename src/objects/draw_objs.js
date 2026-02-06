@@ -1,7 +1,7 @@
 import Mat3 from '../mat3.js';
 import DataMat3 from '../data_mat3.js';
 import Vec2 from '../vec2.js';
-import Triangulator from '../triangulator.js';
+import { ConstructPolygonDLL, Triangulator } from '../triangulator.js';
 
 const DrawObjFlag = {
     UseTexture: 0x1,
@@ -21,7 +21,7 @@ const DrawObjFlag = {
     FlipTextureY: 0x4000,
     FlipSecondaryTextureX: 0x8000,
     FlipSecondaryTextureY: 0x10000,
-    SecondaryTextureAddBlend: 0x20000    // Simply adds the second texture instead of proper alpha blending
+    SecondaryTextureAddBlend: 0x20000,  // Simply adds the second texture instead of proper alpha blending
 };
 
 const DATA_ARRAY = Float32Array; // Float32Array makes copying data to buffers MUCH faster than Float64Array
@@ -95,6 +95,15 @@ class DrawObj {
 
         this.released = true;
         this.spritter.drawObjQueue.QueueReleasedDrawObj(this);
+    }
+
+    _CleanUp() {
+        this._FreeVertices();
+    }
+
+    _FreeVertices() {
+        this.spritter.drawObjQueue.vertexBlockAllocator.Free(this.vertices);
+        this.vertices = null;
     }
 
     IsFullyOpaque() {
@@ -200,74 +209,6 @@ class DrawObj {
     GetVertexStart(vertex) {
         return vertex.byteOffset / this.spritter.drawObjQueue.vertexEntryByteSize;
     }
-}
-
-class Sprite extends DrawObj {
-    constructor(spritter, w, h) {
-        super(spritter);
-        this.w = w;
-        this.h = h;
-        this.UpdateVertices();
-    };
-
-    UpdateVertices() {
-        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
-        this.vertices[0].set([0.5, -0.5, 1, 0,  this.w, this.h]); // tr
-        this.vertices[1].set([0.5, 0.5, 1, 0,   this.w, -this.h]); // br
-        this.vertices[2].set([-0.5, 0.5, 1, 0,  -this.w, -this.h]); // bl
-        this.vertices[3].set([-0.5, -0.5, 1, 0, -this.w, this.h]); // tl
-        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
-
-        this.indicesCount = 6;
-        this.indices = new INDICES_ARRAY(this.indicesCount);
-        this.indices.set([
-            this.GetVertexStart(this.vertices[0]),
-            this.GetVertexStart(this.vertices[1]),
-            this.GetVertexStart(this.vertices[2]),
-            this.GetVertexStart(this.vertices[0]),
-            this.GetVertexStart(this.vertices[2]),
-            this.GetVertexStart(this.vertices[3]),
-        ]);
-    }
-}
-
-class Poly extends DrawObj {
-    constructor(spritter, points, pointScale) {
-        super(spritter);
-        this.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode);
-        this.SetPoints(points, pointScale);
-    }
-
-    SetPoints(points, pointScale) {
-        this.spritter.drawObjQueue.vertexBlockAllocator.Free(this.vertices);
-        let triangulated = Triangulator.TriangulatePolygon(points, pointScale);
-        this.UpdateVertices(triangulated);
-    }
-
-    UsePointsOfPoly(poly) {
-        if (poly === null || this.vertices === poly.vertices)
-            return;
-
-        this.spritter.drawObjQueue.vertexBlockAllocator.Free(this.vertices);
-        this.vertices = poly.vertices;
-        this.indices = poly.vertices;
-    }
-
-    UpdateVertices(triangulated) {
-        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(triangulated.vertices.length);
-        for (let i = 0; i < triangulated.vertices.length; i++) {
-            let vertex = triangulated.vertices[i];
-            this.vertices[i].set([vertex.x, -vertex.y, 1, 0,  vertex.x, vertex.y]);
-        }
-        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
-
-        // TODO: optimize
-        this.indicesCount = triangulated.indices.length;
-        this.indices = new INDICES_ARRAY(this.indicesCount);
-        for (let i = 0; i < this.indices.length; i++) {
-            this.indices[i] = this.GetVertexStart(this.vertices[triangulated.indices[i]]);
-        }
-    }
 
     TestDraw() {
         let canvas = document.getElementById('binpackcanvas');
@@ -305,6 +246,124 @@ class Poly extends DrawObj {
     }
 }
 
+class Sprite extends DrawObj {
+    constructor(spritter, w, h) {
+        super(spritter);
+        this.w = w;
+        this.h = h;
+        this.UpdateVertices();
+    };
+
+    UpdateVertices() {
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
+        this.vertices[0].set([0.5, -0.5, 1, 1,  this.w, this.h]); // tr
+        this.vertices[1].set([0.5, 0.5, 1, 1,   this.w, -this.h]); // br
+        this.vertices[2].set([-0.5, 0.5, 1, 1,  -this.w, -this.h]); // bl
+        this.vertices[3].set([-0.5, -0.5, 1, 1, -this.w, this.h]); // tl
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
+
+        this.indicesCount = 6;
+        this.indices = new INDICES_ARRAY(this.indicesCount);
+        this.indices.set([
+            this.GetVertexStart(this.vertices[0]),
+            this.GetVertexStart(this.vertices[1]),
+            this.GetVertexStart(this.vertices[2]),
+            this.GetVertexStart(this.vertices[0]),
+            this.GetVertexStart(this.vertices[2]),
+            this.GetVertexStart(this.vertices[3]),
+        ]);
+    }
+}
+
+class Poly extends DrawObj {
+    constructor(spritter, points) {
+        super(spritter);
+        this.SetFlags(DrawObjFlag.PatternMode | DrawObjFlag.SecondaryPatternMode);
+        this.SetPoints(points);
+    }
+
+    SetPoints(points) {
+        this._FreeVertices();
+        let triangulated = Triangulator.TriangulatePolygon(points);
+        this.UpdateVertices(triangulated);
+    }
+
+    UsePointsOfPoly(poly) {
+        if (poly === null || this.vertices === poly.vertices)
+            return;
+
+        this._FreeVertices();
+        this.vertices = poly.vertices;
+        this.indices = poly.vertices;
+    }
+
+    UpdateVertices(triangulated) {
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(triangulated.vertices.length);
+        for (let i = 0; i < triangulated.vertices.length; i++) {
+            let vertex = triangulated.vertices[i];
+            this.vertices[i].set([vertex.x, -vertex.y, 1, 1,  vertex.x, vertex.y]);
+        }
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
+
+        // TODO: optimize
+        this.indicesCount = triangulated.indices.length;
+        this.indices = new INDICES_ARRAY(this.indicesCount);
+        for (let i = 0; i < this.indices.length; i++) {
+            this.indices[i] = this.GetVertexStart(this.vertices[triangulated.indices[i]]);
+        }
+    }
+}
+
+class Outline extends DrawObj {
+    constructor(spritter, polygon, outerD, innerD) {
+        super(spritter);
+        this.SetOutline(polygon, outerD, innerD);
+    };
+
+    SetOutline(polygon, outerD, innerD) {
+        this._FreeVertices();
+        this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(polygon.length * 4);
+        this.indicesCount = polygon.length * 6;
+        this.indices = new INDICES_ARRAY(this.indicesCount);
+
+        let u = -0.5;
+        let point = ConstructPolygonDLL(polygon);
+        for (let i = 0; i < polygon.length; i++) {
+            let next = point.next;
+
+            let dist = point.val.Dist(next.val);
+            let newU = u + dist / (outerD + innerD);
+            // console.log(u, newU);
+
+            let normal = point.GetNormal();
+            let nextNormal = next.GetNormal();
+
+            let tl = point.val.Copy().AddScaled(normal, outerD);
+            let bl = point.val.Copy().AddScaled(normal, -innerD);
+            let tr = next.val.Copy().AddScaled(nextNormal, outerD);
+            let br = next.val.Copy().AddScaled(nextNormal, -innerD);
+
+            this.vertices[i*4 + 0].set([newU, -0.5, 1, 1,    tr.x, tr.y]); // tr
+            this.vertices[i*4 + 1].set([newU, 0.5, 1, 1,     br.x, br.y]); // br
+            this.vertices[i*4 + 2].set([u, 0.5, 1, 1,    bl.x, bl.y]); // bl
+            this.vertices[i*4 + 3].set([u, -0.5, 1, 1,   tl.x, tl.y]); // tl
+            let trStart = this.GetVertexStart(this.vertices[i*4 + 0]);
+            let brStart = this.GetVertexStart(this.vertices[i*4 + 1]);
+            let blStart = this.GetVertexStart(this.vertices[i*4 + 2]);
+            let tlStart = this.GetVertexStart(this.vertices[i*4 + 3]);
+            this.indices.set([
+                trStart, brStart, blStart,
+                trStart, blStart, tlStart,
+            ], i * 6);
+
+            point = next;
+            u = newU;
+        }
+
+        this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
+    }
+}
+
 // A sprite that sort of drapes the texture along the dimension with n subdivisions.
 class CurtainSprite extends DrawObj {
     constructor(spritter, w, h, subdivision, power) {
@@ -334,10 +393,10 @@ class CurtainSprite extends DrawObj {
             let v = -(i + 1) / this.subdivision + 0.5;
             let y = (func((i + 1) / this.subdivision) - 0.5) * this.h * 2;
 
-            this.vertices[i*4 + 0].set([0.5, v, 1, 0,       this.w, y]); // tr
-            this.vertices[i*4 + 1].set([0.5, prevV, 1, 0,   this.w, prevY]); // br
-            this.vertices[i*4 + 2].set([-0.5, prevV, 1, 0,  -this.w, prevY]); // bl
-            this.vertices[i*4 + 3].set([-0.5, v, 1, 0,      -this.w, y]); // tl
+            this.vertices[i*4 + 0].set([0.5, v, 1, 1,       this.w, y]); // tr
+            this.vertices[i*4 + 1].set([0.5, prevV, 1, 1,   this.w, prevY]); // br
+            this.vertices[i*4 + 2].set([-0.5, prevV, 1, 1,  -this.w, prevY]); // bl
+            this.vertices[i*4 + 3].set([-0.5, v, 1, 1,      -this.w, y]); // tl
 
             let trStart = this.GetVertexStart(this.vertices[i*4 + 0]);
             let brStart = this.GetVertexStart(this.vertices[i*4 + 1]);
@@ -367,10 +426,10 @@ class PerspectiveSprite extends DrawObj {
 
     UpdateVertices(w, h) {
         this.vertices = this.spritter.drawObjQueue.vertexBlockAllocator.Allocate(4);
-        this.vertices[0].set([0.5, -0.5, 1, 0,  w, h]); // tr
-        this.vertices[1].set([0.5, 0.5, 1, 0,   w, -h]); // br
-        this.vertices[2].set([-0.5, 0.5, 1, 0,  -w, -h]); // bl
-        this.vertices[3].set([-0.5, -0.5, 1, 0, -w, h]); // tl
+        this.vertices[0].set([0.5, -0.5, 1, 1,  w, h]); // tr
+        this.vertices[1].set([0.5, 0.5, 1, 1,   w, -h]); // br
+        this.vertices[2].set([-0.5, 0.5, 1, 1,  -w, -h]); // bl
+        this.vertices[3].set([-0.5, -0.5, 1, 1, -w, h]); // tl
         this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
 
         this.topRight = new DATA_ARRAY(this.vertices[0].buffer, this.vertices[0].byteOffset + 4 * DATA_BYTES, 2);
@@ -412,18 +471,22 @@ class PerspectiveSprite extends DrawObj {
             tlQ = topLeftD / botRightD + 1;
         }
 
-        this.vertices[0][0] = 0.5 * trQ;
-        this.vertices[0][1] = -0.5 * trQ;
+        // this.vertices[0][0] = 0.5;
+        // this.vertices[0][1] = -0.5;
         this.vertices[0][2] = trQ;
-        this.vertices[1][0] = 0.5 * brQ;
-        this.vertices[1][1] = 0.5 * brQ;
+        this.vertices[0][3] = trQ;
+        // this.vertices[1][0] = 0.5 * brQ;
+        // this.vertices[1][1] = 0.5 * brQ;
         this.vertices[1][2] = brQ;
-        this.vertices[2][0] = -0.5 * blQ;
-        this.vertices[2][1] = 0.5 * blQ;
+        this.vertices[1][3] = brQ;
+        // this.vertices[2][0] = -0.5 * blQ;
+        // this.vertices[2][1] = 0.5 * blQ;
         this.vertices[2][2] = blQ;
-        this.vertices[3][0] = -0.5 * tlQ;
-        this.vertices[3][1] = -0.5 * tlQ;
+        this.vertices[2][3] = blQ;
+        // this.vertices[3][0] = -0.5 * tlQ;
+        // this.vertices[3][1] = -0.5 * tlQ;
         this.vertices[3][2] = tlQ;
+        this.vertices[3][3] = tlQ;
         this.spritter.drawObjQueue.MarkDirtyVertices(this.vertices);
     }
 }
@@ -438,8 +501,12 @@ class DrawObjs {
         return new Sprite(this.spritter, w, h);
     }
 
-    CreatePoly(points, scale) {
-        return new Poly(this.spritter, points, scale); // points must be a Vec2 array
+    CreatePoly(points) {
+        return new Poly(this.spritter, points); // points must be a Vec2 array
+    }
+
+    CreateOutline(polygon, outerD, innerD) {
+        return new Outline(this.spritter, polygon, outerD, innerD);
     }
 
     CreateCurtainSprite(w, h, subdivision, power) {

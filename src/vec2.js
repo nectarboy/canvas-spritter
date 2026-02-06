@@ -144,6 +144,12 @@ class Vec2 {
         return this;
     }
 
+    AddScaled(vec, scale) {
+        this.x += vec.x * scale;
+        this.y += vec.y * scale;
+        return this;
+    }
+
     Det(vec) {
         return this.x*vec.y - this.y*vec.x;
     }

@@ -2,10 +2,10 @@ import Vec2 from './vec2.js';
 
 // TODO: The output of the triangulation
 class TriangulatedPolygon {
-    constructor(vertices, scale) {
+    constructor(vertices) {
         this.vertices = [];
         for (let i = 0; i < vertices.length; i++) {
-            this.vertices.push(vertices[i].Copy().Scale(scale));
+            this.vertices.push(vertices[i].Copy());
         }
         this.indices = [];
     };
@@ -34,6 +34,28 @@ class VertexDLL {
         this.next = null;
         this.prev = null;
     }
+
+    GetNormal() {
+        let normal = new Vec2(
+            (this.next.val.x - this.prev.val.x) / 2,
+            (this.next.val.y - this.prev.val.y) / 2
+        );
+        const vec90 = new Vec2(1, 0);
+        normal.RotateFromUnitCCW(vec90).Normalize();
+        return normal;
+    }
+}
+
+function ConstructPolygonDLL(polygon) {
+    let p = new VertexDLL(polygon[0], 0, null);
+    for (let i = 1, prev = p; i < polygon.length; i++) {
+        prev = new VertexDLL(polygon[i], i, prev);
+        if (i === polygon.length - 1) {
+            p.prev = prev;
+            prev.next = p;
+        }
+    }
+    return p;
 }
 
 // returns whether p is inside triangle abc (cw)
@@ -45,21 +67,14 @@ function PointInTriangle(a, b, c, p) {
 
 class Triangulator {
 
-    static TriangulatePolygon(polygon, scale = 1) {
+    static TriangulatePolygon(polygon) {
         // console.time('TriangulatePolygon');
 
-        let triangulated = new TriangulatedPolygon(polygon, scale);
+        let triangulated = new TriangulatedPolygon(polygon);
         let remainingN = polygon.length;
 
         // construct circular DLL of vertices
-        let p = new VertexDLL(polygon[0], 0, null);
-        for (let i = 1, prev = p; i < polygon.length; i++) {
-            prev = new VertexDLL(polygon[i], i, prev);
-            if (i === polygon.length - 1) {
-                p.prev = prev;
-                prev.next = p;
-            }
-        }
+        let p = ConstructPolygonDLL(polygon);
 
         let its = 0;
         let skips = 0;
@@ -117,4 +132,7 @@ class Triangulator {
 
 }
 
-export default Triangulator;
+export {
+    ConstructPolygonDLL,
+    Triangulator
+};

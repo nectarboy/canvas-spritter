@@ -226,7 +226,8 @@ class Spritter {
             await GetSpritterImage('src/assets/mask2.png', 'mask2'),
             await GetSpritterImage('src/assets/background.png', 'background', true),
             await GetSpritterImage('src/assets/water.png', 'water'),
-            await GetSpritterImage('src/assets/mariofire.png', 'mariofire')
+            await GetSpritterImage('src/assets/mariofire.png', 'mariofire'),
+            await GetSpritterImage('src/assets/grass.png', 'grass')
         ];
 
         console.log('images:', images);
@@ -252,25 +253,26 @@ class Spritter {
         this.fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         this.fireMario.SetTexture('mariofire');
 
-        spikeballShape = new Array(25);
+        spikeballShape = new Array(24);
         for (let i = 0; i < spikeballShape.length; i++) {
             let ang = i / spikeballShape.length * 360;
             // let size = (i & 1) ? 1 : 2;
             // let size = 1;
             let size = 2 //+ Math.random();
+            size *= 100;
             spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
         }
 
-        this.testPoly = this.drawObjs.CreatePoly(spikeballShape, 100);
-        this.testPoly.SetPoints([
-            new Vec2(-1, 1),
-            new Vec2(1, 1),
-            new Vec2(1, -1),
-            new Vec2(-1, -1)
-        ], 100);
+        this.testPoly = this.drawObjs.CreatePoly(spikeballShape);
         this.testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
-        this.testPoly.SetTexture('terrain');
+        this.testPoly.SetTexture('test');
         this.testPoly.TestDraw();
+
+        this.testOutline = this.drawObjs.CreateOutline([], 32, 100);
+        this.testOutline.SetTextureAtlas(this.textureManager.textureAtlas);
+        this.testOutline.SetTexture('test');
+        this.testOutline.SetOutline(spikeballShape, 3, 100);
+        this.testOutline.TestDraw();
 
         this.curtainSprite = this.drawObjs.CreateCurtainSprite(128, 128, 20, 0.5);
         this.curtainSprite.transparent = false;
@@ -303,11 +305,15 @@ class Spritter {
 
         this.curtainSprite.mat3.ToIdentity();
         this.curtainSprite.texMat3.ToIdentity().TranslateXY(0, -this.tick * 0.01);
-        this.drawObjQueue.BufferDrawobj(this.curtainSprite, 1);
+        // this.drawObjQueue.BufferDrawobj(this.curtainSprite, 1);
 
         this.testPoly.mat3.ToIdentity();
-        this.testPoly.texMat3.ToIdentity().TranslateXY()
+        this.testPoly.texMat3.ToIdentity().Scale(1/32);
         // this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
+
+        this.testOutline.mat3.ToIdentity();
+        this.testOutline.texMat3.TranslateXY(0.01, 0);
+        this.drawObjQueue.BufferDrawobj(this.testOutline, 1);
 
         this.fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
         this.fireMario.mat3.ToIdentity().Scale(3);
@@ -321,7 +327,9 @@ class Spritter {
         // this.drawObjQueue.BufferDrawobj(testLine, 1);
 
         this.perspectiveSprite.mat3.ToIdentity();
-        this.drawObjQueue.BufferDrawobj(this.perspectiveSprite, 1);
+        // this.perspectiveSprite.SetFlags(DrawObjFlag.PatternMode);
+        this.perspectiveSprite.texMat3.TranslateXY(0.01, 0.01);
+        // this.drawObjQueue.BufferDrawobj(this.perspectiveSprite, 1);
 
         // let testMask = this.drawObjs.CreateSprite(64, 256);
         // testMask.tintColor.set([1, 1, 1, 0.025]);
