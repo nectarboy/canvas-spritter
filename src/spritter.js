@@ -2,7 +2,7 @@ import EngineConsts from './engine_consts.js';
 import TextureManager from './texture_manager.js';
 import DrawObjQueue from './draw_obj_queue.js';
 import Vec2 from './vec2.js';
-import { DrawObjFlag, DrawObjs } from './objects/draw_objs.js';
+import { DrawObjFlag, DrawObjs } from './draw_objs.js';
 import GetSpritterImage from './spritter_image.js';
 
 async function fetchShader(path, dependencies) {
