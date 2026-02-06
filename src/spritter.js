@@ -253,14 +253,14 @@ class Spritter {
         this.fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         this.fireMario.SetTexture('mariofire');
 
-        spikeballShape = new Array(24);
-        for (let i = 0; i < spikeballShape.length; i++) {
+        spikeballShape = new Array(20);
+        for (let i = 0, size = 2; i < spikeballShape.length; i++) {
             let ang = i / spikeballShape.length * 360;
             // let size = (i & 1) ? 1 : 2;
             // let size = 1;
-            let size = 2 //+ Math.random();
-            size *= 100;
-            spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size); 
+            size = 2 + Math.random();
+            // size += (Math.random() - 0.5) * 1;
+            spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size * 100); 
         }
 
         this.testPoly = this.drawObjs.CreatePoly(spikeballShape);
@@ -270,8 +270,8 @@ class Spritter {
 
         this.testOutline = this.drawObjs.CreateOutline([], 32, 100);
         this.testOutline.SetTextureAtlas(this.textureManager.textureAtlas);
-        this.testOutline.SetTexture('test');
-        this.testOutline.SetOutline(spikeballShape, 3, 100);
+        this.testOutline.SetTexture('grass');
+        this.testOutline.SetOutline(spikeballShape, 64, 64);
         this.testOutline.TestDraw();
 
         this.curtainSprite = this.drawObjs.CreateCurtainSprite(128, 128, 20, 0.5);
@@ -309,17 +309,17 @@ class Spritter {
 
         this.testPoly.mat3.ToIdentity();
         this.testPoly.texMat3.ToIdentity().Scale(1/32);
-        // this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
+        this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
 
         this.testOutline.mat3.ToIdentity();
-        this.testOutline.texMat3.TranslateXY(0.01, 0);
+        // this.testOutline.texMat3.TranslateXY(0.01, 0);
         this.drawObjQueue.BufferDrawobj(this.testOutline, 1);
 
         this.fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
         this.fireMario.mat3.ToIdentity().Scale(3);
         this.fireMario.ResetFlags();
         this.fireMario.SetFlags(DrawObjFlag.FlipTextureX * flip | DrawObjFlag.FlipTextureY * flop);
-        this.drawObjQueue.BufferDrawobj(this.fireMario, 1);
+        // this.drawObjQueue.BufferDrawobj(this.fireMario, 1);
 
         // let testLine = this.drawObjs.CreateSprite(1, 128);
         // testLine.tintColor.set([0, 0, 0, 1]);
