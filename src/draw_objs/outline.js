@@ -72,7 +72,6 @@ class Outline extends DrawObj {
             point = next;
             u = newU;
         }
-
     }
 
     Bevel(dll, outerD, innerD) {
@@ -88,23 +87,50 @@ class Outline extends DrawObj {
             let normal = point.GetNormal();
             let nextNormal = next.GetNormal();
             let lineNormal = next.val.Copy().Sub(point.val).Normalize().RotateFromUnitCCW(VEC_90);
-            let dist = point.val.Dist(next.val);
+            let nextLineNormal = next.next.val.Copy().Sub(next.val).Normalize().RotateFromUnitCCW(VEC_90);
+            let isConcave = point.IsConcave();
+            let nextIsConcave = next.IsConcave();
 
             // Calculate corners
             let dot0 = lineNormal.Dot(normal);
             let dot1 = lineNormal.Dot(nextNormal);
-            let tl = point.val.Copy().AddScaled(lineNormal, outerD);
-            let bl = point.val.Copy().AddScaled(normal, -innerD / dot0);
-            let tr = next.val.Copy().AddScaled(lineNormal, outerD);
-            let br = next.val.Copy().AddScaled(nextNormal, -innerD / dot1);
+            let tr, br, bl, tl;
+            if (isConcave) {
+                bl = point.val.Copy().AddScaled(lineNormal, -innerD);
+                tl = point.val.Copy().AddScaled(normal, outerD / dot0);
+            }
+            else {
+                bl = point.val.Copy().AddScaled(normal, -innerD / dot0);
+                tl = point.val.Copy().AddScaled(lineNormal, outerD);
+            }
+            if (nextIsConcave) {
+                br = next.val.Copy().AddScaled(lineNormal, -innerD);
+                tr = next.val.Copy().AddScaled(nextNormal, outerD / dot1);
+            }
+            else {
+                br = next.val.Copy().AddScaled(nextNormal, -innerD / dot1);
+                tr = next.val.Copy().AddScaled(lineNormal, outerD);
+            }
 
+            let dist = (tl.Dist(tr) + bl.Dist(br)) / 2;
+            let botDist = bl.Dist(br);
+            let distRatio = dist / botDist;
             let newU = u + dist / (outerD + innerD) /// ((dot0 + dot1) / 2);
 
             // Calculate rightward chip piece
-            let nextLineNormal = next.next.val.Copy().Sub(next.val).Normalize().RotateFromUnitCCW(VEC_90);
-            let nextTl = next.val.Copy().AddScaled(nextLineNormal, outerD);
-            let chipDist = tr.Dist(nextTl);
-            let chipNewU = newU + chipDist / (outerD + innerD);
+            let chipTl, chipTr, chipB;
+            if (nextIsConcave) {
+                chipTl = next.val.Copy().AddScaled(nextLineNormal, -innerD);
+                chipTr = br;
+                chipB = tr;
+            }
+            else {
+                chipTl = tr;
+                chipTr = next.val.Copy().AddScaled(nextLineNormal, outerD);
+                chipB = br;
+            }
+            let chipDist = chipTl.Dist(chipTr);
+            let chipNewU = newU + chipDist * Math.SQRT1_2 / (outerD + innerD);
 
             // Calculate vertex depth weights
             let intersection = IntersectionOfLines(
@@ -126,25 +152,49 @@ class Outline extends DrawObj {
                 tlQ = topLeftD / botRightD + 1;
             }
 
+            let chipTlQ, chipTrQ, chipBQ;
+            let chipIntersection = IntersectionOfLines(
+                chipTl.x,chipTl.y, chipB.x,chipB.y,
+                chipTr.x,chipTr.y, chipB.x,chipB.y
+            );
+            if (chipIntersection === null) {
+                chipTlQ = chipTrQ = chipBQ = 1;
+            }
+            else {
+                let topLeftD = chipTl.Dist(intersection);
+                let topRightD = chipTr.Dist(intersection);
+                let botD = chipB.Dist(intersection);
+                chipTlQ = topLeftD / botD + 1;
+                chipTrQ = topRightD / botD + 1; 
+                chipBQ = (botD / topRightD + botD / topLeftD) / 2 + 1; // ?
+            }
+
             // Encode vertices and indices
             this.vertices[i*7 + 0].set([newU, -0.5, trQ, 1,    tr.x, tr.y]); // tr
             this.vertices[i*7 + 1].set([newU, 0.5, brQ, 1,     br.x, br.y]); // br
             this.vertices[i*7 + 2].set([u, 0.5, blQ, 1,    bl.x, bl.y]); // bl
             this.vertices[i*7 + 3].set([u, -0.5, tlQ, 1,   tl.x, tl.y]); // tl
-            this.vertices[i*7 + 4].set([newU, -0.5, 1, 1,    tr.x, tr.y]); // chiptl
-            this.vertices[i*7 + 5].set([chipNewU, -0.5, 1, 1,    nextTl.x, nextTl.y]); // chiptr
-            this.vertices[i*7 + 6].set([(newU + chipNewU) / 2, 0.5, 1, 1,    br.x, br.y]); // chipb
+            if (nextIsConcave) {
+                this.vertices[i*7 + 4].set([chipNewU, 0.5, chipTlQ, 1,    chipTl.x, chipTl.y]); // chiptl
+                this.vertices[i*7 + 5].set([newU, 0.5, chipTrQ, 1,    chipTr.x, chipTr.y]); // chiptr
+                this.vertices[i*7 + 6].set([(newU + chipNewU) / 2, -0.5, 0, 1,    chipB.x, chipB.y]); // chipb ?
+            }
+            else {
+                this.vertices[i*7 + 4].set([newU, -0.5, chipTlQ, 1,    chipTl.x, chipTl.y]); // chiptl
+                this.vertices[i*7 + 5].set([chipNewU, -0.5, chipTrQ, 1,    chipTr.x, chipTr.y]); // chiptr
+                this.vertices[i*7 + 6].set([(newU + chipNewU) / 2, 0.5, 0, 1,    chipB.x, chipB.y]); // chipb ?
+            }
             let trStart = this.GetVertexStart(this.vertices[i*7 + 0]);
             let brStart = this.GetVertexStart(this.vertices[i*7 + 1]);
             let blStart = this.GetVertexStart(this.vertices[i*7 + 2]);
             let tlStart = this.GetVertexStart(this.vertices[i*7 + 3]);
             let chipTlStart = this.GetVertexStart(this.vertices[i*7 + 4]);
             let chipTrStart = this.GetVertexStart(this.vertices[i*7 + 5]);
-            let chipBrStart = this.GetVertexStart(this.vertices[i*7 + 6]);
+            let chipBStart = this.GetVertexStart(this.vertices[i*7 + 6]);
             this.indices.set([
                 trStart, brStart, blStart,
                 trStart, blStart, tlStart,
-                chipTlStart, chipTrStart, chipBrStart
+                chipTlStart, chipTrStart, chipBStart
             ], i * 9);
 
             point = next;
@@ -168,6 +218,8 @@ class Outline extends DrawObj {
                 point = next;
             }
         }
+
+        console.log(dll);
 
         // this.Miter(dll, outerD, innerD);
         this.Bevel(dll, outerD, innerD);

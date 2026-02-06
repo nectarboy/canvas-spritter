@@ -258,11 +258,12 @@ class Spritter {
         this.fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         this.fireMario.SetTexture('mariofire');
 
-        spikeballShape = new Array(20);
+        spikeballShape = new Array(24);
         for (let i = 0, size = 2; i < spikeballShape.length; i++) {
             let ang = i / spikeballShape.length * 360;
             // let size = (i & 1) ? 1 : 2;
             // let size = 1;
+            // size = 2 + Math.sin(ang / 30);
             size = 2 + Math.random();
             // size += (Math.random() - 0.5) * 1;
             spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size * 100); 
@@ -275,7 +276,7 @@ class Spritter {
 
         this.testOutline = this.drawObjs.CreateOutline([], 32, 100);
         this.testOutline.SetTextureAtlas(this.textureManager.textureAtlas);
-        this.testOutline.SetTexture('grass2');
+        this.testOutline.SetTexture('brick');
         this.testOutline.SetOutline(spikeballShape, 64, 64);
         this.testOutline.TestDraw();
 
@@ -317,7 +318,7 @@ class Spritter {
         this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
 
         this.testOutline.mat3.Set(this.testPoly.mat3);
-        // this.testOutline.texMat3.TranslateXY(0.01, 0);
+        this.testOutline.texMat3.TranslateXY(-0.01, 0);
         this.drawObjQueue.BufferDrawobj(this.testOutline, 1);
 
         this.fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);

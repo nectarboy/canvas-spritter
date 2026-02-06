@@ -38,6 +38,12 @@ class VertexDLL {
         normal.RotateFromUnitCCW(vec90);
         return normal;
     }
+
+    IsConcave() {
+        let v1 = this.val.Copy().Sub(this.prev.val);
+        let v2 = this.next.val.Copy().Sub(this.val);
+        return v1.Det(v2) >= 0;
+    }
 }
 
 class PolygonDLL {
