@@ -2,10 +2,10 @@
 // Eg. texPos and texSize could be accessed through a texture index
 // Or potentially even mat3's could be accessed through an index (most sprites will use identity texMat3, no?)
 struct DrawObj {
-    mat3 : mat3x3<f32>,
+    mat3 : mat3x3<f32>, //
     texMat3 : mat3x3<f32>,
     tex2Mat3 : mat3x3<f32>,
-    tintColor : vec4f,
+    tintColor : vec4f, //
     thresholdLowerColor : vec4f,
     thresholdUpperColor : vec4f,
     texPos : vec2f,
@@ -16,6 +16,6 @@ struct DrawObj {
     atlasDimension : f32,
     iAtlasDimension : f32,
     displacementStrength : f32,
-    ordering : f32,
-    flags : u32
+    ordering : f32, // 
+    flags : u32 //
 }

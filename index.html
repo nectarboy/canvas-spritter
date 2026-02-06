@@ -29,9 +29,11 @@
     import Helpers from './src/helpers.js';
     import BinPacker from './src/bin_packer.js';
     import CircularPoolConstructor from './src/circular_pool.js';
+    import Vec2 from './src/vec2.js';
 
     globalThis.Helpers = Helpers;
     globalThis.CircularPoolConstructor = CircularPoolConstructor;
+    globalThis.Vec2 = Vec2;
 
     let canvas = document.getElementById('canvas');
     let spritter = null;
@@ -57,7 +59,8 @@
         await spritter.init();
 
         async function loop() {
-            await spritter.draw();
+            spritter.draw();
+            await spritter.DisplayPerformanceStats();
             requestAnimationFrame(loop);
         }
 

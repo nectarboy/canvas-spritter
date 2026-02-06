@@ -1,27 +1,37 @@
 @group(1) @binding(0) var<storage, read> drawObjs : array<DrawObj>;
+@group(1) @binding(1) var<storage, read> vertices : array<VertexInput>;
+
+struct VertexInput {
+    uv : vec2f,
+    uvDepth : vec2f,
+    position : vec2f,
+    padding: vec2f
+};
 
 struct VertexOutput {
     @builtin(position) position : vec4f,
-    @location(0) texUv: vec3f,
-    @location(1) tex2Uv: vec3f,
-    @location(2) displacementScale : vec2f,
-    @location(3) @interpolate(flat) flags : u32,
-    @location(4) @interpolate(flat) tex2Alpha : f32,
-    @location(5) @interpolate(flat) tintColor: vec4f,
-    @location(6) @interpolate(flat) texUv0 : vec2f,
-    @location(7) @interpolate(flat) texUv1 : vec2f,
-    @location(8) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(9) @interpolate(flat) tex2Uv1 : vec2f,
-    @location(10) @interpolate(flat) thresholdLowerColor : vec4f,
-    @location(11) @interpolate(flat) thresholdUpperColor : vec4f,
+    @location(0) texUv: vec2f,
+    @location(1) texUvDepth : vec2f,
+    @location(2) tex2Uv: vec2f,
+    @location(3) tex2UvDepth: vec2f,
+    @location(4) displacementScale : vec2f,
+    @location(5) @interpolate(flat) flags : u32,
+    @location(6) @interpolate(flat) tex2Alpha : f32,
+    @location(7) @interpolate(flat) tintColor: vec4f,
+    @location(8) @interpolate(flat) texUv0 : vec2f,
+    @location(9) @interpolate(flat) texUv1 : vec2f,
+    @location(10) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(12) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(13) @interpolate(flat) thresholdLowerColor : vec4f,
+    @location(14) @interpolate(flat) thresholdUpperColor : vec4f,
 }   
 
 @vertex
 fn main(
-    @builtin(vertex_index) VertexIndex : u32,
-    @location(0) position : vec2f,
-    @location(1) uv : vec3f,
-    @location(2) drawObjIndex : u32
+    @builtin(vertex_index) pullerIndex : u32,
+    // @location(0) packedIndices : u32
+    @location(0) vertexIndex : u32,
+    @location(1) drawObjIndex : u32
 ) -> VertexOutput {
 
     // TODO: calculate stuff that will be uniform across all a DrawObj's vertices in a seperate pass beforehand, to pass along here?
@@ -37,10 +47,14 @@ fn main(
     const screenW = 480f;
     const screenH = 360f;
 
+    // let vertexIndex : u32 = packedIndices & 0x1ffff;
+    // let drawObjIndex : u32 = packedIndices >> 17;
+
+    var vertex : VertexInput = vertices[vertexIndex];
     var drawObj : DrawObj = drawObjs[drawObjIndex];
     var out : VertexOutput;
 
-    var transformedPosition : vec3f = drawObj.mat3 * vec3f(position, 1);
+    var transformedPosition : vec3f = drawObj.mat3 * vec3f(vertex.position, 1);
     transformedPosition.x /= screenW;
     transformedPosition.y /= screenH;
     out.position = vec4f(transformedPosition.x, transformedPosition.y, (drawObj.ordering + 1) / MAX_ORDERING, 1.0);
@@ -62,38 +76,37 @@ fn main(
     seeThrough[1][0] = -seeThrough[1][0];
     seeThrough[2][1] = -seeThrough[2][1];
 
+    // Primary texture UV
     if ((drawObj.flags & PatternMode) != 0) {
-        // out.displacementScale = vec2f(1);
-        // out.displacementScale /= drawObj.texSize;
-        out.texUv = vec3f(position.x, -position.y, uv.z);
+        var texUv = vec3f(vertex.position.x, -vertex.position.y, 1);
         if ((drawObj.flags & SeeThroughMode) != 0) {
-            out.texUv = seeThrough * out.texUv;
+            texUv = seeThrough * texUv;
         }
-        out.texUv = drawObj.texMat3 * out.texUv;
-        out.texUv.x /= 2 * drawObj.texSize.x;
-        out.texUv.y /= 2 * drawObj.texSize.y;
+        texUv = drawObj.texMat3 * texUv;
+        out.texUv = texUv.xy / (2 * drawObj.texSize) * vertex.uvDepth;
     }
     else {
-        out.texUv = drawObj.texMat3 * uv;
+        out.texUv = (drawObj.texMat3 * vec3f(vertex.uv, 1)).xy * vertex.uvDepth;
     }
     out.texUv.x = select(out.texUv.x, -out.texUv.x, (drawObj.flags & FlipTextureX) != 0);
     out.texUv.y = select(out.texUv.y, -out.texUv.y, (drawObj.flags & FlipTextureY) != 0);
+    out.texUvDepth = vertex.uvDepth; 
 
+    // Secondary texture UV
     if ((drawObj.flags & SecondaryPatternMode) != 0) {
-        //out.tex2Uv = drawObj.tex2Mat3 * effectArray[select(0, 1, (drawObj.flags & SecondarySeeThroughMode) != 0)] * vec3f(position.x, -position.y, uv.z);
-        out.tex2Uv = vec3f(position.x, -position.y, uv.z);
+        var tex2Uv = vec3f(vertex.position.x, -vertex.position.y, 1);
         if ((drawObj.flags & SecondarySeeThroughMode) != 0) {
-            out.tex2Uv = seeThrough * out.tex2Uv;
+            tex2Uv = seeThrough * tex2Uv;
         }
-        out.tex2Uv = drawObj.tex2Mat3 * out.tex2Uv;
-        out.tex2Uv.x /= 2 * drawObj.tex2Size.x;
-        out.tex2Uv.y /= 2 * drawObj.tex2Size.y;
+        tex2Uv = drawObj.tex2Mat3 * tex2Uv;
+        out.tex2Uv = tex2Uv.xy / (2 * drawObj.tex2Size) * vertex.uvDepth;
     }
     else {
-        out.tex2Uv = drawObj.tex2Mat3 * uv;
+        out.tex2Uv = (drawObj.tex2Mat3 * vec3f(vertex.uv, 1)).xy * vertex.uvDepth;
     }
     out.tex2Uv.x = select(out.tex2Uv.x, -out.tex2Uv.x, (drawObj.flags & FlipSecondaryTextureX) != 0);
     out.tex2Uv.y = select(out.tex2Uv.y, -out.tex2Uv.y, (drawObj.flags & FlipSecondaryTextureY) != 0);
+    out.tex2UvDepth = vertex.uvDepth;
 
     out.tintColor = drawObj.tintColor;
     out.tex2Alpha = drawObj.tex2Alpha;

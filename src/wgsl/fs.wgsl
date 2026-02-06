@@ -6,21 +6,23 @@
 
 @fragment
 fn main(
-    @location(0) texUv: vec3f,
-    @location(1) tex2Uv: vec3f,
-    @location(2) displacementScale : vec2f,
-    @location(3) @interpolate(flat) flags : u32,
-    @location(4) @interpolate(flat) tex2Alpha : f32,
-    @location(5) @interpolate(flat) tintColor: vec4f,
-    @location(6) @interpolate(flat) texUv0 : vec2f,
-    @location(7) @interpolate(flat) texUv1 : vec2f,
-    @location(8) @interpolate(flat) tex2Uv0 : vec2f,
-    @location(9) @interpolate(flat) tex2Uv1 : vec2f,
-    @location(10) @interpolate(flat) thresholdLowerColor : vec4f,
-    @location(11) @interpolate(flat) thresholdUpperColor : vec4f,
+    @location(0) texUv: vec2f,
+    @location(1) texUvDepth : vec2f,
+    @location(2) tex2Uv: vec2f,
+    @location(3) tex2UvDepth: vec2f,
+    @location(4) displacementScale : vec2f,
+    @location(5) @interpolate(flat) flags : u32,
+    @location(6) @interpolate(flat) tex2Alpha : f32,
+    @location(7) @interpolate(flat) tintColor: vec4f,
+    @location(8) @interpolate(flat) texUv0 : vec2f,
+    @location(9) @interpolate(flat) texUv1 : vec2f,
+    @location(10) @interpolate(flat) tex2Uv0 : vec2f,
+    @location(12) @interpolate(flat) tex2Uv1 : vec2f,
+    @location(13) @interpolate(flat) thresholdLowerColor : vec4f,
+    @location(14) @interpolate(flat) thresholdUpperColor : vec4f,
 ) -> @location(0) vec4f {
 
-    var uv = texUv.xy / texUv.z;
+    var uv = texUv / texUvDepth;
     var pix : vec4f;
 
     //return vec4f(1, f32(flags) / 10000.0, 1, 1);
@@ -55,7 +57,7 @@ fn main(
     else {
 
         // Sample secondary texture
-        var uv2 = tex2Uv.xy / tex2Uv.z;
+        var uv2 = tex2Uv / tex2UvDepth;
         var oob2 : bool = (abs(uv2.x) > 0.5) | (abs(uv2.y) > 0.5);
         uv2 = mix(tex2Uv0, tex2Uv1, fract(uv2 + vec2f(0.5, 0.5)));
         var pix2 : vec4f;
