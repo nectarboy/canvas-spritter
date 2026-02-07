@@ -4,11 +4,24 @@ import Vec2 from '../vec2.js';
 
 const VEC_90 = Vec2.FromAng(90);
 
+const OutlineType = {
+    Miter: 1,
+    Bevel: 2,
+};
+
 class Outline extends DrawObj {
     constructor(spritter, polygon, outerD, innerD) {
         super(spritter);
         this.SetOutline(polygon, outerD, innerD);
     };
+
+    GenerateLineVertices(dll, outerD, innerD) {
+        let verts = [];
+        let indices = [];
+
+        let point = dll.start;
+
+    }
 
     Miter(dll, outerD, innerD) {
         this._FreeVertices();
@@ -83,33 +96,66 @@ class Outline extends DrawObj {
         let point = dll.start;
         let u = -0.5;
         for (let i = 0; i < dll.size; i++) {
+            let prev = point.prev;
             let next = point.next;
-            let normal = point.GetNormal();
-            let nextNormal = next.GetNormal();
+            // let miterNormal = point.GetNormal();
+            // let nextMiterNormal = next.GetNormal();
+            let prevLineNormal = point.val.Copy().Sub(prev.val).Normalize().RotateFromUnitCCW(VEC_90);
             let lineNormal = next.val.Copy().Sub(point.val).Normalize().RotateFromUnitCCW(VEC_90);
             let nextLineNormal = next.next.val.Copy().Sub(next.val).Normalize().RotateFromUnitCCW(VEC_90);
             let isConcave = point.IsConcave();
             let nextIsConcave = next.IsConcave();
 
+            // ???
+            // let cross = point.GetCross();
+            // console.log(cross);
+
             // Calculate corners
-            let dot0 = lineNormal.Dot(normal);
-            let dot1 = lineNormal.Dot(nextNormal);
-            let tr, br, bl, tl;
+            let prevTl = prev.val.Copy().AddScaled(prevLineNormal, outerD);
+            let prevBl = prev.val.Copy().AddScaled(prevLineNormal, -innerD);
+            let prevTr = point.val.Copy().AddScaled(prevLineNormal, outerD);
+            let prevBr = point.val.Copy().AddScaled(prevLineNormal, -innerD);
+            let tl = point.val.Copy().AddScaled(lineNormal, outerD);
+            let bl = point.val.Copy().AddScaled(lineNormal, -innerD);
+            let tr = next.val.Copy().AddScaled(lineNormal, outerD);
+            let br = next.val.Copy().AddScaled(lineNormal, -innerD);
+            let nextTl = next.val.Copy().AddScaled(nextLineNormal, outerD);
+            let nextBl = next.val.Copy().AddScaled(nextLineNormal, -innerD);
+            let nextTr = next.next.val.Copy().AddScaled(nextLineNormal, outerD);
+            let nextBr = next.next.val.Copy().AddScaled(nextLineNormal, -innerD);
+
+            // Calculate miter points
+            let prevInnerMiterPoint = IntersectionOfLines(
+                prevBr.x, prevBr.y,  prevBl.x, prevBl.y,
+                br.x, br.y,  bl.x, bl.y
+            );
+            let prevOuterMiterPoint = IntersectionOfLines(
+                prevTr.x, prevTr.y,  prevTl.x, prevTl.y,
+                tr.x, tr.y,  tl.x, tl.y
+            );
+            let innerMiterPoint = IntersectionOfLines(
+                br.x, br.y,  bl.x, bl.y,
+                nextBr.x, nextBr.y,  nextBl.x, nextBl.y
+            );
+            let outerMiterPoint = IntersectionOfLines(
+                tr.x, tr.y,  tl.x, tl.y,
+                nextTr.x, nextTr.y,  nextTl.x, nextTl.y
+            );
+
+            // console.log(innerMiterPoint, br, bl);
+
+            // Fix corners
             if (isConcave) {
-                bl = point.val.Copy().AddScaled(lineNormal, -innerD);
-                tl = point.val.Copy().AddScaled(normal, outerD / dot0);
+                tl.Set(prevOuterMiterPoint);
             }
             else {
-                bl = point.val.Copy().AddScaled(normal, -innerD / dot0);
-                tl = point.val.Copy().AddScaled(lineNormal, outerD);
+                bl.Set(prevInnerMiterPoint);
             }
             if (nextIsConcave) {
-                br = next.val.Copy().AddScaled(lineNormal, -innerD);
-                tr = next.val.Copy().AddScaled(nextNormal, outerD / dot1);
+                tr.Set(outerMiterPoint);
             }
             else {
-                br = next.val.Copy().AddScaled(nextNormal, -innerD / dot1);
-                tr = next.val.Copy().AddScaled(lineNormal, outerD);
+                br.Set(innerMiterPoint);
             }
 
             let dist = (tl.Dist(tr) + bl.Dist(br)) / 2;
@@ -120,14 +166,14 @@ class Outline extends DrawObj {
             // Calculate rightward chip piece
             let chipTl, chipTr, chipB;
             if (nextIsConcave) {
-                chipTl = next.val.Copy().AddScaled(nextLineNormal, -innerD);
+                chipTl = nextBl;
                 chipTr = br;
-                chipB = tr;
+                chipB = outerMiterPoint;
             }
             else {
                 chipTl = tr;
-                chipTr = next.val.Copy().AddScaled(nextLineNormal, outerD);
-                chipB = br;
+                chipTr = nextTl;
+                chipB = innerMiterPoint;
             }
             let chipDist = chipTl.Dist(chipTr);
             let chipNewU = newU + chipDist * Math.SQRT1_2 / (outerD + innerD);
@@ -157,13 +203,13 @@ class Outline extends DrawObj {
                 chipTl.x,chipTl.y, chipB.x,chipB.y,
                 chipTr.x,chipTr.y, chipB.x,chipB.y
             );
-            if (chipIntersection === null) {
+            if (true || chipIntersection === null) {
                 chipTlQ = chipTrQ = chipBQ = 1;
             }
             else {
-                let topLeftD = chipTl.Dist(intersection);
-                let topRightD = chipTr.Dist(intersection);
-                let botD = chipB.Dist(intersection);
+                let topLeftD = chipTl.Dist(chipIntersection);
+                let topRightD = chipTr.Dist(chipIntersection);
+                let botD = chipB.Dist(chipIntersection);
                 chipTlQ = topLeftD / botD + 1;
                 chipTrQ = topRightD / botD + 1; 
                 chipBQ = (botD / topRightD + botD / topLeftD) / 2 + 1; // ?
@@ -195,6 +241,7 @@ class Outline extends DrawObj {
                 trStart, brStart, blStart,
                 trStart, blStart, tlStart,
                 chipTlStart, chipTrStart, chipBStart
+                // 0, 0, 0
             ], i * 9);
 
             point = next;

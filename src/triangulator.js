@@ -39,10 +39,14 @@ class VertexDLL {
         return normal;
     }
 
-    IsConcave() {
+    GetCross() {
         let v1 = this.val.Copy().Sub(this.prev.val);
         let v2 = this.next.val.Copy().Sub(this.val);
-        return v1.Det(v2) >= 0;
+        return v1.Det(v2);
+    }
+
+    IsConcave() {
+        return this.GetCross() >= 0;
     }
 }
 
@@ -93,7 +97,7 @@ class Triangulator {
 
         let its = 0;
         let skips = 0;
-        let angThreshold = 40;
+        let angThreshold = 0;
         while (remainingN >= 3) {
             its++;
             let prev = p.prev;

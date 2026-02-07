@@ -208,7 +208,7 @@ class DrawObj {
         return vertex.byteOffset / this.spritter.drawObjQueue.vertexEntryByteSize;
     }
 
-    TestDraw() {
+    TestDraw(clear = false) {
         let canvas = document.getElementById('binpackcanvas');
         let ctx = canvas.getContext('2d');
         ctx.strokeStyle = 'black';
@@ -220,7 +220,8 @@ class DrawObj {
         let cy = canvas.height/2;
         let s = 2;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (clear)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (let i = 0; i < this.indices.length; i++) {
             // abysmal but it works
             let vertexX = new Float32Array(this.vertices[0].buffer)[this.indices[i] * this.spritter.drawObjQueue.vertexEntrySize + 4];
@@ -236,7 +237,9 @@ class DrawObj {
             }
             
             ctx.lineTo(cx + s*nextVertexX, cy - s*nextVertexY);
+            ctx.globalAlpha = 0.25;
             ctx.fillRect(cx + s*nextVertexX, cy - s*nextVertexY, 10, 10);
+            ctx.globalAlpha = 1;
         }
         ctx.stroke();
         ctx.closePath();
@@ -265,7 +268,7 @@ function IntersectionOfLines(a1x, a1y, a2x, a2y, b1x, b1y, b2x, b2y) {
 
 function UnitTest() {
     let test1 = IntersectionOfLines(
-        0,1, 2,0,
+        0,1, 0.5,0.75,
         0,0, 2,1,
     );
     if (!test1.EqualsXY(1, 0.5))

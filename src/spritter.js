@@ -258,13 +258,13 @@ class Spritter {
         this.fireMario.SetTextureAtlas(this.textureManager.textureAtlas);
         this.fireMario.SetTexture('mariofire');
 
-        spikeballShape = new Array(24);
+        spikeballShape = new Array(26);
         for (let i = 0, size = 2; i < spikeballShape.length; i++) {
             let ang = i / spikeballShape.length * 360;
-            // let size = (i & 1) ? 1 : 2;
-            // let size = 1;
+            size = (i & 1) ? 1 : 2;
+            // size = 2;
             // size = 2 + Math.sin(ang / 30);
-            size = 2 + Math.random();
+            // size = 2 + Math.random();
             // size += (Math.random() - 0.5) * 1;
             spikeballShape[i] = new Vec2().ToUnit().Rotate(ang).Scale(size * 100); 
         }
@@ -272,13 +272,13 @@ class Spritter {
         this.testPoly = this.drawObjs.CreatePoly(spikeballShape);
         this.testPoly.SetTextureAtlas(this.textureManager.textureAtlas);
         this.testPoly.SetTexture('test');
-        this.testPoly.TestDraw();
+        // this.testPoly.TestDraw(true);
 
         this.testOutline = this.drawObjs.CreateOutline([], 32, 100);
         this.testOutline.SetTextureAtlas(this.textureManager.textureAtlas);
-        this.testOutline.SetTexture('brick');
-        this.testOutline.SetOutline(spikeballShape, 64, 64);
-        this.testOutline.TestDraw();
+        this.testOutline.SetTexture('grass2');
+        this.testOutline.SetOutline(spikeballShape, 32, 32);
+        this.testOutline.TestDraw(true);
 
         this.curtainSprite = this.drawObjs.CreateCurtainSprite(128, 128, 20, 0.5);
         this.curtainSprite.transparent = false;
@@ -313,12 +313,12 @@ class Spritter {
         this.curtainSprite.texMat3.ToIdentity().TranslateXY(0, -this.tick * 0.01);
         // this.drawObjQueue.BufferDrawobj(this.curtainSprite, 1);
 
-        this.testPoly.mat3.ToIdentity();
+        this.testPoly.mat3.ToIdentity();//.Scale(Math.sin(now)**2 + 1).Rotate(this.tick);
         this.testPoly.texMat3.ToIdentity().Scale(1/32);
         this.drawObjQueue.BufferDrawobj(this.testPoly, 1);
 
         this.testOutline.mat3.Set(this.testPoly.mat3);
-        this.testOutline.texMat3.TranslateXY(-0.01, 0);
+        // this.testOutline.texMat3.TranslateXY(-0.01, 0);
         this.drawObjQueue.BufferDrawobj(this.testOutline, 1);
 
         this.fireMario.SetSubTexture([0, 1, 2, 1, 0, 3, 4, 3][Math.round(this.tick / 4) % 8] * 32, 0, 32, 40);
@@ -362,9 +362,9 @@ class Spritter {
             // this.curtainSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
             // this.drawObjQueue.BufferDrawobj(this.curtainSprite, i);
 
-            this.perspectiveSprite.mat3.Rotate(1);
-            this.perspectiveSprite.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
-            this.drawObjQueue.BufferDrawobj(this.perspectiveSprite, 0);
+            this.testOutline.mat3.Rotate(1);
+            this.testOutline.mat3.TranslateXY((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+            this.drawObjQueue.BufferDrawobj(this.testOutline, 0);
 
             // this.testSprite.tintColor[0] = Math.random();
             // this.testSprite.tintColor[1] = Math.random();
